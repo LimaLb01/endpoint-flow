@@ -46,6 +46,19 @@ app.post('/webhook/whatsapp-flow', async (req, res) => {
   console.log('📥 Requisição recebida');
   
   try {
+    // Validar assinatura da requisição (segurança)
+    const signature = req.headers['x-hub-signature-256'];
+    if (signature && process.env.APP_SECRET) {
+      const isValid = isRequestSignatureValid(req.body, signature);
+      if (!isValid) {
+        console.error('❌ Assinatura inválida - possível tentativa de ataque');
+        return res.status(432).json({ error: 'Invalid signature' });
+      }
+      console.log('✅ Assinatura validada');
+    } else {
+      console.log('⚠️ Validação de assinatura desativada (APP_SECRET não configurado)');
+    }
+
     // Verificar se tem criptografia
     const { encrypted_aes_key, encrypted_flow_data, initial_vector } = req.body;
     
