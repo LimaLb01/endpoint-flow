@@ -1,0 +1,25 @@
+{
+  "messaging_product": "whatsapp",
+  "to": "555492917132",
+  "type": "interactive",
+  "interactive": {
+    "type": "flow",
+    "body": {
+      "text": "Olá! Agende seu horário na barbearia de forma rápida e prática."
+    },
+    "action": {
+      "name": "flow",
+      "parameters": {
+        "flow_message_version": "3",
+        "flow_token": "agendamento-001",
+        "flow_id": "1402764508143842",
+        "flow_cta": "Agendar Horário",
+        "flow_action": "navigate",
+        "flow_action_payload": {
+          "screen": "WELCOME"
+        }
+      }
+    }
+  }
+}
+

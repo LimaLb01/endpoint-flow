@@ -35,7 +35,26 @@ app.get('/', (req, res) => {
   });
 });
 
+// Webhook verification (para configurar webhooks no Meta App Dashboard)
 app.get('/webhook/whatsapp-flow', (req, res) => {
+  const mode = req.query['hub.mode'];
+  const token = req.query['hub.verify_token'];
+  const challenge = req.query['hub.challenge'];
+
+  // Verificação do webhook
+  if (mode && token) {
+    const VERIFY_TOKEN = process.env.WEBHOOK_VERIFY_TOKEN || 'flow_verify_token_2024';
+    
+    if (mode === 'subscribe' && token === VERIFY_TOKEN) {
+      console.log('✅ Webhook verificado com sucesso!');
+      return res.status(200).send(challenge);
+    } else {
+      console.log('❌ Falha na verificação do webhook');
+      return res.sendStatus(403);
+    }
+  }
+
+  // Health check normal
   res.json({ status: 'healthy' });
 });
 

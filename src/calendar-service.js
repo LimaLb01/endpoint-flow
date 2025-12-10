@@ -26,11 +26,11 @@ const WORKING_HOURS = {
 };
 
 // Mapeamento de barbeiros para calendários
-// Configure com os IDs dos calendários reais
+// Para uso único (apenas um calendário), definir CALENDAR_LUCAS
 const BARBER_CALENDARS = {
-  'joao': process.env.CALENDAR_JOAO || 'primary',
-  'pedro': process.env.CALENDAR_PEDRO || 'primary',
-  'carlos': process.env.CALENDAR_CARLOS || 'primary'
+  joao: process.env.CALENDAR_LUCAS || process.env.CALENDAR_JOAO || 'primary',
+  pedro: process.env.CALENDAR_LUCAS || process.env.CALENDAR_PEDRO || 'primary',
+  carlos: process.env.CALENDAR_LUCAS || process.env.CALENDAR_CARLOS || 'primary'
 };
 
 /**
