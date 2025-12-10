@@ -112,57 +112,97 @@ async function getAvailableSlots(barberId, date, serviceId) {
   
   // Se não houver integração real, retornar dados mock
   if (!calendar) {
+    console.log('⚠️ Calendar não inicializado, usando mock');
     return getMockAvailableSlots(date, serviceDuration);
   }
 
   try {
     const calendarId = BARBER_CALENDARS[barberId] || 'primary';
+    console.log(`📅 Usando calendário: ${calendarId}`);
     
-    // Definir início e fim do dia
-    const startOfDay = new Date(`${date}T${String(WORKING_HOURS.start).padStart(2, '0')}:00:00`);
-    const endOfDay = new Date(`${date}T${String(WORKING_HOURS.end).padStart(2, '0')}:00:00`);
+    // Usar formato ISO com timezone de São Paulo para buscar eventos
+    // O Google Calendar API aceita RFC3339 com offset
+    const startOfDayStr = `${date}T${String(WORKING_HOURS.start).padStart(2, '0')}:00:00-03:00`;
+    const endOfDayStr = `${date}T${String(WORKING_HOURS.end).padStart(2, '0')}:00:00-03:00`;
+
+    console.log(`📅 Buscando eventos de ${startOfDayStr} até ${endOfDayStr}`);
 
     // Buscar eventos existentes no calendário
     const response = await calendar.events.list({
       calendarId,
-      timeMin: startOfDay.toISOString(),
-      timeMax: endOfDay.toISOString(),
+      timeMin: startOfDayStr,
+      timeMax: endOfDayStr,
       singleEvents: true,
-      orderBy: 'startTime'
+      orderBy: 'startTime',
+      timeZone: 'America/Sao_Paulo'
     });
 
-    const busySlots = response.data.items.map(event => ({
-      start: new Date(event.start.dateTime || event.start.date),
-      end: new Date(event.end.dateTime || event.end.date)
-    }));
-
-    console.log(`📋 Encontrados ${busySlots.length} eventos ocupados`);
-
-    // Gerar todos os slots possíveis
-    const allSlots = generateTimeSlots(startOfDay, endOfDay, WORKING_HOURS.interval);
+    console.log(`📋 Eventos encontrados: ${response.data.items.length}`);
     
-    // Filtrar slots disponíveis
-    const availableSlots = allSlots.filter(slot => {
-      const slotEnd = new Date(slot.getTime() + serviceDuration * 60000);
+    // Extrair horários ocupados (em formato local de São Paulo)
+    const busySlots = response.data.items.map(event => {
+      const startTime = event.start.dateTime || event.start.date;
+      const endTime = event.end.dateTime || event.end.date;
       
-      // Verificar se o slot não conflita com nenhum evento existente
-      return !busySlots.some(busy => {
-        return slot < busy.end && slotEnd > busy.start;
-      });
-    });
-
-    // Formatar para o formato do WhatsApp Flow
-    return availableSlots.map(slot => {
-      const time = slot.toTimeString().slice(0, 5);
+      // Extrair apenas a hora (HH:MM) do horário
+      const startHour = startTime.substring(11, 16); // "2025-12-11T14:30:00-03:00" -> "14:30"
+      const endHour = endTime.substring(11, 16);
+      
+      console.log(`   📌 Evento ocupado: ${startHour} - ${endHour} (${event.summary})`);
+      
       return {
-        id: time,
-        title: time,
-        description: `Disponível - ${serviceDuration} min`
+        startHour,
+        endHour,
+        startMinutes: parseInt(startHour.split(':')[0]) * 60 + parseInt(startHour.split(':')[1]),
+        endMinutes: parseInt(endHour.split(':')[0]) * 60 + parseInt(endHour.split(':')[1])
       };
     });
 
+    console.log(`📋 Total de ${busySlots.length} eventos ocupados`);
+
+    // Gerar todos os slots possíveis (em minutos desde meia-noite)
+    const allSlots = [];
+    for (let hour = WORKING_HOURS.start; hour < WORKING_HOURS.end; hour++) {
+      for (let min = 0; min < 60; min += WORKING_HOURS.interval) {
+        allSlots.push({
+          hour,
+          min,
+          minutes: hour * 60 + min,
+          time: `${String(hour).padStart(2, '0')}:${String(min).padStart(2, '0')}`
+        });
+      }
+    }
+    
+    // Filtrar slots disponíveis
+    const availableSlots = allSlots.filter(slot => {
+      const slotStart = slot.minutes;
+      const slotEnd = slot.minutes + serviceDuration;
+      
+      // Verificar se o slot não conflita com nenhum evento existente
+      const hasConflict = busySlots.some(busy => {
+        // Conflito: slot começa antes do evento terminar E slot termina depois do evento começar
+        return slotStart < busy.endMinutes && slotEnd > busy.startMinutes;
+      });
+      
+      if (hasConflict) {
+        console.log(`   ❌ Slot ${slot.time} bloqueado por conflito`);
+      }
+      
+      return !hasConflict;
+    });
+
+    console.log(`✅ ${availableSlots.length} horários disponíveis`);
+
+    // Formatar para o formato do WhatsApp Flow
+    return availableSlots.map(slot => ({
+      id: slot.time,
+      title: slot.time,
+      description: `Disponível - ${serviceDuration} min`
+    }));
+
   } catch (error) {
     console.error('❌ Erro ao buscar horários:', error.message);
+    console.error('❌ Stack:', error.stack);
     return getMockAvailableSlots(date, serviceDuration);
   }
 }
