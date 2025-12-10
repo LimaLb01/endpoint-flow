@@ -246,7 +246,15 @@ async function createAppointment(appointment) {
       'pigmentacao': 'Pigmentação'
     };
 
+    // Mapear nome do barbeiro
+    const barberNames = {
+      'joao': 'João Silva',
+      'pedro': 'Pedro Santos',
+      'carlos': 'Carlos Oliveira'
+    };
+
     const serviceName = serviceNames[service] || service;
+    const barberName = barberNames[barber] || barber;
 
     // Calcular horário de fim (adicionar duração)
     const [hours, minutes] = time.split(':').map(Number);
@@ -257,10 +265,11 @@ async function createAppointment(appointment) {
 
     // Criar evento usando formato de data/hora local (sem conversão UTC)
     const event = {
-      summary: `${serviceName} - ${clientName}`,
+      summary: `${serviceName} - ${clientName} (${barberName})`,
       description: `
 📱 Cliente: ${clientName}
 📞 Telefone: ${clientPhone}
+✂️ Barbeiro: ${barberName}
 ${clientEmail ? `📧 Email: ${clientEmail}` : ''}
 ${notes ? `📝 Obs: ${notes}` : ''}
 
