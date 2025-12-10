@@ -13,11 +13,19 @@ const crypto = require('crypto');
 function decryptRequest(body, privatePem, passphrase = '') {
   const { encrypted_aes_key, encrypted_flow_data, initial_vector } = body;
 
+  // Normalizar a chave privada (converter \n literal para quebras de linha reais)
+  let normalizedKey = privatePem;
+  if (privatePem.includes('\\n')) {
+    normalizedKey = privatePem.replace(/\\n/g, '\n');
+  }
+  
+  console.log('🔑 Formato da chave:', normalizedKey.substring(0, 50) + '...');
+
   // Decrypt the AES key created by the client
   const decryptedAesKey = crypto.privateDecrypt(
     {
       key: crypto.createPrivateKey({
-        key: privatePem,
+        key: normalizedKey,
         format: 'pem',
         passphrase: passphrase || undefined
       }),
