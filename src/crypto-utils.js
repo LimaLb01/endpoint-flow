@@ -15,11 +15,20 @@ function decryptRequest(body, privatePem, passphrase = '') {
 
   // Normalizar a chave privada (converter \n literal para quebras de linha reais)
   let normalizedKey = privatePem;
-  if (privatePem.includes('\\n')) {
-    normalizedKey = privatePem.replace(/\\n/g, '\n');
+  
+  // Remover aspas extras se existirem
+  if (normalizedKey.startsWith('"')) {
+    normalizedKey = normalizedKey.slice(1);
+  }
+  if (normalizedKey.endsWith('"')) {
+    normalizedKey = normalizedKey.slice(0, -1);
   }
   
-  console.log('🔑 Formato da chave:', normalizedKey.substring(0, 50) + '...');
+  // Converter \n literal para quebras de linha reais
+  normalizedKey = normalizedKey.replace(/\\n/g, '\n');
+  
+  console.log('🔑 Primeiros 60 chars da chave:', JSON.stringify(normalizedKey.substring(0, 60)));
+  console.log('🔑 Chave começa com BEGIN:', normalizedKey.includes('-----BEGIN'));
 
   // Decrypt the AES key created by the client
   const decryptedAesKey = crypto.privateDecrypt(
