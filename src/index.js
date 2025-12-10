@@ -72,11 +72,9 @@ app.post('/webhook/whatsapp-flow', async (req, res) => {
     let initialVectorBuffer = null;
 
     if (encrypted_aes_key && encrypted_flow_data && initial_vector && process.env.PRIVATE_KEY) {
-      // Descriptografar
+      // Descriptografar usando a nova interface (baseada no exemplo oficial)
       const decryptResult = decryptRequest(
-        encrypted_aes_key,
-        encrypted_flow_data,
-        initial_vector,
+        req.body,
         process.env.PRIVATE_KEY,
         process.env.PASSPHRASE || ''
       );
