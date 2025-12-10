@@ -10,6 +10,9 @@ node_modules/
 keys/
 *.pem
 
+# Credenciais sensíveis
+silver-pen-*.json
+
 # Logs
 logs/
 *.log
