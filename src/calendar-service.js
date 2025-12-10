@@ -237,10 +237,6 @@ async function createAppointment(appointment) {
   try {
     const calendarId = BARBER_CALENDARS[barber] || 'primary';
     
-    // Criar data/hora de início
-    const startDateTime = new Date(`${date}T${time}:00`);
-    const endDateTime = new Date(startDateTime.getTime() + duration * 60000);
-
     // Mapear nome do serviço
     const serviceNames = {
       'corte_masculino': 'Corte Masculino',
@@ -252,7 +248,14 @@ async function createAppointment(appointment) {
 
     const serviceName = serviceNames[service] || service;
 
-    // Criar evento
+    // Calcular horário de fim (adicionar duração)
+    const [hours, minutes] = time.split(':').map(Number);
+    const endMinutes = hours * 60 + minutes + duration;
+    const endHours = Math.floor(endMinutes / 60);
+    const endMins = endMinutes % 60;
+    const endTime = `${String(endHours).padStart(2, '0')}:${String(endMins).padStart(2, '0')}`;
+
+    // Criar evento usando formato de data/hora local (sem conversão UTC)
     const event = {
       summary: `${serviceName} - ${clientName}`,
       description: `
@@ -264,11 +267,11 @@ ${notes ? `📝 Obs: ${notes}` : ''}
 Agendado via WhatsApp Flow
       `.trim(),
       start: {
-        dateTime: startDateTime.toISOString(),
+        dateTime: `${date}T${time}:00`,
         timeZone: 'America/Sao_Paulo'
       },
       end: {
-        dateTime: endDateTime.toISOString(),
+        dateTime: `${date}T${endTime}:00`,
         timeZone: 'America/Sao_Paulo'
       },
       reminders: {
