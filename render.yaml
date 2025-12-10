@@ -1,0 +1,33 @@
+# Configuração para deploy no Render.com
+# https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: whatsapp-flow-endpoint
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: PRIVATE_KEY
+        sync: false
+      - key: PASSPHRASE
+        sync: false
+      - key: APP_SECRET
+        sync: false
+      - key: GOOGLE_CLIENT_EMAIL
+        sync: false
+      - key: GOOGLE_PRIVATE_KEY
+        sync: false
+      - key: CALENDAR_JOAO
+        sync: false
+      - key: CALENDAR_PEDRO
+        sync: false
+      - key: CALENDAR_CARLOS
+        sync: false
+

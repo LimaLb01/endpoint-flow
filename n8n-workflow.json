@@ -1,0 +1,194 @@
+{
+  "name": "WhatsApp Flow - Barbearia (Webhook de Conclusão)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-flow-complete",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "position": [250, 300],
+      "webhookId": "whatsapp-flow-complete",
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "jsCode": "// Processar dados do WhatsApp Flow\nconst body = $input.item.json.body || $input.item.json;\n\nconsole.log('Dados recebidos:', JSON.stringify(body, null, 2));\n\n// Extrair dados do agendamento\nconst data = {\n  service: body.service || body.data?.service || 'Não informado',\n  barber: body.barber || body.data?.barber || 'Não informado',\n  date: body.date || body.data?.date || 'Não informado',\n  time: body.time || body.data?.time || 'Não informado',\n  clientName: body.client_name || body.data?.client_name || 'Não informado',\n  clientPhone: body.client_phone || body.data?.client_phone || 'Não informado',\n  clientEmail: body.client_email || body.data?.client_email || '',\n  notes: body.notes || body.data?.notes || '',\n  flowToken: body.flow_token || ''\n};\n\n// Mapear nome do serviço\nconst serviceNames = {\n  'corte_masculino': 'Corte Masculino - R$ 45',\n  'barba': 'Barba - R$ 35',\n  'corte_barba': 'Corte + Barba - R$ 70',\n  'corte_infantil': 'Corte Infantil - R$ 40',\n  'pigmentacao': 'Pigmentação - R$ 50'\n};\n\ndata.serviceName = serviceNames[data.service] || data.service;\n\n// Criar descrição para o evento\ndata.eventDescription = `📱 Cliente: ${data.clientName}\\n📞 Telefone: ${data.clientPhone}\\n${data.clientEmail ? '📧 Email: ' + data.clientEmail + '\\n' : ''}${data.notes ? '📝 Obs: ' + data.notes + '\\n' : ''}\\nAgendado via WhatsApp Flow`;\n\nreturn { json: data };"
+      },
+      "name": "Processar Dados",
+      "type": "n8n-nodes-base.code",
+      "position": [450, 300],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "calendar": {
+          "__rl": true,
+          "mode": "list",
+          "value": "primary"
+        },
+        "summary": "={{ $json.serviceName }} - {{ $json.clientName }}",
+        "description": "={{ $json.eventDescription }}",
+        "additionalFields": {
+          "allDay": false,
+          "start": "={{ $json.date }}T{{ $json.time }}:00",
+          "end": "={{ DateTime.fromISO($json.date + 'T' + $json.time + ':00').plus({ minutes: 45 }).toISO() }}",
+          "timeZone": "America/Sao_Paulo",
+          "sendUpdates": "all"
+        }
+      },
+      "name": "Google Calendar",
+      "type": "n8n-nodes-base.googleCalendar",
+      "position": [650, 300],
+      "typeVersion": 1,
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "SEU_CREDENTIAL_ID",
+          "name": "Google Calendar Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "success",
+              "type": "boolean",
+              "value": true
+            },
+            {
+              "name": "message",
+              "type": "string",
+              "value": "Agendamento criado com sucesso!"
+            },
+            {
+              "name": "eventId",
+              "type": "string",
+              "value": "={{ $json.id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Preparar Resposta",
+      "type": "n8n-nodes-base.set",
+      "position": [850, 300],
+      "typeVersion": 3.3
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [1050, 300],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "url",
+          "value": "SEU_GOOGLE_SHEETS_URL"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": "Sheet1"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Data": "={{ $('Processar Dados').item.json.date }}",
+            "Horário": "={{ $('Processar Dados').item.json.time }}",
+            "Serviço": "={{ $('Processar Dados').item.json.serviceName }}",
+            "Barbeiro": "={{ $('Processar Dados').item.json.barber }}",
+            "Cliente": "={{ $('Processar Dados').item.json.clientName }}",
+            "Telefone": "={{ $('Processar Dados').item.json.clientPhone }}",
+            "Email": "={{ $('Processar Dados').item.json.clientEmail }}",
+            "Observações": "={{ $('Processar Dados').item.json.notes }}",
+            "Criado em": "={{ $now.toFormat('dd/MM/yyyy HH:mm') }}"
+          }
+        },
+        "options": {}
+      },
+      "name": "Google Sheets (Backup)",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [650, 500],
+      "typeVersion": 4.2,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "SEU_SHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets Account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Processar Dados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Processar Dados": {
+      "main": [
+        [
+          {
+            "node": "Google Calendar",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Google Sheets (Backup)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Calendar": {
+      "main": [
+        [
+          {
+            "node": "Preparar Resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Resposta": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "pinData": {}
+}
+

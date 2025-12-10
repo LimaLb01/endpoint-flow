@@ -1,0 +1,712 @@
+{
+  "version": "7.3",
+  "data_api_version": "3.0",
+  "routing_model": {
+    "WELCOME": ["SERVICE_SELECTION"],
+    "SERVICE_SELECTION": ["DATE_SELECTION"],
+    "DATE_SELECTION": ["BARBER_SELECTION"],
+    "BARBER_SELECTION": ["TIME_SELECTION"],
+    "TIME_SELECTION": ["DETAILS"],
+    "DETAILS": ["CONFIRMATION"],
+    "CONFIRMATION": ["SUCCESS"],
+    "SUCCESS": []
+  },
+  "screens": [
+    {
+      "id": "WELCOME",
+      "title": "Bem-vindo",
+      "terminal": false,
+      "data": {},
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "Image",
+            "src": "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800&auto=format&fit=crop",
+            "height": 180,
+            "scale-type": "cover",
+            "aspect-ratio": 2.5,
+            "alt-text": "Barbearia - Ambiente moderno"
+          },
+          {
+            "type": "TextHeading",
+            "text": "💈 Agende seu horário"
+          },
+          {
+            "type": "TextBody",
+            "text": "Olá! Agende seu atendimento de forma rápida e prática. Em poucos passos você escolhe o serviço, data, barbeiro e horário."
+          },
+          {
+            "type": "TextCaption",
+            "text": "⏱️ Leva menos de 1 minuto"
+          },
+          {
+            "type": "Footer",
+            "label": "Começar agendamento",
+            "on-click-action": {
+              "name": "data_exchange",
+              "payload": {
+                "action_type": "INIT"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "SERVICE_SELECTION",
+      "title": "Escolha o Serviço",
+      "terminal": false,
+      "data": {
+        "services": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "title": { "type": "string" },
+              "description": { "type": "string" }
+            }
+          },
+          "__example__": [
+            { "id": "corte_masculino", "title": "Corte Masculino", "description": "R$ 45 • 45 min" }
+          ]
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Qual serviço você deseja?"
+          },
+          {
+            "type": "TextCaption",
+            "text": "Selecione uma opção abaixo"
+          },
+          {
+            "type": "Form",
+            "name": "service_form",
+            "children": [
+              {
+                "type": "RadioButtonsGroup",
+                "name": "selected_service",
+                "label": "Serviços disponíveis",
+                "required": true,
+                "data-source": "${data.services}"
+              }
+            ]
+          },
+          {
+            "type": "Footer",
+            "label": "Escolher data",
+            "on-click-action": {
+              "name": "data_exchange",
+              "payload": {
+                "action_type": "SELECT_SERVICE",
+                "selected_service": "${form.selected_service}"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "DATE_SELECTION",
+      "title": "Escolha a Data",
+      "terminal": false,
+      "data": {
+        "selected_service": {
+          "type": "string",
+          "__example__": "corte_masculino"
+        },
+        "service_name": {
+          "type": "string",
+          "__example__": "Corte Masculino"
+        },
+        "service_price": {
+          "type": "string",
+          "__example__": "R$ 45"
+        },
+        "min_date": {
+          "type": "string",
+          "__example__": "2025-01-01"
+        },
+        "max_date": {
+          "type": "string",
+          "__example__": "2025-12-31"
+        },
+        "unavailable_dates": {
+          "type": "array",
+          "items": { "type": "string" },
+          "__example__": ["2025-12-25"]
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Quando você quer vir?"
+          },
+          {
+            "type": "TextBody",
+            "text": "${data.service_name}"
+          },
+          {
+            "type": "TextCaption",
+            "text": "${data.service_price}"
+          },
+          {
+            "type": "Form",
+            "name": "date_form",
+            "children": [
+              {
+                "type": "DatePicker",
+                "name": "selected_date",
+                "label": "Selecione a data",
+                "required": true,
+                "min-date": "${data.min_date}",
+                "max-date": "${data.max_date}",
+                "unavailable-dates": "${data.unavailable_dates}"
+              }
+            ]
+          },
+          {
+            "type": "Footer",
+            "label": "Ver barbeiros disponíveis",
+            "on-click-action": {
+              "name": "data_exchange",
+              "payload": {
+                "action_type": "SELECT_DATE",
+                "selected_service": "${data.selected_service}",
+                "selected_date": "${form.selected_date}"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "BARBER_SELECTION",
+      "title": "Escolha o Barbeiro",
+      "terminal": false,
+      "data": {
+        "selected_service": {
+          "type": "string",
+          "__example__": "corte_masculino"
+        },
+        "selected_date": {
+          "type": "string",
+          "__example__": "2025-01-15"
+        },
+        "service_name": {
+          "type": "string",
+          "__example__": "Corte Masculino"
+        },
+        "service_price": {
+          "type": "string",
+          "__example__": "R$ 45"
+        },
+        "formatted_date": {
+          "type": "string",
+          "__example__": "15/01/2025"
+        },
+        "barbers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "title": { "type": "string" },
+              "description": { "type": "string" }
+            }
+          },
+          "__example__": [
+            { "id": "joao", "title": "João Silva", "description": "Disponível" }
+          ]
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Quem vai te atender?"
+          },
+          {
+            "type": "TextCaption",
+            "text": "${data.service_name}"
+          },
+          {
+            "type": "TextCaption",
+            "text": "${data.formatted_date}"
+          },
+          {
+            "type": "Form",
+            "name": "barber_form",
+            "children": [
+              {
+                "type": "RadioButtonsGroup",
+                "name": "selected_barber",
+                "label": "Barbeiros disponíveis",
+                "required": true,
+                "data-source": "${data.barbers}"
+              }
+            ]
+          },
+          {
+            "type": "Footer",
+            "label": "Ver horários",
+            "on-click-action": {
+              "name": "data_exchange",
+              "payload": {
+                "action_type": "SELECT_BARBER",
+                "selected_service": "${data.selected_service}",
+                "selected_date": "${data.selected_date}",
+                "selected_barber": "${form.selected_barber}"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "TIME_SELECTION",
+      "title": "Escolha o Horário",
+      "terminal": false,
+      "data": {
+        "selected_service": {
+          "type": "string",
+          "__example__": "corte_masculino"
+        },
+        "selected_date": {
+          "type": "string",
+          "__example__": "2025-01-15"
+        },
+        "selected_barber": {
+          "type": "string",
+          "__example__": "joao"
+        },
+        "service_name": {
+          "type": "string",
+          "__example__": "Corte Masculino"
+        },
+        "service_price": {
+          "type": "string",
+          "__example__": "R$ 45"
+        },
+        "barber_name": {
+          "type": "string",
+          "__example__": "João Silva"
+        },
+        "formatted_date": {
+          "type": "string",
+          "__example__": "15/01/2025"
+        },
+        "available_times": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "title": { "type": "string" },
+              "description": { "type": "string" }
+            }
+          },
+          "__example__": [
+            { "id": "09:00", "title": "09:00", "description": "Disponível" }
+          ]
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Horários disponíveis"
+          },
+          {
+            "type": "TextCaption",
+            "text": "${data.barber_name}"
+          },
+          {
+            "type": "TextCaption",
+            "text": "${data.formatted_date}"
+          },
+          {
+            "type": "TextCaption",
+            "text": "Horários em tempo real do Google Agenda"
+          },
+          {
+            "type": "Form",
+            "name": "time_form",
+            "children": [
+              {
+                "type": "RadioButtonsGroup",
+                "name": "selected_time",
+                "label": "Selecione um horário",
+                "required": true,
+                "data-source": "${data.available_times}"
+              }
+            ]
+          },
+          {
+            "type": "Footer",
+            "label": "Continuar",
+            "on-click-action": {
+              "name": "data_exchange",
+              "payload": {
+                "action_type": "SELECT_TIME",
+                "selected_service": "${data.selected_service}",
+                "selected_date": "${data.selected_date}",
+                "selected_barber": "${data.selected_barber}",
+                "selected_time": "${form.selected_time}"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "DETAILS",
+      "title": "Seus Dados",
+      "terminal": false,
+      "data": {
+        "selected_service": {
+          "type": "string",
+          "__example__": "corte_masculino"
+        },
+        "selected_date": {
+          "type": "string",
+          "__example__": "2025-01-15"
+        },
+        "selected_barber": {
+          "type": "string",
+          "__example__": "joao"
+        },
+        "selected_time": {
+          "type": "string",
+          "__example__": "09:00"
+        },
+        "service_name": {
+          "type": "string",
+          "__example__": "Corte Masculino"
+        },
+        "service_price": {
+          "type": "string",
+          "__example__": "R$ 45"
+        },
+        "barber_name": {
+          "type": "string",
+          "__example__": "João Silva"
+        },
+        "formatted_date": {
+          "type": "string",
+          "__example__": "15/01/2025"
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Quase lá! Seus dados"
+          },
+          {
+            "type": "TextCaption",
+            "text": "${data.service_name}"
+          },
+          {
+            "type": "TextCaption",
+            "text": "${data.barber_name}"
+          },
+          {
+            "type": "TextCaption",
+            "text": "${data.formatted_date}"
+          },
+          {
+            "type": "TextCaption",
+            "text": "${data.selected_time}"
+          },
+          {
+            "type": "Form",
+            "name": "details_form",
+            "children": [
+              {
+                "type": "TextInput",
+                "name": "client_name",
+                "label": "Seu nome completo",
+                "required": true,
+                "input-type": "text"
+              },
+              {
+                "type": "TextInput",
+                "name": "client_phone",
+                "label": "WhatsApp para contato",
+                "required": true,
+                "input-type": "phone"
+              },
+              {
+                "type": "TextInput",
+                "name": "client_email",
+                "label": "E-mail (opcional)",
+                "required": false,
+                "input-type": "email"
+              },
+              {
+                "type": "Dropdown",
+                "name": "contact_preference",
+                "label": "Preferência de contato",
+                "required": true,
+                "data-source": [
+                  { "id": "whatsapp", "title": "WhatsApp" },
+                  { "id": "ligacao", "title": "Ligação" },
+                  { "id": "ambos", "title": "Ambos" }
+                ]
+              },
+              {
+                "type": "TextArea",
+                "name": "notes",
+                "label": "Observações (opcional)",
+                "required": false
+              }
+            ]
+          },
+          {
+            "type": "Footer",
+            "label": "Revisar agendamento",
+            "on-click-action": {
+              "name": "data_exchange",
+              "payload": {
+                "action_type": "SUBMIT_DETAILS",
+                "selected_service": "${data.selected_service}",
+                "selected_date": "${data.selected_date}",
+                "selected_barber": "${data.selected_barber}",
+                "selected_time": "${data.selected_time}",
+                "client_name": "${form.client_name}",
+                "client_phone": "${form.client_phone}",
+                "client_email": "${form.client_email}",
+                "contact_preference": "${form.contact_preference}",
+                "notes": "${form.notes}"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "CONFIRMATION",
+      "title": "Confirmar",
+      "terminal": false,
+      "data": {
+        "selected_service": {
+          "type": "string",
+          "__example__": "corte_masculino"
+        },
+        "selected_date": {
+          "type": "string",
+          "__example__": "2025-01-15"
+        },
+        "selected_barber": {
+          "type": "string",
+          "__example__": "joao"
+        },
+        "selected_time": {
+          "type": "string",
+          "__example__": "09:00"
+        },
+        "client_name": {
+          "type": "string",
+          "__example__": "João Cliente"
+        },
+        "client_phone": {
+          "type": "string",
+          "__example__": "+55 11 99999-9999"
+        },
+        "client_email": {
+          "type": "string",
+          "__example__": "cliente@email.com"
+        },
+        "contact_preference": {
+          "type": "string",
+          "__example__": "whatsapp"
+        },
+        "notes": {
+          "type": "string",
+          "__example__": ""
+        },
+        "service_name": {
+          "type": "string",
+          "__example__": "Corte Masculino"
+        },
+        "service_price": {
+          "type": "string",
+          "__example__": "R$ 45"
+        },
+        "barber_name": {
+          "type": "string",
+          "__example__": "João Silva"
+        },
+        "formatted_date": {
+          "type": "string",
+          "__example__": "15/01/2025 (Quarta-feira)"
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "📋 Confirme seu agendamento"
+          },
+          {
+            "type": "TextSubheading",
+            "text": "Revise os dados antes de confirmar"
+          },
+          {
+            "type": "TextBody",
+            "text": "💈 Serviço: ${data.service_name}"
+          },
+          {
+            "type": "TextBody",
+            "text": "💰 Valor: ${data.service_price}"
+          },
+          {
+            "type": "TextBody",
+            "text": "✂️ Barbeiro: ${data.barber_name}"
+          },
+          {
+            "type": "TextBody",
+            "text": "📅 Data: ${data.formatted_date}"
+          },
+          {
+            "type": "TextBody",
+            "text": "🕐 Horário: ${data.selected_time}"
+          },
+          {
+            "type": "TextBody",
+            "text": "👤 Cliente: ${data.client_name}"
+          },
+          {
+            "type": "TextBody",
+            "text": "📱 Telefone: ${data.client_phone}"
+          },
+          {
+            "type": "TextCaption",
+            "text": "⚠️ Política de cancelamento: avise com pelo menos 2 horas de antecedência para evitar taxas."
+          },
+          {
+            "type": "Footer",
+            "label": "✅ Confirmar agendamento",
+            "on-click-action": {
+              "name": "data_exchange",
+              "payload": {
+                "action_type": "CONFIRM_BOOKING",
+                "selected_service": "${data.selected_service}",
+                "selected_date": "${data.selected_date}",
+                "selected_barber": "${data.selected_barber}",
+                "selected_time": "${data.selected_time}",
+                "client_name": "${data.client_name}",
+                "client_phone": "${data.client_phone}",
+                "client_email": "${data.client_email}",
+                "contact_preference": "${data.contact_preference}",
+                "notes": "${data.notes}"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "SUCCESS",
+      "title": "Confirmado!",
+      "terminal": true,
+      "success": true,
+      "data": {
+        "booking_id": {
+          "type": "string",
+          "__example__": "AGD-12345"
+        },
+        "service_name": {
+          "type": "string",
+          "__example__": "Corte Masculino"
+        },
+        "barber_name": {
+          "type": "string",
+          "__example__": "João Silva"
+        },
+        "formatted_date": {
+          "type": "string",
+          "__example__": "15/01/2025 (Quarta-feira)"
+        },
+        "selected_time": {
+          "type": "string",
+          "__example__": "09:00"
+        },
+        "service_price": {
+          "type": "string",
+          "__example__": "R$ 45"
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "✅ Agendamento confirmado!"
+          },
+          {
+            "type": "TextSubheading",
+            "text": "Código: ${data.booking_id}"
+          },
+          {
+            "type": "TextBody",
+            "text": "Seu horário está reservado:"
+          },
+          {
+            "type": "TextBody",
+            "text": "💈 ${data.service_name}"
+          },
+          {
+            "type": "TextBody",
+            "text": "✂️ ${data.barber_name}"
+          },
+          {
+            "type": "TextBody",
+            "text": "📅 ${data.formatted_date}"
+          },
+          {
+            "type": "TextBody",
+            "text": "🕐 ${data.selected_time}"
+          },
+          {
+            "type": "TextBody",
+            "text": "💰 Valor: ${data.service_price}"
+          },
+          {
+            "type": "TextCaption",
+            "text": "📲 Você receberá uma mensagem de confirmação e lembrete antes do horário."
+          },
+          {
+            "type": "TextCaption",
+            "text": "❌ Para cancelar, entre em contato pelo WhatsApp informando o código do agendamento."
+          },
+          {
+            "type": "Footer",
+            "label": "Concluir",
+            "on-click-action": {
+              "name": "complete",
+              "payload": {
+                "booking_id": "${data.booking_id}",
+                "status": "confirmed"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
+
+
