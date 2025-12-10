@@ -64,19 +64,22 @@ app.post('/webhook/whatsapp-flow', async (req, res) => {
     
     let decryptedData;
     let shouldEncrypt = false;
-    let encryptionParams = null;
+    let aesKeyBuffer = null;
+    let initialVectorBuffer = null;
 
     if (encrypted_aes_key && encrypted_flow_data && initial_vector && process.env.PRIVATE_KEY) {
       // Descriptografar
-      decryptedData = decryptRequest(
+      const decryptResult = decryptRequest(
         encrypted_aes_key,
         encrypted_flow_data,
         initial_vector,
         process.env.PRIVATE_KEY,
         process.env.PASSPHRASE || ''
       );
+      decryptedData = decryptResult.decryptedBody;
+      aesKeyBuffer = decryptResult.aesKeyBuffer;
+      initialVectorBuffer = decryptResult.initialVectorBuffer;
       shouldEncrypt = true;
-      encryptionParams = { encrypted_aes_key, initial_vector };
       console.log('🔓 Dados descriptografados');
     } else {
       // Sem criptografia (teste local)
@@ -92,14 +95,16 @@ app.post('/webhook/whatsapp-flow', async (req, res) => {
     console.log('📤 Resposta:', JSON.stringify(response, null, 2));
 
     // Criptografar resposta se necessário
-    if (shouldEncrypt && encryptionParams) {
+    // IMPORTANTE: WhatsApp espera resposta como texto plano (Base64)
+    if (shouldEncrypt && aesKeyBuffer && initialVectorBuffer) {
       const encryptedResponse = encryptResponse(
         response,
-        encryptionParams.encrypted_aes_key,
-        process.env.PRIVATE_KEY,
-        process.env.PASSPHRASE || ''
+        aesKeyBuffer,
+        initialVectorBuffer
       );
-      return res.json(encryptedResponse);
+      // Retornar como texto plano (não JSON!)
+      res.set('Content-Type', 'text/plain');
+      return res.send(encryptedResponse);
     }
 
     return res.json(response);

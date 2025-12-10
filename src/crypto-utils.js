@@ -12,7 +12,7 @@ const crypto = require('crypto');
  * @param {string} initialVector - Vetor de inicialização (IV)
  * @param {string} privateKey - Chave privada RSA (PEM)
  * @param {string} passphrase - Senha da chave privada (se houver)
- * @returns {object} Dados descriptografados
+ * @returns {object} { decryptedBody, aesKeyBuffer, initialVectorBuffer }
  */
 function decryptRequest(encryptedAesKey, encryptedFlowData, initialVector, privateKey, passphrase = '') {
   try {
@@ -45,7 +45,12 @@ function decryptRequest(encryptedAesKey, encryptedFlowData, initialVector, priva
     let decrypted = decipher.update(encryptedData, null, 'utf8');
     decrypted += decipher.final('utf8');
 
-    return JSON.parse(decrypted);
+    // Retornar dados descriptografados + chaves para criptografia da resposta
+    return {
+      decryptedBody: JSON.parse(decrypted),
+      aesKeyBuffer: aesKey,
+      initialVectorBuffer: ivBuffer
+    };
 
   } catch (error) {
     console.error('❌ Erro ao descriptografar:', error.message);
@@ -55,31 +60,25 @@ function decryptRequest(encryptedAesKey, encryptedFlowData, initialVector, priva
 
 /**
  * Criptografa a resposta para o WhatsApp Flow
+ * IMPORTANTE: Conforme documentação oficial do WhatsApp:
+ * - O IV deve ser INVERTIDO (flip all bits) do IV original
+ * - A resposta deve ser retornada como string Base64 pura (text/plain)
+ * 
  * @param {object} response - Resposta a ser criptografada
- * @param {string} encryptedAesKey - Chave AES original (para derivar a mesma chave)
- * @param {string} privateKey - Chave privada RSA
- * @param {string} passphrase - Senha da chave privada
- * @returns {string} Resposta criptografada em Base64
+ * @param {Buffer} aesKeyBuffer - Chave AES já descriptografada
+ * @param {Buffer} initialVectorBuffer - IV original da requisição
+ * @returns {string} Resposta criptografada em Base64 (texto plano)
  */
-function encryptResponse(response, encryptedAesKey, privateKey, passphrase = '') {
+function encryptResponse(response, aesKeyBuffer, initialVectorBuffer) {
   try {
-    // Descriptografar a chave AES original
-    const encryptedAesKeyBuffer = Buffer.from(encryptedAesKey, 'base64');
-    const aesKey = crypto.privateDecrypt(
-      {
-        key: privateKey,
-        padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
-        oaepHash: 'sha256',
-        passphrase: passphrase
-      },
-      encryptedAesKeyBuffer
-    );
-
-    // Gerar um novo IV aleatório
-    const iv = crypto.randomBytes(12);
+    // Inverter o IV (flip all bits) - OBRIGATÓRIO pela spec do WhatsApp
+    const flippedIv = Buffer.alloc(initialVectorBuffer.length);
+    for (let i = 0; i < initialVectorBuffer.length; i++) {
+      flippedIv[i] = ~initialVectorBuffer[i] & 0xFF;
+    }
 
     // Criptografar a resposta usando AES-GCM
-    const cipher = crypto.createCipheriv('aes-128-gcm', aesKey, iv);
+    const cipher = crypto.createCipheriv('aes-128-gcm', aesKeyBuffer, flippedIv);
     
     const responseString = JSON.stringify(response);
     let encrypted = cipher.update(responseString, 'utf8');
@@ -88,14 +87,10 @@ function encryptResponse(response, encryptedAesKey, privateKey, passphrase = '')
     // Obter a tag de autenticação
     const authTag = cipher.getAuthTag();
 
-    // Combinar dados criptografados + tag
+    // Combinar dados criptografados + tag e retornar como Base64
     const encryptedWithTag = Buffer.concat([encrypted, authTag]);
-
-    // Retornar resposta no formato esperado pelo WhatsApp
-    return {
-      encrypted_flow_data: encryptedWithTag.toString('base64'),
-      initial_vector: iv.toString('base64')
-    };
+    
+    return encryptedWithTag.toString('base64');
 
   } catch (error) {
     console.error('❌ Erro ao criptografar resposta:', error.message);
