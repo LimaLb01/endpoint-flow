@@ -653,60 +653,73 @@
         "type": "SingleColumnLayout",
         "children": [
           {
-            "type": "TextHeading",
-            "text": "✅ Agendamento confirmado!"
-          },
-          {
-            "type": "TextSubheading",
-            "text": "Código: ${data.booking_id}"
-          },
-          {
-            "type": "TextBody",
-            "text": "Seu horário está reservado:"
-          },
-          {
-            "type": "TextBody",
-            "text": "💈 ${data.service_name}"
-          },
-          {
-            "type": "TextBody",
-            "text": "✂️ ${data.barber_name}"
-          },
-          {
-            "type": "TextBody",
-            "text": "📅 ${data.formatted_date}"
-          },
-          {
-            "type": "TextBody",
-            "text": "🕐 ${data.selected_time}"
-          },
-          {
-            "type": "TextBody",
-            "text": "💰 Valor: ${data.service_price}"
-          },
-          {
-            "type": "TextCaption",
-            "text": "📲 Você receberá uma mensagem de confirmação e lembrete antes do horário."
-          },
-          {
-            "type": "TextCaption",
-            "text": "❌ Para cancelar, entre em contato pelo WhatsApp informando o código do agendamento."
-          },
-          {
-            "type": "Footer",
-            "label": "Concluir",
-            "on-click-action": {
-              "name": "complete",
-              "payload": {
-                "booking_id": "${data.booking_id}",
-                "status": "confirmed"
+            "type": "Form",
+            "name": "form",
+            "children": [
+              {
+                "type": "TextHeading",
+                "text": "✅ Agendamento confirmado!"
+              },
+              {
+                "type": "TextSubheading",
+                "text": "Código: ${data.booking_id}"
+              },
+              {
+                "type": "TextBody",
+                "text": "Seu horário está reservado:"
+              },
+              {
+                "type": "TextBody",
+                "text": "💈 ${data.service_name}"
+              },
+              {
+                "type": "TextBody",
+                "text": "✂️ ${data.barber_name}"
+              },
+              {
+                "type": "TextBody",
+                "text": "📅 ${data.formatted_date}"
+              },
+              {
+                "type": "TextBody",
+                "text": "🕐 ${data.selected_time}"
+              },
+              {
+                "type": "TextBody",
+                "text": "💰 Valor: ${data.service_price}"
+              },
+              {
+                "type": "TextCaption",
+                "text": "📲 Você receberá uma mensagem de confirmação e lembrete antes do horário."
+              },
+              {
+                "type": "TextCaption",
+                "text": "❌ Para cancelar, entre em contato pelo WhatsApp informando o código do agendamento."
+              },
+              {
+                "type": "Footer",
+                "label": "Done",
+                "on-click-action": {
+                  "name": "complete",
+                  "payload": {
+                    "booking_id": "${data.booking_id}",
+                    "service_name": "${data.service_name}",
+                    "barber_name": "${data.barber_name}",
+                    "formatted_date": "${data.formatted_date}",
+                    "selected_time": "${data.selected_time}",
+                    "service_price": "${data.service_price}",
+                    "status": "confirmed"
+                  }
+                }
               }
-            }
+            ]
           }
         ]
       }
     }
   ]
 }
+
+
 
 

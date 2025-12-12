@@ -334,6 +334,8 @@ async function handleSubmitDetails(payload) {
     client_name, client_phone, client_email, contact_preference, notes 
   } = payload;
   
+  console.log('📋 SUBMIT_DETAILS - Payload recebido:', JSON.stringify(payload, null, 2));
+  
   const service = SERVICES.find(s => s.id === selected_service) || SERVICES[0];
   const barbers = await getBarbers();
   const barber = barbers.find(b => b.id === selected_barber) || barbers[0];
@@ -343,24 +345,28 @@ async function handleSubmitDetails(payload) {
   const diasSemana = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
   const formattedDate = `${selected_date.split('-').reverse().join('/')} (${diasSemana[dateObj.getDay()]})`;
   
+  const responseData = {
+    selected_service,
+    selected_date,
+    selected_barber,
+    selected_time,
+    client_name,
+    client_phone,
+    client_email: client_email || '',
+    contact_preference,
+    notes: notes || '',
+    service_name: service.title,
+    service_price: `R$ ${service.price}`,
+    barber_name: barber.title,
+    formatted_date: formattedDate
+  };
+  
+  console.log('📤 SUBMIT_DETAILS - Dados que serão retornados:', JSON.stringify(responseData, null, 2));
+  
   return {
     version: '3.0',
     screen: 'CONFIRMATION',
-    data: {
-      selected_service,
-      selected_date,
-      selected_barber,
-      selected_time,
-      client_name,
-      client_phone,
-      client_email: client_email || '',
-      contact_preference,
-      notes: notes || '',
-      service_name: service.title,
-      service_price: `R$ ${service.price}`,
-      barber_name: barber.title,
-      formatted_date: formattedDate
-    }
+    data: responseData
   };
 }
 
