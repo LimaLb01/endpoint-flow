@@ -331,19 +331,28 @@ async function handleSelectTime(payload) {
 async function handleSubmitDetails(payload) {
   const { 
     selected_service, selected_date, selected_barber, selected_time,
-    client_name, client_phone, client_email, contact_preference, notes 
+    client_name, client_phone, client_email, contact_preference, notes,
+    // Dados formatados que podem vir do payload
+    service_name: payload_service_name,
+    service_price: payload_service_price,
+    barber_name: payload_barber_name,
+    formatted_date: payload_formatted_date
   } = payload;
   
   console.log('📋 SUBMIT_DETAILS - Payload recebido:', JSON.stringify(payload, null, 2));
   
+  // Usar dados formatados do payload se disponíveis, senão formatar
   const service = SERVICES.find(s => s.id === selected_service) || SERVICES[0];
   const barbers = await getBarbers();
   const barber = barbers.find(b => b.id === selected_barber) || barbers[0];
   
-  // Formatar data
-  const dateObj = new Date(selected_date + 'T12:00:00');
-  const diasSemana = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
-  const formattedDate = `${selected_date.split('-').reverse().join('/')} (${diasSemana[dateObj.getDay()]})`;
+  // Formatar data se não vier do payload
+  let formattedDate = payload_formatted_date;
+  if (!formattedDate) {
+    const dateObj = new Date(selected_date + 'T12:00:00');
+    const diasSemana = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+    formattedDate = `${selected_date.split('-').reverse().join('/')} (${diasSemana[dateObj.getDay()]})`;
+  }
   
   const responseData = {
     selected_service,
@@ -355,9 +364,9 @@ async function handleSubmitDetails(payload) {
     client_email: client_email || '',
     contact_preference,
     notes: notes || '',
-    service_name: service.title,
-    service_price: `R$ ${service.price}`,
-    barber_name: barber.title,
+    service_name: payload_service_name || service.title,
+    service_price: payload_service_price || `R$ ${service.price}`,
+    barber_name: payload_barber_name || barber.title,
     formatted_date: formattedDate
   };
   
