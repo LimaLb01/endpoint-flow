@@ -8,13 +8,12 @@
     "BARBER_SELECTION": ["TIME_SELECTION"],
     "TIME_SELECTION": ["DETAILS"],
     "DETAILS": ["CONFIRMATION"],
-    "CONFIRMATION": ["SUCCESS"],
-    "SUCCESS": []
+    "CONFIRMATION": []
   },
   "screens": [
     {
       "id": "WELCOME",
-      "title": "Bem-vindo",
+      "title": "Bem-vindo ao teste",
       "terminal": false,
       "data": {},
       "layout": {
@@ -336,7 +335,7 @@
           },
           {
             "type": "TextCaption",
-            "text": "Horários em tempo real do Google Agenda"
+            "text": "⏰ Horários em tempo real"
           },
           {
             "type": "Form",
@@ -414,8 +413,16 @@
             "text": "Quase lá! Seus dados"
           },
           {
+            "type": "TextBody",
+            "text": "Resumo do agendamento:"
+          },
+          {
             "type": "TextCaption",
             "text": "${data.service_name}"
+          },
+          {
+            "type": "TextCaption",
+            "text": "${data.service_price}"
           },
           {
             "type": "TextCaption",
@@ -455,17 +462,6 @@
                 "input-type": "email"
               },
               {
-                "type": "Dropdown",
-                "name": "contact_preference",
-                "label": "Preferência de contato",
-                "required": true,
-                "data-source": [
-                  { "id": "whatsapp", "title": "WhatsApp" },
-                  { "id": "ligacao", "title": "Ligação" },
-                  { "id": "ambos", "title": "Ambos" }
-                ]
-              },
-              {
                 "type": "TextArea",
                 "name": "notes",
                 "label": "Observações (opcional)",
@@ -484,14 +480,9 @@
                 "selected_date": "${data.selected_date}",
                 "selected_barber": "${data.selected_barber}",
                 "selected_time": "${data.selected_time}",
-                "service_name": "${data.service_name}",
-                "service_price": "${data.service_price}",
-                "barber_name": "${data.barber_name}",
-                "formatted_date": "${data.formatted_date}",
                 "client_name": "${form.client_name}",
                 "client_phone": "${form.client_phone}",
                 "client_email": "${form.client_email}",
-                "contact_preference": "${form.contact_preference}",
                 "notes": "${form.notes}"
               }
             }
@@ -502,8 +493,13 @@
     {
       "id": "CONFIRMATION",
       "title": "Confirmar",
-      "terminal": false,
+      "terminal": true,
+      "success": true,
       "data": {
+        "booking_id": {
+          "type": "string",
+          "__example__": "AGD-12345"
+        },
         "selected_service": {
           "type": "string",
           "__example__": "corte_masculino"
@@ -532,10 +528,6 @@
           "type": "string",
           "__example__": "cliente@email.com"
         },
-        "contact_preference": {
-          "type": "string",
-          "__example__": "whatsapp"
-        },
         "notes": {
           "type": "string",
           "__example__": ""
@@ -555,102 +547,6 @@
         "formatted_date": {
           "type": "string",
           "__example__": "15/01/2025 (Quarta-feira)"
-        }
-      },
-      "layout": {
-        "type": "SingleColumnLayout",
-        "children": [
-          {
-            "type": "TextHeading",
-            "text": "📋 Confirme seu agendamento"
-          },
-          {
-            "type": "TextSubheading",
-            "text": "Revise os dados antes de confirmar"
-          },
-          {
-            "type": "TextBody",
-            "text": "💈 Serviço: ${data.service_name}"
-          },
-          {
-            "type": "TextBody",
-            "text": "💰 Valor: ${data.service_price}"
-          },
-          {
-            "type": "TextBody",
-            "text": "✂️ Barbeiro: ${data.barber_name}"
-          },
-          {
-            "type": "TextBody",
-            "text": "📅 Data: ${data.formatted_date}"
-          },
-          {
-            "type": "TextBody",
-            "text": "🕐 Horário: ${data.selected_time}"
-          },
-          {
-            "type": "TextBody",
-            "text": "👤 Cliente: ${data.client_name}"
-          },
-          {
-            "type": "TextBody",
-            "text": "📱 Telefone: ${data.client_phone}"
-          },
-          {
-            "type": "TextCaption",
-            "text": "⚠️ Política de cancelamento: avise com pelo menos 2 horas de antecedência para evitar taxas."
-          },
-          {
-            "type": "Footer",
-            "label": "✅ Confirmar agendamento",
-            "on-click-action": {
-              "name": "data_exchange",
-              "payload": {
-                "action_type": "CONFIRM_BOOKING",
-                "selected_service": "${data.selected_service}",
-                "selected_date": "${data.selected_date}",
-                "selected_barber": "${data.selected_barber}",
-                "selected_time": "${data.selected_time}",
-                "client_name": "${data.client_name}",
-                "client_phone": "${data.client_phone}",
-                "client_email": "${data.client_email}",
-                "contact_preference": "${data.contact_preference}",
-                "notes": "${data.notes}"
-              }
-            }
-          }
-        ]
-      }
-    },
-    {
-      "id": "SUCCESS",
-      "title": "Confirmado!",
-      "terminal": true,
-      "success": true,
-      "data": {
-        "booking_id": {
-          "type": "string",
-          "__example__": "AGD-12345"
-        },
-        "service_name": {
-          "type": "string",
-          "__example__": "Corte Masculino"
-        },
-        "barber_name": {
-          "type": "string",
-          "__example__": "João Silva"
-        },
-        "formatted_date": {
-          "type": "string",
-          "__example__": "15/01/2025 (Quarta-feira)"
-        },
-        "selected_time": {
-          "type": "string",
-          "__example__": "09:00"
-        },
-        "service_price": {
-          "type": "string",
-          "__example__": "R$ 45"
         }
       },
       "layout": {
@@ -693,25 +589,36 @@
                 "text": "💰 Valor: ${data.service_price}"
               },
               {
-                "type": "TextCaption",
-                "text": "📲 Você receberá uma mensagem de confirmação e lembrete antes do horário."
+                "type": "TextBody",
+                "text": "👤 Cliente: ${data.client_name}"
               },
               {
                 "type": "TextCaption",
-                "text": "❌ Para cancelar, entre em contato pelo WhatsApp informando o código do agendamento."
+                "text": "📲 Você receberá uma confirmação e lembrete antes do horário."
+              },
+              {
+                "type": "TextCaption",
+                "text": "⚠️ Para cancelar, entre em contato informando o código ${data.booking_id}"
               },
               {
                 "type": "Footer",
-                "label": "Done",
+                "label": "Concluir",
                 "on-click-action": {
                   "name": "complete",
                   "payload": {
                     "booking_id": "${data.booking_id}",
+                    "selected_service": "${data.selected_service}",
+                    "selected_date": "${data.selected_date}",
+                    "selected_barber": "${data.selected_barber}",
+                    "selected_time": "${data.selected_time}",
+                    "client_name": "${data.client_name}",
+                    "client_phone": "${data.client_phone}",
+                    "client_email": "${data.client_email}",
+                    "notes": "${data.notes}",
                     "service_name": "${data.service_name}",
+                    "service_price": "${data.service_price}",
                     "barber_name": "${data.barber_name}",
                     "formatted_date": "${data.formatted_date}",
-                    "selected_time": "${data.selected_time}",
-                    "service_price": "${data.service_price}",
                     "status": "confirmed"
                   }
                 }
@@ -723,7 +630,3 @@
     }
   ]
 }
-
-
-
-

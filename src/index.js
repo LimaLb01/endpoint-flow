@@ -110,7 +110,60 @@ app.post('/webhook/whatsapp-flow', async (req, res) => {
 
     console.log('📋 Dados:', JSON.stringify(decryptedData, null, 2));
 
-    // Processar requisição
+    // Verificar se é um webhook de mensagem (quando Flow é concluído)
+    if (decryptedData.object === 'whatsapp_business_account' && decryptedData.entry) {
+      let isWebhookMessage = false;
+      
+      for (const entry of decryptedData.entry) {
+        if (entry.changes) {
+          for (const change of entry.changes) {
+            // Webhook de status de mensagem (sent, delivered, etc) - ignorar
+            if (change.field === 'messages' && change.value?.statuses) {
+              console.log('📨 Webhook de status de mensagem - ignorando');
+              return res.status(200).json({});
+            }
+            
+            // Webhook de mensagem recebida (nfm_reply quando Flow é concluído)
+            if (change.field === 'messages' && change.value?.messages) {
+              for (const message of change.value.messages) {
+                // Verificar se é uma resposta de Flow (nfm_reply)
+                if (message.type === 'interactive' && 
+                    message.interactive?.type === 'nfm_reply' &&
+                    message.interactive?.nfm_reply?.response_json) {
+                  
+                  isWebhookMessage = true;
+                  console.log('📨 Webhook de mensagem - Flow concluído!');
+                  
+                  try {
+                    // Extrair dados do response_json
+                    const bookingData = JSON.parse(message.interactive.nfm_reply.response_json);
+                    console.log('📋 Dados do agendamento recebidos:', JSON.stringify(bookingData, null, 2));
+                    
+                    // Verificar se tem status "confirmed" (Flow foi concluído)
+                    if (bookingData.status === 'confirmed') {
+                      console.log('✅ Processando confirmação de agendamento...');
+                      
+                      // Criar agendamento no Google Calendar
+                      await handleConfirmBooking(bookingData);
+                      
+                      console.log('✅ Agendamento criado no Google Calendar!');
+                    }
+                  } catch (error) {
+                    console.error('❌ Erro ao processar webhook de mensagem:', error.message);
+                    console.error('❌ Stack:', error.stack);
+                  }
+                  
+                  // Retornar resposta vazia para webhooks de mensagem
+                  return res.status(200).json({});
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Processar requisição do Flow
     const response = await handleFlowRequest(decryptedData);
 
     console.log('📤 Resposta:', JSON.stringify(response, null, 2));
@@ -331,28 +384,19 @@ async function handleSelectTime(payload) {
 async function handleSubmitDetails(payload) {
   const { 
     selected_service, selected_date, selected_barber, selected_time,
-    client_name, client_phone, client_email, contact_preference, notes,
-    // Dados formatados que podem vir do payload
-    service_name: payload_service_name,
-    service_price: payload_service_price,
-    barber_name: payload_barber_name,
-    formatted_date: payload_formatted_date
+    client_name, client_phone, client_email, contact_preference, notes 
   } = payload;
   
   console.log('📋 SUBMIT_DETAILS - Payload recebido:', JSON.stringify(payload, null, 2));
   
-  // Usar dados formatados do payload se disponíveis, senão formatar
   const service = SERVICES.find(s => s.id === selected_service) || SERVICES[0];
   const barbers = await getBarbers();
   const barber = barbers.find(b => b.id === selected_barber) || barbers[0];
   
-  // Formatar data se não vier do payload
-  let formattedDate = payload_formatted_date;
-  if (!formattedDate) {
-    const dateObj = new Date(selected_date + 'T12:00:00');
-    const diasSemana = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
-    formattedDate = `${selected_date.split('-').reverse().join('/')} (${diasSemana[dateObj.getDay()]})`;
-  }
+  // Formatar data
+  const dateObj = new Date(selected_date + 'T12:00:00');
+  const diasSemana = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+  const formattedDate = `${selected_date.split('-').reverse().join('/')} (${diasSemana[dateObj.getDay()]})`;
   
   const responseData = {
     selected_service,
@@ -364,28 +408,38 @@ async function handleSubmitDetails(payload) {
     client_email: client_email || '',
     contact_preference,
     notes: notes || '',
-    service_name: payload_service_name || service.title,
-    service_price: payload_service_price || `R$ ${service.price}`,
-    barber_name: payload_barber_name || barber.title,
+    service_name: service.title,
+    service_price: `R$ ${service.price}`,
+    barber_name: barber.title,
     formatted_date: formattedDate
   };
   
-  console.log('📤 SUBMIT_DETAILS - Dados que serão retornados:', JSON.stringify(responseData, null, 2));
+  // Gerar booking_id temporário (será usado quando criar o agendamento)
+  const bookingId = `AGD-${Date.now().toString().slice(-6)}`;
+  
+  const responseDataWithBooking = {
+    ...responseData,
+    booking_id: bookingId
+  };
+  
+  console.log('📤 SUBMIT_DETAILS - Dados que serão retornados:', JSON.stringify(responseDataWithBooking, null, 2));
   
   return {
     version: '3.0',
     screen: 'CONFIRMATION',
-    data: responseData
+    data: responseDataWithBooking
   };
 }
 
 /**
- * Confirmação → cria agendamento e vai para sucesso
+ * Confirmação → cria agendamento no Google Calendar
+ * Pode ser chamado via data_exchange (Flow antigo) ou via webhook (Flow novo)
  */
 async function handleConfirmBooking(payload) {
   const { 
     selected_service, selected_date, selected_barber, selected_time,
-    client_name, client_phone, client_email, contact_preference, notes 
+    client_name, client_phone, client_email, contact_preference, notes,
+    booking_id // Pode vir do webhook ou ser gerado
   } = payload;
   
   const service = SERVICES.find(s => s.id === selected_service) || SERVICES[0];
@@ -393,6 +447,15 @@ async function handleConfirmBooking(payload) {
   const barber = barbers.find(b => b.id === selected_barber) || barbers[0];
   
   console.log('✅ Criando agendamento no Google Calendar...');
+  console.log('📝 Dados do agendamento:', {
+    service: selected_service,
+    barber: selected_barber,
+    date: selected_date,
+    time: selected_time,
+    clientName: client_name,
+    clientPhone: client_phone,
+    bookingId: booking_id
+  });
   
   try {
     // Criar evento no Google Calendar
@@ -403,46 +466,60 @@ async function handleConfirmBooking(payload) {
       time: selected_time,
       clientName: client_name,
       clientPhone: client_phone,
-      clientEmail: client_email,
-      contactPreference: contact_preference,
-      notes: notes
+      clientEmail: client_email || '',
+      contactPreference: contact_preference || '',
+      notes: notes || ''
     });
     
-    // Gerar código do agendamento
-    const bookingId = `AGD-${Date.now().toString().slice(-6)}`;
+    // Usar booking_id existente ou gerar novo
+    const finalBookingId = booking_id || `AGD-${Date.now().toString().slice(-6)}`;
     
-    // Formatar data
-    const dateObj = new Date(selected_date + 'T12:00:00');
-    const diasSemana = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
-    const formattedDate = `${selected_date.split('-').reverse().join('/')} (${diasSemana[dateObj.getDay()]})`;
+    console.log(`✅ Agendamento criado no Google Calendar: ${finalBookingId}`);
+    console.log(`📅 Evento ID: ${appointment.id || 'N/A'}`);
     
-    console.log(`✅ Agendamento criado: ${bookingId}`);
+    // Se foi chamado via data_exchange (Flow antigo), retornar tela SUCCESS
+    // Se foi chamado via webhook (Flow novo), não precisa retornar nada
+    if (payload.action_type === 'CONFIRM_BOOKING') {
+      // Formatar data
+      const dateObj = new Date(selected_date + 'T12:00:00');
+      const diasSemana = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+      const formattedDate = `${selected_date.split('-').reverse().join('/')} (${diasSemana[dateObj.getDay()]})`;
+      
+      return {
+        version: '3.0',
+        screen: 'SUCCESS',
+        data: {
+          booking_id: finalBookingId,
+          service_name: service.title,
+          barber_name: barber.title,
+          formatted_date: formattedDate,
+          selected_time: selected_time,
+          service_price: `R$ ${service.price}`
+        }
+      };
+    }
     
-    return {
-      version: '3.0',
-      screen: 'SUCCESS',
-      data: {
-        booking_id: bookingId,
-        service_name: service.title,
-        barber_name: barber.title,
-        formatted_date: formattedDate,
-        selected_time: selected_time,
-        service_price: `R$ ${service.price}`
-      }
-    };
+    // Se foi chamado via webhook, não retorna nada (já foi respondido)
+    return null;
     
   } catch (error) {
     console.error('❌ Erro ao criar agendamento:', error.message);
+    console.error('❌ Stack:', error.stack);
     
-    // Retornar erro amigável
-    return {
-      version: '3.0',
-      screen: 'CONFIRMATION',
-      data: {
-        ...payload,
-        error_message: 'Não foi possível confirmar. Tente novamente.'
-      }
-    };
+    // Se foi chamado via data_exchange, retornar erro
+    if (payload.action_type === 'CONFIRM_BOOKING') {
+      return {
+        version: '3.0',
+        screen: 'CONFIRMATION',
+        data: {
+          ...payload,
+          error_message: 'Não foi possível confirmar. Tente novamente.'
+        }
+      };
+    }
+    
+    // Se foi chamado via webhook, apenas logar o erro
+    throw error;
   }
 }
 
