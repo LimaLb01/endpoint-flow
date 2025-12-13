@@ -433,11 +433,11 @@ async function handleSubmitDetails(payload) {
   
   console.log('📤 SUBMIT_DETAILS - Dados que serão retornados:', JSON.stringify(responseDataWithBooking, null, 2));
   
-  // Retornar tela CONFIRMATION com todos os dados
-  // Os dados devem ser aplicados no contexto antes de navegar para a tela terminal
+  // Retornar tela CONFIRMATION_PREP (intermediária não-terminal) com todos os dados
+  // Isso garante que os dados sejam aplicados no contexto antes de navegar para a tela terminal
   return {
     version: '3.0',
-    screen: 'CONFIRMATION',
+    screen: 'CONFIRMATION_PREP',
     data: responseDataWithBooking
   };
 }
