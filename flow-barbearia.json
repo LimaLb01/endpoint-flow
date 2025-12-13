@@ -14,7 +14,7 @@
   "screens": [
     {
       "id": "WELCOME",
-      "title": "Bem-vindo ao teste",
+      "title": "Bem-vindo",
       "terminal": false,
       "data": {},
       "layout": {
@@ -497,7 +497,7 @@
     },
     {
       "id": "CONFIRMATION_PREP",
-      "title": "Preparando",
+      "title": "Processando",
       "terminal": false,
       "data": {
         "booking_id": {
@@ -557,10 +557,26 @@
         "type": "SingleColumnLayout",
         "children": [
           {
+            "type": "TextHeading",
+            "text": "✅ Agendamento confirmado!"
+          },
+          {
+            "type": "TextSubheading",
+            "text": "Código: ${data.booking_id}"
+          },
+          {
+            "type": "TextBody",
+            "text": "Seu horário está reservado"
+          },
+          {
             "type": "Footer",
-            "label": "Continuar",
+            "label": "Ver detalhes",
             "on-click-action": {
               "name": "navigate",
+              "next": {
+                "type": "screen",
+                "name": "CONFIRMATION"
+              },
               "payload": {
                 "booking_id": "${data.booking_id}",
                 "selected_service": "${data.selected_service}",
@@ -575,10 +591,6 @@
                 "service_price": "${data.service_price}",
                 "barber_name": "${data.barber_name}",
                 "formatted_date": "${data.formatted_date}"
-              },
-              "next": {
-                "type": "screen",
-                "name": "CONFIRMATION"
               }
             }
           }
@@ -587,7 +599,7 @@
     },
     {
       "id": "CONFIRMATION",
-      "title": "Confirmar",
+      "title": "Detalhes",
       "terminal": true,
       "success": true,
       "data": {
@@ -652,18 +664,6 @@
             "name": "form",
             "children": [
               {
-                "type": "TextHeading",
-                "text": "✅ Agendamento confirmado!"
-              },
-              {
-                "type": "TextSubheading",
-                "text": "Código: ${data.booking_id}"
-              },
-              {
-                "type": "TextBody",
-                "text": "Seu horário está reservado:"
-              },
-              {
                 "type": "TextBody",
                 "text": "💈 ${data.service_name}"
               },
@@ -681,19 +681,19 @@
               },
               {
                 "type": "TextBody",
-                "text": "💰 Valor: ${data.service_price}"
+                "text": "💰 ${data.service_price}"
               },
               {
                 "type": "TextBody",
-                "text": "👤 Cliente: ${data.client_name}"
+                "text": "👤 ${data.client_name}"
               },
               {
                 "type": "TextCaption",
-                "text": "📲 Você receberá uma confirmação e lembrete antes do horário."
+                "text": "📲 Você receberá confirmação e lembrete"
               },
               {
                 "type": "TextCaption",
-                "text": "⚠️ Para cancelar, entre em contato informando o código ${data.booking_id}"
+                "text": "⚠️ Para cancelar, informe o código ${data.booking_id}"
               },
               {
                 "type": "Footer",
