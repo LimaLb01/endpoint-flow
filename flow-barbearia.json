@@ -483,7 +483,11 @@
                 "client_name": "${form.client_name}",
                 "client_phone": "${form.client_phone}",
                 "client_email": "${form.client_email}",
-                "notes": "${form.notes}"
+                "notes": "${form.notes}",
+                "service_name": "${data.service_name}",
+                "service_price": "${data.service_price}",
+                "barber_name": "${data.barber_name}",
+                "formatted_date": "${data.formatted_date}"
               }
             }
           }
