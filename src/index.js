@@ -433,10 +433,11 @@ async function handleSubmitDetails(payload) {
   
   console.log('📤 SUBMIT_DETAILS - Dados que serão retornados:', JSON.stringify(responseDataWithBooking, null, 2));
   
-  // Retornar apenas os dados (sem especificar a tela)
-  // O Flow usará navigate para ir para CONFIRMATION com os dados no contexto
+  // Retornar tela CONFIRMATION com todos os dados
+  // Os dados devem ser aplicados no contexto antes de navegar para a tela terminal
   return {
     version: '3.0',
+    screen: 'CONFIRMATION',
     data: responseDataWithBooking
   };
 }
