@@ -488,6 +488,10 @@
                 "service_price": "${data.service_price}",
                 "barber_name": "${data.barber_name}",
                 "formatted_date": "${data.formatted_date}"
+              },
+              "next": {
+                "type": "screen",
+                "name": "CONFIRMATION"
               }
             }
           }
