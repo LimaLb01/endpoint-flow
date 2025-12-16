@@ -8,7 +8,8 @@
     "dev": "nodemon src/index.js",
     "generate-keys": "node scripts/generate-keys.js",
     "setup-env": "node scripts/setup-env.js",
-    "test-decrypt": "node scripts/test-decrypt.js"
+    "test-decrypt": "node scripts/test-decrypt.js",
+    "verificar-deploy": "node scripts/verificar-deploy.js"
   },
   "keywords": [
     "whatsapp",
