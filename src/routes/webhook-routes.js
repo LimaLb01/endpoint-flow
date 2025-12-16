@@ -14,8 +14,54 @@ const { createRequestLogger, globalLogger } = require('../utils/logger');
 const { flowWebhookRateLimiter, criticalEndpointRateLimiter } = require('../middleware/rate-limit-middleware');
 
 /**
- * GET /webhook/whatsapp-flow
- * Verificação do webhook pelo Meta Developers
+ * @swagger
+ * /webhook/whatsapp-flow:
+ *   get:
+ *     summary: Verificação do webhook
+ *     description: |
+ *       Endpoint usado pelo Meta Developers para verificar o webhook durante a configuração.
+ *       Deve retornar o challenge quando o token de verificação estiver correto.
+ *     tags: [Webhook]
+ *     parameters:
+ *       - in: query
+ *         name: hub.mode
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [subscribe]
+ *         description: Modo de verificação (sempre 'subscribe')
+ *       - in: query
+ *         name: hub.verify_token
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Token de verificação configurado no Meta Developers
+ *       - in: query
+ *         name: hub.challenge
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Challenge string que deve ser retornado
+ *     responses:
+ *       200:
+ *         description: Verificação bem-sucedida - retorna o challenge
+ *         content:
+ *           text/plain:
+ *             schema:
+ *               type: string
+ *               example: "challenge_string_123"
+ *       403:
+ *         description: Token de verificação inválido
+ *       200:
+ *         description: Health check normal (quando não é verificação)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: healthy
  */
 router.get('/whatsapp-flow', (req, res) => {
   const logger = req.requestId ? createRequestLogger(req.requestId) : globalLogger;
@@ -41,9 +87,119 @@ router.get('/whatsapp-flow', (req, res) => {
 });
 
 /**
- * POST /webhook/whatsapp-flow
- * Endpoint principal do WhatsApp Flow
- * Aplica rate limiting por número de WhatsApp e por IP
+ * @swagger
+ * /webhook/whatsapp-flow:
+ *   post:
+ *     summary: Endpoint principal do WhatsApp Flow
+ *     description: |
+ *       Recebe requisições do WhatsApp Flow (INIT, data_exchange, nfm_reply).
+ *       Processa interações do usuário e retorna respostas para o Flow.
+ *       
+ *       **Tipos de requisições:**
+ *       - `INIT`: Inicialização do Flow
+ *       - `data_exchange`: Interações do usuário (seleção de serviço, data, barbeiro, horário, etc.)
+ *       - `nfm_reply`: Confirmação final do agendamento
+ *       
+ *       **Segurança:**
+ *       - Requer validação de assinatura (X-Hub-Signature-256)
+ *       - Payload pode ser criptografado (AES-256-GCM)
+ *       - Rate limiting aplicado (50 req/min por número WhatsApp)
+ *     tags: [Webhook]
+ *     security:
+ *       - SignatureValidation: []
+ *     requestBody:
+ *       required: true
+ *       description: |
+ *         Payload do WhatsApp Flow. Pode ser criptografado ou em texto plano.
+ *         Quando criptografado, o middleware de descriptografia processa automaticamente.
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/FlowRequest'
+ *           examples:
+ *             init:
+ *               summary: Requisição INIT
+ *               value:
+ *                 action: INIT
+ *                 version: "3.0"
+ *             dataExchange:
+ *               summary: Data Exchange (seleção de serviço)
+ *               value:
+ *                 action: data_exchange
+ *                 version: "3.0"
+ *                 data:
+ *                   action_type: SELECT_SERVICE
+ *                   selected_service: corte_masculino
+ *             confirmBooking:
+ *               summary: Confirmação de agendamento
+ *               value:
+ *                 action: data_exchange
+ *                 version: "3.0"
+ *                 data:
+ *                   action_type: CONFIRM_BOOKING
+ *                   booking_id: AGD-123456
+ *         text/plain:
+ *           description: Payload criptografado (quando encryption está ativa)
+ *           schema:
+ *             type: string
+ *     responses:
+ *       200:
+ *         description: Resposta do Flow processada com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/FlowResponse'
+ *             examples:
+ *               initResponse:
+ *                 summary: Resposta para INIT
+ *                 value:
+ *                   version: "3.0"
+ *                   screen: SERVICE_SELECTION
+ *                   data:
+ *                     services:
+ *                       - id: corte_masculino
+ *                         name: Corte Masculino
+ *                       - id: barba
+ *                         name: Barba
+ *               serviceSelected:
+ *                 summary: Resposta após seleção de serviço
+ *                 value:
+ *                   version: "3.0"
+ *                   screen: DATE_SELECTION
+ *                   data:
+ *                     min_date: "2025-12-16"
+ *                     max_date: "2025-12-30"
+ *           text/plain:
+ *             description: Resposta criptografada (quando encryption está ativa)
+ *             schema:
+ *               type: string
+ *       400:
+ *         description: Erro de validação dos dados
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             example:
+ *               error: "Campo 'selected_service' é obrigatório"
+ *               code: "VALIDATION_ERROR"
+ *               statusCode: 400
+ *               requestId: "550e8400-e29b-41d4-a716-446655440000"
+ *       429:
+ *         description: Rate limit excedido
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *             example:
+ *               error: "Muitas requisições. Tente novamente em alguns segundos."
+ *               code: "RATE_LIMIT_ERROR"
+ *               statusCode: 429
+ *       500:
+ *         description: Erro interno do servidor
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.post('/whatsapp-flow', flowWebhookRateLimiter, async (req, res) => {
   const logger = req.requestId ? createRequestLogger(req.requestId) : globalLogger;

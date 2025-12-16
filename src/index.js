@@ -20,6 +20,8 @@ const { errorHandlerMiddleware } = require('./middleware/error-handler');
 const { generalRateLimiter } = require('./middleware/rate-limit-middleware');
 const { metricsMiddleware } = require('./middleware/metrics-middleware');
 const { getMetrics } = require('./utils/metrics');
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('./config/swagger');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -40,14 +42,55 @@ app.use(metricsMiddleware);
 app.use(generalRateLimiter);
 
 // ============================================
+// Swagger UI - Documentação da API
+// ============================================
+
+/**
+ * @swagger
+ * /api-docs:
+ *   get:
+ *     summary: Documentação interativa da API
+ *     description: Interface Swagger UI para explorar e testar a API
+ */
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'WhatsApp Flow API - Documentação',
+  customfavIcon: '/favicon.ico'
+}));
+
+// ============================================
 // Rotas de Health Check
 // ============================================
 
 const { getHealthStatus } = require('./services/health-service');
 
 /**
- * GET /
- * Health check básico (mantido para compatibilidade)
+ * @swagger
+ * /:
+ *   get:
+ *     summary: Health check básico
+ *     description: Retorna status básico da API (mantido para compatibilidade)
+ *     tags: [Health]
+ *     responses:
+ *       200:
+ *         description: Servidor está funcionando
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: ok
+ *                 message:
+ *                   type: string
+ *                   example: WhatsApp Flow Endpoint - Barbearia
+ *                 version:
+ *                   type: string
+ *                   example: 2.0.0
+ *                 timestamp:
+ *                   type: string
+ *                   format: date-time
  */
 app.get('/', (req, res) => {
   res.json({ 
@@ -59,8 +102,44 @@ app.get('/', (req, res) => {
 });
 
 /**
- * GET /health
- * Health check detalhado com status de todos os serviços
+ * @swagger
+ * /health:
+ *   get:
+ *     summary: Health check detalhado
+ *     description: Retorna status detalhado de todos os serviços integrados (Google Calendar, WhatsApp API, etc.)
+ *     tags: [Health]
+ *     responses:
+ *       200:
+ *         description: Sistema está saudável
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/HealthStatus'
+ *             example:
+ *               status: healthy
+ *               timestamp: "2025-12-16T18:00:00.000Z"
+ *               services:
+ *                 googleCalendar:
+ *                   status: healthy
+ *                   message: "Google Calendar API acessível"
+ *                 whatsappAPI:
+ *                   status: healthy
+ *                   message: "WhatsApp API acessível"
+ *                 encryption:
+ *                   status: healthy
+ *                   message: "Criptografia configurada"
+ *                 signatureValidation:
+ *                   status: healthy
+ *                   message: "Validação de assinatura configurada"
+ *                 bookingStorage:
+ *                   status: healthy
+ *                   message: "Storage de agendamentos funcionando"
+ *       503:
+ *         description: Sistema com problemas
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/HealthStatus'
  */
 app.get('/health', async (req, res) => {
   try {
@@ -82,8 +161,55 @@ app.get('/health', async (req, res) => {
 });
 
 /**
- * GET /metrics
- * Endpoint de métricas e monitoramento
+ * @swagger
+ * /metrics:
+ *   get:
+ *     summary: Métricas e monitoramento
+ *     description: Retorna métricas detalhadas do sistema (requisições, agendamentos, erros, cache, etc.)
+ *     tags: [Metrics]
+ *     responses:
+ *       200:
+ *         description: Métricas do sistema
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Metrics'
+ *             example:
+ *               uptime: 3600
+ *               requests:
+ *                 total: 1000
+ *                 byType:
+ *                   INIT: 200
+ *                   data_exchange: 800
+ *                 byStatus:
+ *                   success: 950
+ *                   error: 50
+ *               responseTime:
+ *                 average: 150
+ *                 min: 50
+ *                 max: 500
+ *                 p50: 120
+ *                 p95: 300
+ *                 p99: 450
+ *               bookings:
+ *                 total: 100
+ *                 successful: 95
+ *                 failed: 5
+ *               errors:
+ *                 total: 50
+ *                 byType:
+ *                   ValidationError: 30
+ *                   CalendarError: 20
+ *               cache:
+ *                 hits: 800
+ *                 misses: 200
+ *                 hitRate: "80.00%"
+ *       500:
+ *         description: Erro ao obter métricas
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 app.get('/metrics', (req, res) => {
   try {

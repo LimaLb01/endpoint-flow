@@ -421,15 +421,44 @@ Após análise completa do código, identifiquei várias oportunidades de melhor
 
 ---
 
-### 12. ⚠️ **Documentação de API**
-**Problema:** Não há documentação formal da API.
+### 12. ✅ **Documentação de API** - CONCLUÍDA
+**Problema:** Não havia documentação formal da API.
 
-**Solução:**
-- Swagger/OpenAPI
-- Documentar endpoints
-- Exemplos de requisições
+**Solução Implementada:**
+- ✅ Swagger/OpenAPI 3.0 implementado
+- ✅ Swagger UI integrado no Express (`/api-docs`)
+- ✅ Documentação completa de todos os endpoints
+- ✅ Exemplos de requisições e respostas
+- ✅ Schemas reutilizáveis (HealthStatus, Metrics, FlowRequest, FlowResponse, Error)
+- ✅ Documentação de segurança (validação de assinatura)
+- ✅ Tags organizadas (Health, Metrics, Webhook)
+
+**Arquivos Criados:**
+- `src/config/swagger.js` - Configuração do Swagger/OpenAPI
+- Documentação inline nos arquivos de rotas usando JSDoc
+
+**Endpoints Documentados:**
+- ✅ `GET /` - Health check básico
+- ✅ `GET /health` - Health check detalhado
+- ✅ `GET /metrics` - Métricas e monitoramento
+- ✅ `GET /webhook/whatsapp-flow` - Verificação do webhook
+- ✅ `POST /webhook/whatsapp-flow` - Endpoint principal do Flow
+- ✅ `GET /api-docs` - Interface Swagger UI
+
+**Características:**
+- Interface interativa para explorar e testar a API
+- Exemplos de requisições e respostas para cada endpoint
+- Documentação de códigos de erro e status HTTP
+- Descrição detalhada de cada parâmetro e schema
+- Informações sobre rate limiting e segurança
 
 **Impacto:** 🟢 Baixo - Developer Experience
+
+**Notas:**
+- Acesse `/api-docs` para ver a documentação interativa
+- Documentação é gerada automaticamente a partir dos comentários JSDoc
+- Schemas podem ser reutilizados em outros endpoints
+- Interface Swagger UI permite testar endpoints diretamente
 
 ---
 
