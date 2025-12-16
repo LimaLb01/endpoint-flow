@@ -104,6 +104,7 @@ app.use((req, res) => {
 // Inicialização do Servidor
 // ============================================
 
+// Inicializar servidor
 app.listen(PORT, () => {
   globalLogger.info('🚀 WhatsApp Flow Endpoint - Barbearia', {
     port: PORT,
@@ -115,6 +116,9 @@ app.listen(PORT, () => {
     nodeVersion: process.version,
     timezone: process.env.TZ || 'UTC'
   });
+  
+  // Log adicional para confirmar que o servidor está pronto
+  console.log(`✅ Servidor iniciado na porta ${PORT}`);
 });
 
 module.exports = app;

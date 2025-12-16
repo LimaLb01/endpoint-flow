@@ -6,7 +6,9 @@
 const pino = require('pino');
 
 // Determinar se está em desenvolvimento ou produção
-const isDevelopment = process.env.NODE_ENV !== 'production';
+// Verificar explicitamente se NODE_ENV está definido como 'production'
+const isDevelopment = process.env.NODE_ENV === 'development' || 
+                      (process.env.NODE_ENV !== 'production' && !process.env.RAILWAY_ENVIRONMENT);
 
 /**
  * Configuração do logger
@@ -18,20 +20,28 @@ const loggerConfig = {
       return { level: label };
     }
   },
-  timestamp: pino.stdTimeFunctions.isoTime,
-  // Em desenvolvimento, usar formatação legível
-  // Em produção, usar JSON puro
-  ...(isDevelopment && {
-    transport: {
+  timestamp: pino.stdTimeFunctions.isoTime
+};
+
+// Em desenvolvimento, usar formatação legível
+// Em produção, usar JSON puro (não usar pino-pretty em produção)
+if (isDevelopment) {
+  try {
+    // Tentar carregar pino-pretty apenas em desenvolvimento
+    // Se não estiver disponível, usar JSON puro
+    loggerConfig.transport = {
       target: 'pino-pretty',
       options: {
         colorize: true,
         translateTime: 'SYS:standard',
         ignore: 'pid,hostname'
       }
-    }
-  })
-};
+    };
+  } catch (error) {
+    // Se pino-pretty não estiver disponível, continuar sem ele
+    console.warn('pino-pretty não disponível, usando JSON puro');
+  }
+}
 
 // Criar instância do logger
 const logger = pino(loggerConfig);
