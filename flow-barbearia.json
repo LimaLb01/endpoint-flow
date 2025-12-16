@@ -408,6 +408,22 @@
         "booking_id": {
           "type": "string",
           "__example__": "AGD-12345"
+        },
+        "client_name": {
+          "type": "string",
+          "__example__": "João Cliente"
+        },
+        "client_phone": {
+          "type": "string",
+          "__example__": "+55 11 99999-9999"
+        },
+        "client_email": {
+          "type": "string",
+          "__example__": "cliente@email.com"
+        },
+        "notes": {
+          "type": "string",
+          "__example__": ""
         }
       },
       "layout": {
@@ -419,31 +435,7 @@
           },
           {
             "type": "TextBody",
-            "text": "Resumo do agendamento:"
-          },
-          {
-            "type": "TextBody",
-            "text": "💈 ${data.service_name}"
-          },
-          {
-            "type": "TextBody",
-            "text": "💰 ${data.service_price}"
-          },
-          {
-            "type": "TextBody",
-            "text": "✂️ ${data.barber_name}"
-          },
-          {
-            "type": "TextBody",
-            "text": "📅 ${data.formatted_date}"
-          },
-          {
-            "type": "TextBody",
-            "text": "🕐 ${data.selected_time}"
-          },
-          {
-            "type": "TextCaption",
-            "text": "Preencha seus dados abaixo para confirmar"
+            "text": "Preencha seus dados para confirmar o agendamento"
           },
           {
             "type": "Form",
@@ -505,44 +497,12 @@
     },
     {
       "id": "CONFIRMATION",
-      "title": "Detalhes",
+      "title": "Confirmação",
       "terminal": false,
       "data": {
         "booking_id": {
           "type": "string",
-          "__example__": "AGD-12345"
-        },
-        "selected_service": {
-          "type": "string",
-          "__example__": "corte_masculino"
-        },
-        "selected_date": {
-          "type": "string",
-          "__example__": "2025-01-15"
-        },
-        "selected_barber": {
-          "type": "string",
-          "__example__": "joao"
-        },
-        "selected_time": {
-          "type": "string",
-          "__example__": "09:00"
-        },
-        "client_name": {
-          "type": "string",
-          "__example__": "João Cliente"
-        },
-        "client_phone": {
-          "type": "string",
-          "__example__": "+55 11 99999-9999"
-        },
-        "client_email": {
-          "type": "string",
-          "__example__": "cliente@email.com"
-        },
-        "notes": {
-          "type": "string",
-          "__example__": ""
+          "__example__": "AGD-123456"
         },
         "service_name": {
           "type": "string",
@@ -558,24 +518,44 @@
         },
         "formatted_date": {
           "type": "string",
-          "__example__": "15/01/2025 (Quarta-feira)"
+          "__example__": "17/12/2025 (Quarta)"
+        },
+        "selected_time": {
+          "type": "string",
+          "__example__": "14:00"
+        },
+        "client_name": {
+          "type": "string",
+          "__example__": "João Cliente"
+        },
+        "client_phone": {
+          "type": "string",
+          "__example__": "54992917132"
+        },
+        "client_email": {
+          "type": "string",
+          "__example__": "cliente@email.com"
+        },
+        "notes": {
+          "type": "string",
+          "__example__": ""
         }
       },
       "layout": {
         "type": "SingleColumnLayout",
         "children": [
           {
-            "type": "TextHeading",
-            "text": "✅ Agendamento confirmado!"
-          },
-          {
-            "type": "TextSubheading",
-            "text": "Código: ${data.booking_id}"
-          },
-          {
             "type": "Form",
             "name": "confirmation_form",
             "children": [
+              {
+                "type": "TextHeading",
+                "text": "✅ Agendamento confirmado!"
+              },
+              {
+                "type": "TextSubheading",
+                "text": "Código: ${data.booking_id}"
+              },
               {
                 "type": "TextBody",
                 "text": "Seu horário está reservado:"
@@ -583,6 +563,10 @@
               {
                 "type": "TextBody",
                 "text": "💈 ${data.service_name}"
+              },
+              {
+                "type": "TextBody",
+                "text": "💰 ${data.service_price}"
               },
               {
                 "type": "TextBody",
@@ -598,11 +582,11 @@
               },
               {
                 "type": "TextBody",
-                "text": "💰 ${data.service_price}"
+                "text": "👤 ${data.client_name}"
               },
               {
                 "type": "TextBody",
-                "text": "👤 ${data.client_name}"
+                "text": "📞 ${data.client_phone}"
               },
               {
                 "type": "TextCaption",
@@ -652,7 +636,7 @@
       "data": {
         "booking_id": {
           "type": "string",
-          "__example__": "AGD-12345"
+          "__example__": "AGD-123456"
         },
         "selected_service": {
           "type": "string",
@@ -660,7 +644,7 @@
         },
         "selected_date": {
           "type": "string",
-          "__example__": "2025-01-15"
+          "__example__": "2025-12-17"
         },
         "selected_barber": {
           "type": "string",
@@ -668,7 +652,7 @@
         },
         "selected_time": {
           "type": "string",
-          "__example__": "09:00"
+          "__example__": "15:00"
         },
         "client_name": {
           "type": "string",
@@ -676,7 +660,7 @@
         },
         "client_phone": {
           "type": "string",
-          "__example__": "+55 11 99999-9999"
+          "__example__": "54992917132"
         },
         "client_email": {
           "type": "string",
@@ -700,7 +684,7 @@
         },
         "formatted_date": {
           "type": "string",
-          "__example__": "15/01/2025 (Quarta-feira)"
+          "__example__": "17/12/2025 (Quarta)"
         },
         "status": {
           "type": "string",
@@ -737,7 +721,7 @@
                 "service_price": "${data.service_price}",
                 "barber_name": "${data.barber_name}",
                 "formatted_date": "${data.formatted_date}",
-                "status": "confirmed"
+                "status": "${data.status}"
               }
             }
           }

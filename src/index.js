@@ -14,6 +14,10 @@ const { getAvailableSlots, createAppointment, getBarbers } = require('./calendar
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Armazenamento temporário de agendamentos (usando booking_id como chave)
+// Em produção, use um banco de dados ou cache (Redis)
+const bookingStorage = new Map();
+
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -121,6 +125,13 @@ app.post('/webhook/whatsapp-flow', async (req, res) => {
           console.log(`🔍 Processando ${entry.changes.length} mudança(s) no entry`);
           for (const change of entry.changes) {
             console.log(`🔍 Campo da mudança: ${change.field}`);
+            
+            // Webhook de flows (notificações do Flow) - ignorar
+            if (change.field === 'flows') {
+              console.log('📨 Webhook de flows - ignorando');
+              return res.status(200).json({ version: '3.0', data: {} });
+            }
+            
             // Webhook de status de mensagem (sent, delivered, etc) - ignorar
             if (change.field === 'messages' && change.value?.statuses) {
               console.log('📨 Webhook de status de mensagem - ignorando');
@@ -149,13 +160,38 @@ app.post('/webhook/whatsapp-flow', async (req, res) => {
                     console.log('📋 Dados do agendamento recebidos:', JSON.stringify(bookingData, null, 2));
                     
                     // Verificar se tem status "confirmed" (Flow foi concluído)
-                    if (bookingData.status === 'confirmed') {
+                    if (bookingData.status === 'confirmed' && bookingData.booking_id) {
                       console.log('✅ Processando confirmação de agendamento...');
                       
-                      // Criar agendamento no Google Calendar
-                      await handleConfirmBooking(bookingData);
+                      // ✅ Recuperar dados completos do armazenamento usando booking_id
+                      const storedData = bookingStorage.get(bookingData.booking_id);
                       
-                      console.log('✅ Agendamento criado no Google Calendar!');
+                      if (storedData) {
+                        console.log('📦 Dados completos recuperados do armazenamento');
+                        // Combinar dados do webhook com dados armazenados
+                        const completeBookingData = {
+                          ...storedData,
+                          ...bookingData,
+                          // Remover timestamp do armazenamento
+                          timestamp: undefined
+                        };
+                        
+                        // Criar agendamento no Google Calendar com dados completos
+                        await handleConfirmBooking(completeBookingData);
+                        
+                        // Remover dados do armazenamento após processar
+                        bookingStorage.delete(bookingData.booking_id);
+                        console.log(`🗑️ Dados removidos do armazenamento: ${bookingData.booking_id}`);
+                        
+                        console.log('✅ Agendamento criado no Google Calendar!');
+                      } else {
+                        console.warn(`⚠️ Dados não encontrados para booking_id: ${bookingData.booking_id}`);
+                        console.warn('⚠️ Tentando criar agendamento com dados limitados do webhook...');
+                        // Tentar criar com dados disponíveis (pode falhar se faltar dados essenciais)
+                        await handleConfirmBooking(bookingData);
+                      }
+                    } else {
+                      console.warn('⚠️ Webhook recebido sem booking_id ou status confirmed');
                     }
                   } catch (error) {
                     console.error('❌ Erro ao processar webhook de mensagem:', error.message);
@@ -208,10 +244,17 @@ app.post('/webhook/whatsapp-flow', async (req, res) => {
       }
     }
 
-    // Processar requisição do Flow
-    const response = await handleFlowRequest(decryptedData);
+  // Processar requisição do Flow
+  const response = await handleFlowRequest(decryptedData);
 
-    console.log('📤 Resposta:', JSON.stringify(response, null, 2));
+  console.log('📤 Resposta:', JSON.stringify(response, null, 2));
+  
+  // Log específico para CONFIRMATION screen
+  if (response.screen === 'CONFIRMATION') {
+    console.log('✅ Retornando para tela CONFIRMATION');
+    console.log(`📊 Número de campos no data: ${Object.keys(response.data || {}).length}`);
+    console.log(`📋 Campos: ${Object.keys(response.data || {}).join(', ')}`);
+  }
 
     // Criptografar resposta se necessário
     // IMPORTANTE: WhatsApp espera resposta como texto plano (Base64)
@@ -616,6 +659,23 @@ async function handleSubmitDetails(payload) {
   };
   
   console.log('📤 SUBMIT_DETAILS - Dados que serão retornados:', JSON.stringify(responseDataWithBooking, null, 2));
+  
+  // ✅ Armazenar dados do agendamento para uso no webhook
+  // Quando o webhook chegar com booking_id, poderemos recuperar todos os dados
+  bookingStorage.set(bookingId, {
+    ...responseDataWithBooking,
+    timestamp: Date.now()
+  });
+  console.log(`💾 Dados do agendamento armazenados com booking_id: ${bookingId}`);
+  
+  // Limpar dados antigos (mais de 1 hora)
+  const oneHourAgo = Date.now() - (60 * 60 * 1000);
+  for (const [id, data] of bookingStorage.entries()) {
+    if (data.timestamp < oneHourAgo) {
+      bookingStorage.delete(id);
+      console.log(`🗑️ Dados antigos removidos: ${id}`);
+    }
+  }
   
   // ✅ SOLUÇÃO: Retornar diretamente para CONFIRMATION com todos os dados formatados
   // Isso evita o problema do componente If não funcionar corretamente na tela DETAILS
