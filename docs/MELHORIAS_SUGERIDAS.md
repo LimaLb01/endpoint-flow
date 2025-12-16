@@ -131,18 +131,54 @@ Após análise completa do código, identifiquei várias oportunidades de melhor
 
 ---
 
-### 5. ⏸️ **Tratamento de Erros Mais Robusto** [PENDENTE]
+### 5. ✅ **Tratamento de Erros Mais Robusto** [CONCLUÍDA]
 **Problema:** Erros genéricos, difícil identificar causa raiz.
 
 **Solução:**
-- Classes de erro customizadas
-- Códigos de erro específicos
-- Mensagens de erro mais claras
-- Retry automático para erros temporários
+- ✅ Classes de erro customizadas
+- ✅ Códigos de erro específicos
+- ✅ Mensagens de erro mais claras
+- ✅ Retry automático para erros temporários
 
 **Impacto:** 🔴 Alto - Melhora experiência do usuário
 
-**Status:** ⏸️ Pendente
+**Status:** ✅ Concluída  
+**Iniciado em:** 16/12/2025  
+**Concluída em:** 16/12/2025  
+**Última atualização:** 16/12/2025  
+
+**Implementação:**
+- ✅ Classes de erro customizadas criadas em `src/utils/errors.js`:
+  - `AppError` (classe base)
+  - `ValidationError` (erros de validação)
+  - `CalendarError` (erros do Google Calendar)
+  - `WhatsAppError` (erros do WhatsApp API)
+  - `FlowError` (erros do Flow)
+  - `RateLimitError` (limite de requisições)
+  - `TimeoutError` (timeouts)
+  - `NotFoundError` (recurso não encontrado)
+  - `AuthenticationError` / `AuthorizationError` (autenticação/autorização)
+  - `ConfigurationError` (erros de configuração)
+- ✅ Códigos de erro padronizados em `ErrorCodes`
+- ✅ Mensagens amigáveis para usuário em `UserFriendlyMessages`
+- ✅ Função `normalizeError()` para converter erros genéricos em AppError
+- ✅ Função `isRetryableError()` para identificar erros que podem ser tentados novamente
+- ✅ Utilitário de retry criado em `src/utils/retry.js`:
+  - Retry com backoff exponencial
+  - Configuração personalizável (maxRetries, delays, etc.)
+  - Função `withRetry()` para operações assíncronas
+  - Função `retryable()` para wrappers
+- ✅ Middleware de tratamento de erros centralizado em `src/middleware/error-handler.js`:
+  - Tratamento consistente de todos os erros
+  - Respostas apropriadas para WhatsApp Flow
+  - Respostas HTTP padrão para outras requisições
+  - Função `asyncHandler()` para capturar erros automaticamente
+  - Função `createFlowErrorResponse()` para erros do Flow
+- ✅ Integração nos serviços:
+  - `calendar-service.js` usa `CalendarError` e retry automático
+  - `booking-handler.js` usa tratamento de erros customizado
+  - `webhook-routes.js` usa `createFlowErrorResponse()`
+- ✅ Substituição de `console.error` por logger estruturado nos tratamentos de erro
 
 ---
 
@@ -243,7 +279,7 @@ Após análise completa do código, identifiquei várias oportunidades de melhor
 2. ✅ Health Check Detalhado [CONCLUÍDA]
 3. ✅ Logging Estruturado [CONCLUÍDA]
 4. ✅ Request ID e Rastreamento [CONCLUÍDA]
-5. ⏸️ Tratamento de Erros Robusto [PENDENTE]
+5. ✅ Tratamento de Erros Robusto [CONCLUÍDA]
 
 ### Fase 2: Importantes (Próximas Semanas)
 5. ⏸️ Logging Estruturado [PENDENTE]

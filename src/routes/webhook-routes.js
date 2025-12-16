@@ -303,18 +303,13 @@ router.post('/whatsapp-flow', async (req, res) => {
     return res.json(response);
 
   } catch (error) {
+    const { createFlowErrorResponse } = require('../middleware/error-handler');
     logger.error('ERRO NO WEBHOOK ROUTE', error);
     
     // Retornar resposta válida para o WhatsApp mesmo em caso de erro
     // O WhatsApp espera uma resposta válida, não um erro HTTP
-    res.status(200).json({ 
-      version: '3.0',
-      data: {
-        error: true,
-        error_message: 'Erro ao processar requisição',
-        requestId: req.requestId
-      }
-    });
+    const errorResponse = createFlowErrorResponse(error, req.requestId);
+    res.status(200).json(errorResponse);
   }
 });
 

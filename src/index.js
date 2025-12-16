@@ -16,6 +16,7 @@ const { encryptionMiddleware } = require('./middleware/encryption-middleware');
 const { signatureValidationMiddleware } = require('./middleware/signature-middleware');
 const { requestIdMiddleware } = require('./middleware/request-id-middleware');
 const { globalLogger } = require('./utils/logger');
+const { errorHandlerMiddleware } = require('./middleware/error-handler');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -85,18 +86,9 @@ app.use('/webhook', webhookRoutes);
 // ============================================
 
 /**
- * Middleware de tratamento de erros
+ * Middleware de tratamento de erros centralizado
  */
-app.use((err, req, res, next) => {
-  const requestLogger = req.requestId ? require('./utils/logger').createRequestLogger(req.requestId) : globalLogger;
-  requestLogger.error('Erro não tratado', err);
-  
-  res.status(err.status || 500).json({
-    error: err.message || 'Internal server error',
-    requestId: req.requestId,
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
-  });
-});
+app.use(errorHandlerMiddleware);
 
 /**
  * Middleware para rotas não encontradas

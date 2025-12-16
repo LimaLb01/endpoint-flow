@@ -102,29 +102,30 @@ async function handleConfirmBooking(payload) {
     return null;
     
   } catch (error) {
-    console.error('='.repeat(60));
-    console.error('❌ ERRO AO CRIAR AGENDAMENTO');
-    console.error('='.repeat(60));
-    console.error('❌ Erro:', error.message);
-    console.error('❌ Stack:', error.stack);
-    console.error('❌ Error name:', error.name);
-    console.error('❌ Error code:', error.code);
-    console.error('❌ Error response:', error.response ? JSON.stringify(error.response.data, null, 2) : 'N/A');
-    console.error('❌ Error details:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
-    console.error('='.repeat(60));
+    const { CalendarError, FlowError, getUserFriendlyMessage } = require('../utils/errors');
+    const { globalLogger } = require('../utils/logger');
     
-    // Se foi chamado via data_exchange, retornar erro
+    globalLogger.error('Erro ao criar agendamento', error);
+    
+    // Se foi chamado via data_exchange, retornar erro formatado para Flow
     if (payload.action_type === 'CONFIRM_BOOKING') {
+      const errorMessage = error instanceof CalendarError || error instanceof FlowError
+        ? getUserFriendlyMessage(error.code)
+        : MESSAGES.ERROR_BOOKING_FAILED;
+      
       return {
         version: '3.0',
         screen: 'CONFIRMATION',
         data: {
           ...payload,
-          error_message: MESSAGES.ERROR_BOOKING_FAILED
+          error: true,
+          error_message: errorMessage,
+          error_code: error.code || 'BOOKING_ERROR'
         }
       };
     }
     
+    // Re-lançar erro para ser tratado pelo middleware
     throw error;
   }
 }

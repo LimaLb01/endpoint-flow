@@ -257,7 +257,16 @@ function getMockAvailableSlots(date, duration) {
  * @returns {object} Evento criado
  */
 async function createAppointment(appointment) {
-  console.log('📝 Criando agendamento:', appointment);
+  const { CalendarError } = require('../utils/errors');
+  const { withRetry } = require('../utils/retry');
+  const { globalLogger } = require('../utils/logger');
+  
+  globalLogger.debug('Criando agendamento', {
+    service: appointment.service,
+    barber: appointment.barber,
+    date: appointment.date,
+    time: appointment.time
+  });
   
   await initializeCalendar();
   
@@ -266,7 +275,7 @@ async function createAppointment(appointment) {
 
   // Se não houver integração real, retornar mock
   if (!calendar) {
-    console.log('⚠️ Usando mock - agendamento não foi salvo no Google Calendar');
+    globalLogger.warn('Usando mock - agendamento não foi salvo no Google Calendar');
     return {
       id: `mock_${Date.now()}`,
       status: 'confirmed',
@@ -275,6 +284,8 @@ async function createAppointment(appointment) {
   }
 
   try {
+    // Usar retry para operações do Google Calendar
+    return await withRetry(async () => {
     const calendarId = BARBER_CALENDARS[barber] || 'primary';
     
     // Mapear nome do serviço
@@ -350,51 +361,44 @@ Agendado via WhatsApp Flow
     //   event.sendUpdates = 'all';
     // }
 
-    console.log('📤 Enviando requisição para Google Calendar API...');
-    console.log('📋 Calendar ID:', calendarId);
-    console.log('📋 Evento a ser criado:', JSON.stringify(event, null, 2));
+      globalLogger.debug('Enviando requisição para Google Calendar API', {
+        calendarId,
+        eventSummary: event.summary
+      });
+      
+      const response = await calendar.events.insert({
+        calendarId,
+        resource: event
+      });
+
+      globalLogger.info('Evento criado no Google Calendar', {
+        eventId: response.data.id,
+        status: response.data.status,
+        htmlLink: response.data.htmlLink
+      });
+
+      return {
+        id: response.data.id,
+        status: response.data.status || 'confirmed',
+        htmlLink: response.data.htmlLink
+      };
+    }, {
+      maxRetries: 3,
+      initialDelay: 1000
+    }, 'createAppointment');
     
-    const response = await calendar.events.insert({
-      calendarId,
-      resource: event
-    });
-
-    console.log('='.repeat(60));
-    console.log('✅ EVENTO CRIADO NO GOOGLE CALENDAR');
-    console.log('='.repeat(60));
-    console.log('📅 Evento ID:', response.data.id);
-    console.log('📊 Status:', response.data.status);
-    console.log('🔗 Link:', response.data.htmlLink);
-    console.log('📋 Resposta completa:', JSON.stringify(response.data, null, 2));
-    console.log('='.repeat(60));
-
-    return {
-      id: response.data.id,
-      status: response.data.status || 'confirmed',
-      htmlLink: response.data.htmlLink
-    };
-
   } catch (error) {
-    console.error('='.repeat(60));
-    console.error('❌ ERRO AO CRIAR EVENTO NO GOOGLE CALENDAR');
-    console.error('='.repeat(60));
-    console.error('❌ Erro:', error.message);
-    console.error('❌ Stack:', error.stack);
-    console.error('❌ Error name:', error.name);
-    console.error('❌ Error code:', error.code);
+    // Verificar se é erro retryable
+    const isRetryable = error.response?.status === 429 || 
+                       error.response?.status === 503 || 
+                       error.code === 'ECONNRESET' || 
+                       error.code === 'ETIMEDOUT';
     
-    if (error.response) {
-      console.error('❌ Status code:', error.response.status);
-      console.error('❌ Response data:', JSON.stringify(error.response.data, null, 2));
-      console.error('❌ Response headers:', JSON.stringify(error.response.headers, null, 2));
-    }
-    
-    if (error.errors) {
-      console.error('❌ Errors array:', JSON.stringify(error.errors, null, 2));
-    }
-    
-    console.error('='.repeat(60));
-    throw error;
+    throw new CalendarError(
+      `Erro ao criar agendamento no Google Calendar: ${error.message}`,
+      error,
+      isRetryable
+    );
   }
 }
 
