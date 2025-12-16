@@ -13,7 +13,7 @@
   "screens": [
     {
       "id": "WELCOME",
-      "title": "Bem-vindo 07.1",
+      "title": "Bem-vindo 16",
       "terminal": false,
       "data": {},
       "layout": {
@@ -21,11 +21,11 @@
         "children": [
           {
             "type": "Image",
-            "src": "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800&auto=format&fit=crop",
+            "src": "https://cdn.cashbarber.com.br/1755548373-764129.png",
             "height": 180,
             "scale-type": "cover",
             "aspect-ratio": 2.5,
-            "alt-text": "Barbearia - Ambiente moderno"
+            "alt-text": "CODE - Identidade Masculina"
           },
           {
             "type": "TextHeading",
