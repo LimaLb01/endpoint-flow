@@ -728,15 +728,22 @@ async function sendFlowAutomatically(toNumber) {
   const ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN || process.env.WHATSAPP_TOKEN;
   const FLOW_ID = process.env.WHATSAPP_FLOW_ID || '888145740552051';
   
+  console.log('🔑 Verificando credenciais...');
+  console.log(`🔑 PHONE_NUMBER_ID: ${PHONE_NUMBER_ID ? '✅ Configurado' : '❌ Não configurado'}`);
+  console.log(`🔑 ACCESS_TOKEN: ${ACCESS_TOKEN ? `✅ Configurado (${ACCESS_TOKEN.substring(0, 20)}...)` : '❌ Não configurado'}`);
+  console.log(`🔑 FLOW_ID: ${FLOW_ID}`);
+  
   if (!ACCESS_TOKEN || !PHONE_NUMBER_ID) {
     throw new Error('WHATSAPP_ACCESS_TOKEN e WHATSAPP_PHONE_NUMBER_ID devem estar configurados');
   }
   
   // Formatar número de telefone (remover caracteres especiais)
   const formattedPhone = toNumber.replace(/\D/g, '');
+  console.log(`📱 Número formatado: ${formattedPhone}`);
   
   // Gerar flow_token único
   const flowToken = `agendamento-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  console.log(`🎫 Flow token gerado: ${flowToken}`);
   
   // Payload da mensagem
   const messagePayload = {
@@ -765,19 +772,35 @@ async function sendFlowAutomatically(toNumber) {
   };
   
   const url = `${WHATSAPP_API_URL}/${PHONE_NUMBER_ID}/messages`;
+  console.log(`📤 URL da requisição: ${url}`);
+  console.log(`📦 Payload: ${JSON.stringify(messagePayload, null, 2)}`);
   
-  const response = await axios.post(url, messagePayload, {
-    headers: {
-      'Authorization': `Bearer ${ACCESS_TOKEN}`,
-      'Content-Type': 'application/json'
+  try {
+    const response = await axios.post(url, messagePayload, {
+      headers: {
+        'Authorization': `Bearer ${ACCESS_TOKEN}`,
+        'Content-Type': 'application/json'
+      }
+    });
+  
+    console.log(`✅ Flow enviado automaticamente para ${formattedPhone}`);
+    console.log(`   🆔 Flow ID: ${FLOW_ID}`);
+    console.log(`   🎫 Flow Token: ${flowToken}`);
+    console.log(`   📋 Resposta: ${JSON.stringify(response.data, null, 2)}`);
+  
+    return response.data;
+  } catch (error) {
+    console.error('❌ Erro detalhado ao enviar flow:');
+    console.error(`   Status: ${error.response?.status}`);
+    console.error(`   Status Text: ${error.response?.statusText}`);
+    console.error(`   Response Data: ${JSON.stringify(error.response?.data, null, 2)}`);
+    
+    if (error.response?.status === 401) {
+      throw new Error('Token de acesso inválido ou expirado. Gere um novo token em: https://developers.facebook.com/apps/[SEU_APP_ID]/whatsapp-business/wa-settings/');
     }
-  });
-  
-  console.log(`✅ Flow enviado automaticamente para ${formattedPhone}`);
-  console.log(`   🆔 Flow ID: ${FLOW_ID}`);
-  console.log(`   🎫 Flow Token: ${flowToken}`);
-  
-  return response.data;
+    
+    throw error;
+  }
 }
 
 /**
