@@ -27,6 +27,12 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // ============================================
+// Configuração do Express
+// ============================================
+// Confiar no proxy reverso (Railway, etc.) para obter IP real do cliente
+app.set('trust proxy', true);
+
+// ============================================
 // Middleware Global
 // ============================================
 app.use(cors());

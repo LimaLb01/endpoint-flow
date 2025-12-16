@@ -44,17 +44,12 @@ const { flowWebhookRateLimiter, criticalEndpointRateLimiter } = require('../midd
  *         description: Challenge string que deve ser retornado
  *     responses:
  *       200:
- *         description: Verificação bem-sucedida - retorna o challenge
+ *         description: Verificação bem-sucedida - retorna o challenge (text/plain) ou health check (application/json)
  *         content:
  *           text/plain:
  *             schema:
  *               type: string
  *               example: "challenge_string_123"
- *       403:
- *         description: Token de verificação inválido
- *       200:
- *         description: Health check normal (quando não é verificação)
- *         content:
  *           application/json:
  *             schema:
  *               type: object
@@ -62,6 +57,8 @@ const { flowWebhookRateLimiter, criticalEndpointRateLimiter } = require('../midd
  *                 status:
  *                   type: string
  *                   example: healthy
+ *       403:
+ *         description: Token de verificação inválido
  */
 router.get('/whatsapp-flow', (req, res) => {
   const logger = req.requestId ? createRequestLogger(req.requestId) : globalLogger;
