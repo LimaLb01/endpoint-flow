@@ -568,11 +568,11 @@ async function handleSubmitDetails(payload) {
   
   console.log('📤 SUBMIT_DETAILS - Dados que serão retornados:', JSON.stringify(responseDataWithBooking, null, 2));
   
-  // ✅ SOLUÇÃO: Retornar para tela intermediária que navega automaticamente para CONFIRMATION
-  // Como não podemos usar If no Flow, usamos uma tela intermediária simples
+  // ✅ SOLUÇÃO: Retornar diretamente para tela terminal CONFIRMATION com todos os dados
+  // O WhatsApp Flow aplica dados em telas terminais quando vêm diretamente do endpoint
   return {
     version: '3.0',
-    screen: 'CONFIRMATION_PREP',
+    screen: 'CONFIRMATION',
     data: responseDataWithBooking
   };
 }

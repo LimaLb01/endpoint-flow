@@ -7,8 +7,7 @@
     "DATE_SELECTION": ["BARBER_SELECTION"],
     "BARBER_SELECTION": ["TIME_SELECTION"],
     "TIME_SELECTION": ["DETAILS"],
-    "DETAILS": ["CONFIRMATION_PREP"],
-    "CONFIRMATION_PREP": ["CONFIRMATION"],
+    "DETAILS": ["CONFIRMATION"],
     "CONFIRMATION": []
   },
   "screens": [
@@ -485,108 +484,6 @@
                 "client_phone": "${form.client_phone}",
                 "client_email": "${form.client_email}",
                 "notes": "${form.notes}",
-                "service_name": "${data.service_name}",
-                "service_price": "${data.service_price}",
-                "barber_name": "${data.barber_name}",
-                "formatted_date": "${data.formatted_date}"
-              }
-            }
-          }
-        ]
-      }
-    },
-    {
-      "id": "CONFIRMATION_PREP",
-      "title": "Processando",
-      "terminal": false,
-      "data": {
-        "booking_id": {
-          "type": "string",
-          "__example__": "AGD-12345"
-        },
-        "selected_service": {
-          "type": "string",
-          "__example__": "corte_masculino"
-        },
-        "selected_date": {
-          "type": "string",
-          "__example__": "2025-01-15"
-        },
-        "selected_barber": {
-          "type": "string",
-          "__example__": "joao"
-        },
-        "selected_time": {
-          "type": "string",
-          "__example__": "09:00"
-        },
-        "client_name": {
-          "type": "string",
-          "__example__": "João Cliente"
-        },
-        "client_phone": {
-          "type": "string",
-          "__example__": "+55 11 99999-9999"
-        },
-        "client_email": {
-          "type": "string",
-          "__example__": "cliente@email.com"
-        },
-        "notes": {
-          "type": "string",
-          "__example__": ""
-        },
-        "service_name": {
-          "type": "string",
-          "__example__": "Corte Masculino"
-        },
-        "service_price": {
-          "type": "string",
-          "__example__": "R$ 45"
-        },
-        "barber_name": {
-          "type": "string",
-          "__example__": "João Silva"
-        },
-        "formatted_date": {
-          "type": "string",
-          "__example__": "15/01/2025 (Quarta-feira)"
-        }
-      },
-      "layout": {
-        "type": "SingleColumnLayout",
-        "children": [
-          {
-            "type": "TextHeading",
-            "text": "✅ Agendamento confirmado!"
-          },
-          {
-            "type": "TextSubheading",
-            "text": "Código: ${data.booking_id}"
-          },
-          {
-            "type": "TextBody",
-            "text": "Seu horário está reservado"
-          },
-          {
-            "type": "Footer",
-            "label": "Ver detalhes",
-            "on-click-action": {
-              "name": "navigate",
-              "next": {
-                "type": "screen",
-                "name": "CONFIRMATION"
-              },
-              "payload": {
-                "booking_id": "${data.booking_id}",
-                "selected_service": "${data.selected_service}",
-                "selected_date": "${data.selected_date}",
-                "selected_barber": "${data.selected_barber}",
-                "selected_time": "${data.selected_time}",
-                "client_name": "${data.client_name}",
-                "client_phone": "${data.client_phone}",
-                "client_email": "${data.client_email}",
-                "notes": "${data.notes}",
                 "service_name": "${data.service_name}",
                 "service_price": "${data.service_price}",
                 "barber_name": "${data.barber_name}",
