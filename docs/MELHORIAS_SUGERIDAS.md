@@ -39,18 +39,33 @@ Após análise completa do código, identifiquei várias oportunidades de melhor
 
 ---
 
-### 2. ⏸️ **Health Check Detalhado** [PENDENTE]
+### 2. ✅ **Health Check Detalhado** [CONCLUÍDA]
 **Problema:** Health check atual é muito básico, não verifica dependências.
 
 **Solução:**
-- Verificar conexão com Google Calendar
-- Verificar credenciais do WhatsApp
-- Retornar status de cada serviço
-- Endpoint `/health` com detalhes
+- ✅ Verificar conexão com Google Calendar
+- ✅ Verificar credenciais do WhatsApp
+- ✅ Retornar status de cada serviço
+- ✅ Endpoint `/health` com detalhes
 
 **Impacto:** 🟡 Médio - Melhora observabilidade
 
-**Status:** ⏸️ Pendente
+**Status:** ✅ Concluída  
+**Iniciado em:** 16/12/2025  
+**Concluída em:** 16/12/2025  
+**Última atualização:** 16/12/2025  
+
+**Implementação:**
+- ✅ Serviço de health check criado em `src/services/health-service.js`
+- ✅ Endpoint `/health` criado em `src/index.js`
+- ✅ Verificação de Google Calendar (conexão e credenciais)
+- ✅ Verificação de WhatsApp API (token e configurações)
+- ✅ Verificação de criptografia (chaves RSA)
+- ✅ Verificação de validação de assinatura (APP_SECRET)
+- ✅ Verificação de armazenamento de agendamentos
+- ✅ Retorno de status HTTP apropriado (200 para healthy, 503 para degraded)
+- ✅ Informações de ambiente (Node version, timezone, port)
+- ✅ Tempo de resposta do health check
 
 ---
 
@@ -193,7 +208,7 @@ Após análise completa do código, identifiquei várias oportunidades de melhor
 
 ### Fase 1: Essenciais (Implementar Agora)
 1. ✅ Validação de Dados [CONCLUÍDA]
-2. ⏸️ Health Check Detalhado [PENDENTE]
+2. ✅ Health Check Detalhado [CONCLUÍDA]
 3. ⏸️ Request ID e Rastreamento [PENDENTE]
 4. ⏸️ Tratamento de Erros Robusto [PENDENTE]
 

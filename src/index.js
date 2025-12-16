@@ -28,9 +28,11 @@ app.use(express.json({ limit: '10mb' })); // Aumentar limite para requisições 
 // Rotas de Health Check
 // ============================================
 
+const { getHealthStatus } = require('./services/health-service');
+
 /**
  * GET /
- * Health check básico
+ * Health check básico (mantido para compatibilidade)
  */
 app.get('/', (req, res) => {
   res.json({ 
@@ -39,6 +41,28 @@ app.get('/', (req, res) => {
     version: '2.0.0',
     timestamp: new Date().toISOString()
   });
+});
+
+/**
+ * GET /health
+ * Health check detalhado com status de todos os serviços
+ */
+app.get('/health', async (req, res) => {
+  try {
+    const healthStatus = await getHealthStatus();
+    
+    // Retornar status HTTP apropriado
+    const httpStatus = healthStatus.status === 'healthy' ? 200 : 503;
+    
+    res.status(httpStatus).json(healthStatus);
+  } catch (error) {
+    console.error('❌ Erro ao verificar health status:', error);
+    res.status(503).json({
+      status: 'error',
+      timestamp: new Date().toISOString(),
+      error: error.message || 'Erro ao verificar status do sistema'
+    });
+  }
 });
 
 // ============================================
