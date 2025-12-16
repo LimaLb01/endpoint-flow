@@ -1,7 +1,11 @@
 /**
  * Validadores de Dados de Entrada
  * Valida estrutura e tipos dos dados recebidos do WhatsApp Flow
+ * 
+ * Agora também usa schemas Zod para validação declarativa
  */
+
+const { validateFlowRequestSchema, validateByActionTypeSchema } = require('./schemas');
 
 /**
  * Resultado de validação
@@ -13,10 +17,20 @@
 
 /**
  * Valida estrutura básica de uma requisição do Flow
+ * Usa schema Zod para validação declarativa
  * @param {object} data - Dados da requisição
  * @returns {ValidationResult}
  */
 function validateFlowRequest(data) {
+  // Primeiro tentar validação com schema Zod (mais robusta)
+  const schemaResult = validateFlowRequestSchema(data);
+  
+  // Se schema passou, retornar resultado
+  if (schemaResult.valid) {
+    return schemaResult;
+  }
+  
+  // Se schema falhou, fazer validação manual como fallback
   if (!data || typeof data !== 'object') {
     return {
       valid: false,
@@ -475,11 +489,22 @@ function validateConfirmBooking(payload) {
 
 /**
  * Valida dados baseado no action_type
+ * Usa schema Zod primeiro, depois fallback para validadores manuais
  * @param {string} actionType - Tipo de ação
  * @param {object} payload - Dados do payload
  * @returns {ValidationResult}
  */
 function validateByActionType(actionType, payload) {
+  // Primeiro tentar validação com schema Zod (mais robusta e declarativa)
+  const schemaResult = validateByActionTypeSchema(actionType, payload);
+  
+  // Se schema passou, retornar resultado
+  if (schemaResult.valid) {
+    return schemaResult;
+  }
+  
+  // Se schema falhou, usar validadores manuais como fallback
+  // Isso garante compatibilidade e mensagens de erro mais específicas quando necessário
   switch (actionType) {
     case 'SELECT_SERVICE':
       return validateSelectService(payload);

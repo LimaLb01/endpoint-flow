@@ -258,15 +258,44 @@ Após análise completa do código, identifiquei várias oportunidades de melhor
 
 ---
 
-### 8. ⏸️ **Validação de Schema** [PENDENTE]
-**Problema:** Não valida estrutura dos dados do Flow.
+### 8. ✅ **Validação de Schema** [CONCLUÍDA]
+**Problema:** Não validava estrutura dos dados do Flow de forma declarativa.
 
 **Solução:**
-- Usar biblioteca de validação (Joi ou Zod)
-- Validar schema de cada ação
-- Retornar erros de validação claros
+- ✅ Usar biblioteca de validação Zod
+- ✅ Validar schema de cada ação
+- ✅ Retornar erros de validação claros
+- ✅ Manter compatibilidade com validadores existentes
 
 **Impacto:** 🟡 Médio - Previne bugs
+
+**Status:** ✅ Concluída  
+**Iniciado em:** 16/12/2025  
+**Concluída em:** 16/12/2025  
+**Última atualização:** 16/12/2025  
+
+**Implementação:**
+- ✅ Biblioteca `zod` instalada
+- ✅ Schemas de validação criados em `src/utils/schemas.js`:
+  - `flowRequestSchema`: Validação da estrutura básica da requisição
+  - `selectServiceSchema`: Validação de seleção de serviço
+  - `selectDateSchema`: Validação de seleção de data (formato YYYY-MM-DD)
+  - `selectBarberSchema`: Validação de seleção de barbeiro
+  - `selectTimeSchema`: Validação de seleção de horário (formato HH:MM)
+  - `submitDetailsSchema`: Validação de dados do cliente (nome, telefone, email, etc.)
+  - `confirmBookingSchema`: Validação de confirmação de agendamento
+- ✅ Integração híbrida com validadores existentes:
+  - Schemas Zod usados como primeira camada de validação
+  - Validadores manuais como fallback para compatibilidade
+  - Mensagens de erro claras e específicas
+- ✅ Transformações automáticas:
+  - Normalização de telefone (remove caracteres não numéricos)
+  - Trim em campos de texto
+  - Validação de email com transformação para null se vazio
+- ✅ Validação declarativa e type-safe:
+  - Schemas definem claramente a estrutura esperada
+  - Validação de tipos, formatos e valores permitidos
+  - Mensagens de erro personalizadas para cada campo
 
 ---
 
