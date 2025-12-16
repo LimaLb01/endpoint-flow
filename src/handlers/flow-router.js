@@ -12,6 +12,7 @@ const { handleSubmitDetails, setPreviousData: setDetailsPreviousData } = require
 const { handleConfirmBooking } = require('./booking-handler');
 const { cleanPlaceholders } = require('../utils/placeholder-cleaner');
 const { validateFlowRequest, validateByActionType } = require('../utils/validators');
+const { globalLogger } = require('../utils/logger');
 
 // Armazenamento de dados anteriores para resolução de placeholders
 let previousFlowData = {};
@@ -21,11 +22,15 @@ let previousFlowData = {};
  * @param {object} data - Dados da requisição
  * @returns {Promise<object>} Resposta do Flow
  */
-async function handleFlowRequest(data) {
+async function handleFlowRequest(data, requestId = null) {
+  const logger = requestId ? require('../utils/logger').createRequestLogger(requestId) : globalLogger;
+  
   // Validar estrutura básica da requisição
   const requestValidation = validateFlowRequest(data);
   if (!requestValidation.valid) {
-    console.error('❌ Validação de requisição falhou:', requestValidation.error);
+    logger.error('Validação de requisição falhou', {
+      error: requestValidation.error
+    });
     return {
       version: '3.0',
       data: {
@@ -38,7 +43,10 @@ async function handleFlowRequest(data) {
   const { action, screen, data: flowData, version, flow_token } = requestValidation.data;
   let payload = flowData || {};
   
-  console.log(`📋 Processando Flow Request - Action: ${action}, Screen: ${screen}, Version: ${version}`);
+  logger.flow(action, screen, {
+    version,
+    actionType: payload.action_type
+  });
   
   // Adicionar flow_token ao payload
   if (flow_token) {
@@ -63,8 +71,6 @@ async function handleFlowRequest(data) {
   
   const actionType = payload.action_type;
 
-  console.log(`📋 Action: ${action}, Screen: ${screen}, ActionType: ${actionType}`);
-
   // Health check do WhatsApp
   if (action === 'ping') {
     return { data: { status: 'active' } };
@@ -72,19 +78,22 @@ async function handleFlowRequest(data) {
 
   // INIT - Primeira chamada quando Flow é aberto
   if (action === 'INIT') {
-    console.log('🚀 Processando INIT - Inicializando Flow...');
+    logger.info('Processando INIT - Inicializando Flow');
     return handleInit();
   }
 
   // data_exchange - Navegação entre telas
   if (action === 'data_exchange') {
-    console.log(`🔄 Processando data_exchange com action_type: ${actionType}`);
+    logger.debug('Processando data_exchange', { actionType });
     
     // Validar dados do payload baseado no action_type
     if (actionType) {
       const payloadValidation = validateByActionType(actionType, payload);
       if (!payloadValidation.valid) {
-        console.error(`❌ Validação de payload falhou para ${actionType}:`, payloadValidation.error);
+        logger.error('Validação de payload falhou', {
+          actionType,
+          error: payloadValidation.error
+        });
         return {
           version: '3.0',
           screen: screen || 'SERVICE_SELECTION',
@@ -100,7 +109,7 @@ async function handleFlowRequest(data) {
     
     switch (actionType) {
       case 'INIT':
-        console.log('🚀 Processando INIT via data_exchange...');
+        logger.info('Processando INIT via data_exchange');
         return handleInit();
       case 'SELECT_SERVICE':
         return handleSelectService(payload);
@@ -121,7 +130,7 @@ async function handleFlowRequest(data) {
   }
 
   // Se não tem action definida, pode ser uma requisição inválida
-  console.warn(`⚠️ Action não reconhecida: ${action}. Retornando resposta vazia.`);
+  logger.warn('Action não reconhecida', { action });
   return { version: version || '3.0', data: {} };
 }
 

@@ -14,6 +14,8 @@ const cors = require('cors');
 const webhookRoutes = require('./routes/webhook-routes');
 const { encryptionMiddleware } = require('./middleware/encryption-middleware');
 const { signatureValidationMiddleware } = require('./middleware/signature-middleware');
+const { requestIdMiddleware } = require('./middleware/request-id-middleware');
+const { globalLogger } = require('./utils/logger');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -23,6 +25,9 @@ const PORT = process.env.PORT || 3000;
 // ============================================
 app.use(cors());
 app.use(express.json({ limit: '10mb' })); // Aumentar limite para requisições grandes
+
+// Request ID middleware (deve ser aplicado antes de outros middlewares)
+app.use(requestIdMiddleware);
 
 // ============================================
 // Rotas de Health Check
@@ -56,7 +61,8 @@ app.get('/health', async (req, res) => {
     
     res.status(httpStatus).json(healthStatus);
   } catch (error) {
-    console.error('❌ Erro ao verificar health status:', error);
+    const requestLogger = req.requestId ? require('./utils/logger').createRequestLogger(req.requestId) : globalLogger;
+    requestLogger.error('Erro ao verificar health status', error);
     res.status(503).json({
       status: 'error',
       timestamp: new Date().toISOString(),
@@ -82,11 +88,12 @@ app.use('/webhook', webhookRoutes);
  * Middleware de tratamento de erros
  */
 app.use((err, req, res, next) => {
-  console.error('❌ Erro não tratado:', err.message);
-  console.error('❌ Stack:', err.stack);
+  const requestLogger = req.requestId ? require('./utils/logger').createRequestLogger(req.requestId) : globalLogger;
+  requestLogger.error('Erro não tratado', err);
   
   res.status(err.status || 500).json({
     error: err.message || 'Internal server error',
+    requestId: req.requestId,
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
   });
 });
@@ -106,16 +113,16 @@ app.use((req, res) => {
 // ============================================
 
 app.listen(PORT, () => {
-  console.log('='.repeat(50));
-  console.log('🚀 WhatsApp Flow Endpoint - Barbearia');
-  console.log('='.repeat(50));
-  console.log(`📍 Servidor rodando na porta ${PORT}`);
-  console.log(`🌐 Endpoint: http://localhost:${PORT}/webhook/whatsapp-flow`);
-  console.log(`🔐 Criptografia: ${process.env.PRIVATE_KEY ? '✅ Ativa' : '❌ Desativada'}`);
-  console.log(`🔑 Validação de assinatura: ${process.env.APP_SECRET ? '✅ Ativa' : '❌ Desativada'}`);
-  console.log(`📅 Google Calendar: ${process.env.GOOGLE_CLIENT_EMAIL ? '✅ Configurado' : '❌ Não configurado'}`);
-  console.log(`📱 WhatsApp API: ${process.env.WHATSAPP_ACCESS_TOKEN ? '✅ Configurado' : '❌ Não configurado'}`);
-  console.log('='.repeat(50));
+  globalLogger.info('🚀 WhatsApp Flow Endpoint - Barbearia', {
+    port: PORT,
+    endpoint: `http://localhost:${PORT}/webhook/whatsapp-flow`,
+    encryption: process.env.PRIVATE_KEY ? 'Ativa' : 'Desativada',
+    signatureValidation: process.env.APP_SECRET ? 'Ativa' : 'Desativada',
+    googleCalendar: process.env.GOOGLE_CLIENT_EMAIL ? 'Configurado' : 'Não configurado',
+    whatsappAPI: process.env.WHATSAPP_ACCESS_TOKEN ? 'Configurado' : 'Não configurado',
+    nodeVersion: process.version,
+    timezone: process.env.TZ || 'UTC'
+  });
 });
 
 module.exports = app;

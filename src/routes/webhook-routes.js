@@ -10,12 +10,14 @@ const { WHATSAPP_CONFIG } = require('../config/constants');
 const bookingStorage = require('../storage/booking-storage');
 const { handleConfirmBooking } = require('../handlers/booking-handler');
 const { sendFlowAutomatically } = require('../services/whatsapp-service');
+const { createRequestLogger, globalLogger } = require('../utils/logger');
 
 /**
  * GET /webhook/whatsapp-flow
  * Verificação do webhook pelo Meta Developers
  */
 router.get('/whatsapp-flow', (req, res) => {
+  const logger = req.requestId ? createRequestLogger(req.requestId) : globalLogger;
   const mode = req.query['hub.mode'];
   const token = req.query['hub.verify_token'];
   const challenge = req.query['hub.challenge'];
@@ -25,10 +27,10 @@ router.get('/whatsapp-flow', (req, res) => {
     const VERIFY_TOKEN = process.env.WEBHOOK_VERIFY_TOKEN || WHATSAPP_CONFIG.DEFAULT_VERIFY_TOKEN;
     
     if (mode === 'subscribe' && token === VERIFY_TOKEN) {
-      console.log('✅ Webhook verificado com sucesso!');
+      logger.info('Webhook verificado com sucesso', { mode, challenge: challenge ? 'presente' : 'ausente' });
       return res.status(200).send(challenge);
     } else {
-      console.log('❌ Falha na verificação do webhook');
+      logger.warn('Falha na verificação do webhook', { mode, tokenMatch: token === VERIFY_TOKEN });
       return res.sendStatus(403);
     }
   }
@@ -42,14 +44,14 @@ router.get('/whatsapp-flow', (req, res) => {
  * Endpoint principal do WhatsApp Flow
  */
 router.post('/whatsapp-flow', async (req, res) => {
-  console.log('='.repeat(60));
-  console.log('📥 REQUISIÇÃO RECEBIDA - INÍCIO');
-  console.log('='.repeat(60));
-  console.log('📋 Method:', req.method);
-  console.log('📋 URL:', req.url);
-  console.log('📋 Headers:', JSON.stringify(req.headers, null, 2));
-  console.log('📋 Body type:', typeof req.body);
-  console.log('📋 Body keys:', Object.keys(req.body || {}));
+  const logger = req.requestId ? createRequestLogger(req.requestId) : globalLogger;
+  
+  logger.request(req.method, req.url, {
+    bodyType: typeof req.body,
+    bodyKeys: Object.keys(req.body || {}),
+    hasDecryptedData: !!req.decryptedData,
+    shouldEncrypt: req.shouldEncrypt || false
+  });
   
   try {
     const { decryptedData, shouldEncrypt, aesKeyBuffer, initialVectorBuffer } = req;
@@ -57,7 +59,7 @@ router.post('/whatsapp-flow', async (req, res) => {
     // Health Check do WhatsApp Flow (ping)
     // Deve ser tratado ANTES de qualquer outra verificação
     if (decryptedData && decryptedData.action === 'ping') {
-      console.log('🏥 Health Check (ping) recebido');
+      logger.info('Health Check (ping) recebido', { version: decryptedData.version });
       const response = {
         version: decryptedData.version || '3.0',
         data: {
@@ -67,89 +69,98 @@ router.post('/whatsapp-flow', async (req, res) => {
       
       // Se precisa criptografar, criptografar a resposta e enviar como texto plano
       if (shouldEncrypt && aesKeyBuffer && initialVectorBuffer) {
-        console.log('🔐 Criptografando resposta do health check');
+        logger.debug('Criptografando resposta do health check');
         const encrypted = encryptResponse(response, aesKeyBuffer, initialVectorBuffer);
-        console.log('✅ Resposta criptografada (Base64):', encrypted.substring(0, 50) + '...');
+        logger.debug('Resposta criptografada', { encryptedLength: encrypted.length });
         // Resposta criptografada deve ser enviada como texto plano, não JSON
         res.set('Content-Type', 'text/plain; charset=UTF-8');
         return res.status(200).send(encrypted);
       }
       
-      console.log('✅ Health check respondido (sem criptografia):', JSON.stringify(response, null, 2));
+      logger.info('Health check respondido', { response, encrypted: false });
       return res.status(200).json(response);
     }
     
-    console.log('📋 Dados recebidos (decryptedData):', JSON.stringify(decryptedData, null, 2));
-    console.log('📋 Tipo de dados:', typeof decryptedData);
-    console.log('📋 É null?', decryptedData === null);
-    console.log('📋 É undefined?', decryptedData === undefined);
-    console.log('📋 Tem action?', !!decryptedData?.action);
-    console.log('📋 Action:', decryptedData?.action);
-    console.log('📋 Tem object?', !!decryptedData?.object);
-    console.log('📋 Object:', decryptedData?.object);
-    console.log('📋 Tem version?', !!decryptedData?.version);
-    console.log('📋 Version:', decryptedData?.version);
-    console.log('📋 Tem screen?', !!decryptedData?.screen);
-    console.log('📋 Screen:', decryptedData?.screen);
+    logger.debug('Dados recebidos', {
+      action: decryptedData?.action,
+      screen: decryptedData?.screen,
+      version: decryptedData?.version,
+      object: decryptedData?.object,
+      hasData: !!decryptedData?.data
+    });
 
     // Verificar se é um webhook de mensagem (quando Flow é concluído)
     if (decryptedData.object === 'whatsapp_business_account' && decryptedData.entry) {
-      console.log('🔍 Detectado webhook do WhatsApp Business Account');
+      logger.info('Detectado webhook do WhatsApp Business Account', {
+        entriesCount: decryptedData.entry.length
+      });
       
       for (const entry of decryptedData.entry) {
         if (entry.changes) {
-          console.log(`🔍 Processando ${entry.changes.length} mudança(s) no entry`);
+          logger.debug('Processando mudanças no entry', {
+            changesCount: entry.changes.length
+          });
           
           for (const change of entry.changes) {
-            console.log(`🔍 Campo da mudança: ${change.field}`);
+            logger.debug('Campo da mudança', { field: change.field });
             
             // Webhook de flows - ignorar
             if (change.field === 'flows') {
-              console.log('📨 Webhook de flows - ignorando');
+              logger.debug('Webhook de flows - ignorando');
               return res.status(200).json({ version: '3.0', data: {} });
             }
             
             // Webhook de status de mensagem - ignorar
             if (change.field === 'messages' && change.value?.statuses) {
-              console.log('📨 Webhook de status de mensagem - ignorando');
+              logger.debug('Webhook de status de mensagem - ignorando');
               return res.status(200).json({});
             }
             
             // Webhook de mensagem recebida
             if (change.field === 'messages' && change.value?.messages) {
-              console.log(`🔍 Processando ${change.value.messages.length} mensagem(ns) recebida(s)`);
+              logger.info('Processando mensagens recebidas', {
+                messagesCount: change.value.messages.length
+              });
               
               let messageProcessed = false;
               
               for (const message of change.value.messages) {
                 const fromNumber = message.from;
-                console.log(`🔍 Analisando mensagem - Tipo: ${message.type}, De: ${fromNumber}`);
+                logger.debug('Analisando mensagem', {
+                  type: message.type,
+                  from: fromNumber
+                });
                 
                 // Verificar se é uma resposta de Flow (nfm_reply quando Flow é concluído)
                 if (message.type === 'interactive' && 
                     message.interactive?.type === 'nfm_reply' &&
                     message.interactive?.nfm_reply?.response_json) {
                   
-                  console.log('='.repeat(60));
-                  console.log('📨 WEBHOOK NFM_REPLY RECEBIDO - FLOW CONCLUÍDO');
-                  console.log('='.repeat(60));
-                  console.log('📋 Mensagem completa:', JSON.stringify(message, null, 2));
+                  logger.info('WEBHOOK NFM_REPLY RECEBIDO - FLOW CONCLUÍDO', {
+                    from: fromNumber,
+                    hasResponseJson: !!message.interactive.nfm_reply.response_json
+                  });
                   
                   try {
                     const bookingData = JSON.parse(message.interactive.nfm_reply.response_json);
-                    console.log('📋 Dados do agendamento parseados:', JSON.stringify(bookingData, null, 2));
-                    console.log(`🔍 Status: ${bookingData.status}, Booking ID: ${bookingData.booking_id}`);
+                    logger.info('Dados do agendamento parseados', {
+                      status: bookingData.status,
+                      bookingId: bookingData.booking_id
+                    });
                     
                     if (bookingData.status === 'confirmed' && bookingData.booking_id) {
-                      console.log('✅ Processando confirmação de agendamento...');
+                      logger.info('Processando confirmação de agendamento', {
+                        bookingId: bookingData.booking_id
+                      });
                       
                       // Recuperar dados completos do armazenamento
-                      console.log(`🔍 Buscando dados no armazenamento para booking_id: ${bookingData.booking_id}`);
                       const storedData = bookingStorage.get(bookingData.booking_id);
                       
                       if (storedData) {
-                        console.log('📦 Dados completos recuperados do armazenamento:');
-                        console.log(JSON.stringify(storedData, null, 2));
+                        logger.info('Dados completos recuperados do armazenamento', {
+                          bookingId: bookingData.booking_id,
+                          hasStoredData: true
+                        });
                         
                         const completeBookingData = {
                           ...storedData,
@@ -157,41 +168,42 @@ router.post('/whatsapp-flow', async (req, res) => {
                           timestamp: undefined
                         };
                         
-                        console.log('📤 Dados completos que serão enviados para handleConfirmBooking:');
-                        console.log(JSON.stringify(completeBookingData, null, 2));
+                        logger.debug('Chamando handleConfirmBooking', {
+                          bookingId: bookingData.booking_id
+                        });
                         
-                        console.log('🔄 Chamando handleConfirmBooking...');
                         const result = await handleConfirmBooking(completeBookingData);
-                        console.log('✅ handleConfirmBooking concluído');
-                        console.log('📋 Resultado:', result ? JSON.stringify(result, null, 2) : 'null (webhook)');
+                        
+                        logger.info('handleConfirmBooking concluído', {
+                          bookingId: bookingData.booking_id,
+                          hasResult: !!result
+                        });
                         
                         bookingStorage.delete(bookingData.booking_id);
-                        console.log('✅ Agendamento criado no Google Calendar!');
-                        console.log('🗑️ Dados removidos do armazenamento');
+                        logger.info('Agendamento criado no Google Calendar', {
+                          bookingId: bookingData.booking_id
+                        });
                       } else {
-                        console.warn(`⚠️ Dados não encontrados para booking_id: ${bookingData.booking_id}`);
-                        console.warn('📊 Estatísticas do armazenamento:', JSON.stringify(bookingStorage.getStats(), null, 2));
-                        console.warn('⚠️ Tentando criar agendamento com dados limitados do webhook...');
-                        console.log('📤 Dados do webhook que serão enviados:', JSON.stringify(bookingData, null, 2));
+                        logger.warn('Dados não encontrados para booking_id', {
+                          bookingId: bookingData.booking_id,
+                          storageStats: bookingStorage.getStats()
+                        });
+                        
+                        logger.warn('Tentando criar agendamento com dados limitados do webhook');
                         
                         const result = await handleConfirmBooking(bookingData);
-                        console.log('✅ handleConfirmBooking concluído (dados limitados)');
-                        console.log('📋 Resultado:', result ? JSON.stringify(result, null, 2) : 'null (webhook)');
+                        logger.info('handleConfirmBooking concluído (dados limitados)', {
+                          bookingId: bookingData.booking_id,
+                          hasResult: !!result
+                        });
                       }
                     } else {
-                      console.warn('⚠️ Webhook recebido sem booking_id ou status confirmed');
-                      console.warn('📋 Dados recebidos:', JSON.stringify(bookingData, null, 2));
+                      logger.warn('Webhook recebido sem booking_id ou status confirmed', {
+                        bookingData
+                      });
                     }
                   } catch (error) {
-                    console.error('='.repeat(60));
-                    console.error('❌ ERRO AO PROCESSAR WEBHOOK NFM_REPLY');
-                    console.error('='.repeat(60));
-                    console.error('❌ Erro:', error.message);
-                    console.error('❌ Stack:', error.stack);
-                    console.error('❌ Error name:', error.name);
-                    console.error('❌ Error code:', error.code);
-                    console.error('❌ Error details:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
-                    console.error('='.repeat(60));
+                    logger.error('ERRO AO PROCESSAR WEBHOOK NFM_REPLY', error);
                   }
                   
                   messageProcessed = true;
@@ -200,36 +212,36 @@ router.post('/whatsapp-flow', async (req, res) => {
                 
                 // Verificar se é uma mensagem de texto normal (para enviar flow automaticamente)
                 if (message.type === 'text' && message.text) {
-                  console.log(`📨 Mensagem de texto recebida de ${fromNumber}: ${message.text.body}`);
+                  logger.info('Mensagem de texto recebida', {
+                    from: fromNumber,
+                    textLength: message.text.body?.length || 0
+                  });
                   
                   const AUTO_SEND_FLOW_NUMBER = process.env.AUTO_SEND_FLOW_NUMBER;
-                  
-                  console.log(`🔍 AUTO_SEND_FLOW_NUMBER configurado: ${AUTO_SEND_FLOW_NUMBER || '(vazio - enviar para qualquer número)'}`);
-                  
                   const formattedFromNumber = fromNumber.replace(/\D/g, '');
                   const formattedAutoSendNumber = AUTO_SEND_FLOW_NUMBER ? AUTO_SEND_FLOW_NUMBER.replace(/\D/g, '') : '';
                   
-                  console.log(`🔍 Comparando números - De: ${formattedFromNumber}, Configurado: ${formattedAutoSendNumber || '(qualquer número)'}`);
-                  
                   if (!AUTO_SEND_FLOW_NUMBER || formattedFromNumber === formattedAutoSendNumber) {
-                    console.log('🚀 Enviando flow automaticamente...');
+                    logger.info('Enviando flow automaticamente', { to: fromNumber });
                     
                     try {
                       await sendFlowAutomatically(fromNumber);
-                      console.log('✅ Flow enviado automaticamente!');
+                      logger.info('Flow enviado automaticamente', { to: fromNumber });
                     } catch (error) {
-                      console.error('❌ Erro ao enviar flow automaticamente:', error.message);
-                      console.error('❌ Stack:', error.stack);
+                      logger.error('Erro ao enviar flow automaticamente', error);
                     }
                   } else {
-                    console.log(`⏭️ Número ${fromNumber} não está na lista de envio automático`);
+                    logger.debug('Número não está na lista de envio automático', {
+                      from: fromNumber,
+                      configured: AUTO_SEND_FLOW_NUMBER
+                    });
                   }
                   
                   messageProcessed = true;
                   return res.status(200).json({});
                 }
                 
-                console.log(`⚠️ Tipo de mensagem não tratado: ${message.type}`);
+                logger.debug('Tipo de mensagem não tratado', { type: message.type });
               }
               
               // Se processou mensagens, não continuar
@@ -242,31 +254,39 @@ router.post('/whatsapp-flow', async (req, res) => {
       }
       
       // Se chegou aqui e é webhook de mensagem mas não processou nada, retornar vazio
-      console.log('⚠️ Webhook de mensagem detectado mas nenhuma mensagem foi processada');
+      logger.warn('Webhook de mensagem detectado mas nenhuma mensagem foi processada');
       return res.status(200).json({});
     }
 
     // Processar requisição do Flow (INIT, data_exchange, etc)
-    console.log('🔄 Processando requisição do Flow...');
-    console.log('🔍 Dados que serão passados para handleFlowRequest:', JSON.stringify(decryptedData, null, 2));
+    logger.flow(decryptedData?.action || 'unknown', decryptedData?.screen, {
+      version: decryptedData?.version,
+      actionType: decryptedData?.data?.action_type
+    });
     
     let response;
     try {
-      response = await handleFlowRequest(decryptedData);
-      console.log('✅ handleFlowRequest executado com sucesso');
+      response = await handleFlowRequest(decryptedData, req.requestId);
+      logger.info('handleFlowRequest executado com sucesso', {
+        screen: response?.screen,
+        hasData: !!response?.data
+      });
     } catch (error) {
-      console.error('❌ Erro em handleFlowRequest:', error.message);
-      console.error('❌ Stack:', error.stack);
+      logger.error('Erro em handleFlowRequest', error);
       throw error;
     }
 
-    console.log('📤 Resposta:', JSON.stringify(response, null, 2));
+    logger.response(200, {
+      screen: response?.screen,
+      dataFieldsCount: response?.data ? Object.keys(response.data).length : 0
+    });
     
     // Log específico para CONFIRMATION screen
     if (response.screen === 'CONFIRMATION') {
-      console.log('✅ Retornando para tela CONFIRMATION');
-      console.log(`📊 Número de campos no data: ${Object.keys(response.data || {}).length}`);
-      console.log(`📋 Campos: ${Object.keys(response.data || {}).join(', ')}`);
+      logger.info('Retornando para tela CONFIRMATION', {
+        dataFields: Object.keys(response.data || {}),
+        dataFieldsCount: Object.keys(response.data || {}).length
+      });
     }
 
     // Criptografar resposta se necessário
@@ -283,14 +303,7 @@ router.post('/whatsapp-flow', async (req, res) => {
     return res.json(response);
 
   } catch (error) {
-    console.error('='.repeat(60));
-    console.error('❌ ERRO NO WEBHOOK ROUTE');
-    console.error('='.repeat(60));
-    console.error('❌ Erro:', error.message);
-    console.error('❌ Stack:', error.stack);
-    console.error('❌ Error name:', error.name);
-    console.error('❌ Error code:', error.code);
-    console.error('='.repeat(60));
+    logger.error('ERRO NO WEBHOOK ROUTE', error);
     
     // Retornar resposta válida para o WhatsApp mesmo em caso de erro
     // O WhatsApp espera uma resposta válida, não um erro HTTP
@@ -298,7 +311,8 @@ router.post('/whatsapp-flow', async (req, res) => {
       version: '3.0',
       data: {
         error: true,
-        error_message: 'Erro ao processar requisição'
+        error_message: 'Erro ao processar requisição',
+        requestId: req.requestId
       }
     });
   }
