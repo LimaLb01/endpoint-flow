@@ -104,7 +104,7 @@
               "name": "data_exchange",
               "payload": {
                 "action_type": "SELECT_SERVICE",
-                "selected_service": "${service_form.selected_service}"
+                "selected_service": "${form.selected_service}"
               }
             }
           }
@@ -180,7 +180,7 @@
               "payload": {
                 "action_type": "SELECT_DATE",
                 "selected_service": "${data.selected_service}",
-                "selected_date": "${date_form.selected_date}"
+                "selected_date": "${form.selected_date}"
               }
             }
           }
@@ -264,7 +264,7 @@
                 "action_type": "SELECT_BARBER",
                 "selected_service": "${data.selected_service}",
                 "selected_date": "${data.selected_date}",
-                "selected_barber": "${barber_form.selected_barber}"
+                "selected_barber": "${form.selected_barber}"
               }
             }
           }
@@ -361,7 +361,7 @@
                 "selected_service": "${data.selected_service}",
                 "selected_date": "${data.selected_date}",
                 "selected_barber": "${data.selected_barber}",
-                "selected_time": "${time_form.selected_time}"
+                "selected_time": "${form.selected_time}"
               }
             }
           }
@@ -485,10 +485,10 @@
                 "selected_date": "${data.selected_date}",
                 "selected_barber": "${data.selected_barber}",
                 "selected_time": "${data.selected_time}",
-                "client_name": "${details_form.client_name}",
-                "client_phone": "${details_form.client_phone}",
-                "client_email": "${details_form.client_email}",
-                "notes": "${details_form.notes}",
+                  "client_name": "${form.client_name}",
+                  "client_phone": "${form.client_phone}",
+                  "client_email": "${form.client_email}",
+                  "notes": "${form.notes}",
                 "service_name": "${data.service_name}",
                 "service_price": "${data.service_price}",
                 "barber_name": "${data.barber_name}",
