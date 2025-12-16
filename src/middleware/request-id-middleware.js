@@ -1,9 +1,10 @@
 /**
  * Middleware para gerar Request ID
  * Adiciona um UUID único a cada requisição para rastreamento
+ * Usa crypto.randomUUID() nativo do Node.js 18+ (sem dependências externas)
  */
 
-const { v4: uuidv4 } = require('uuid');
+const crypto = require('crypto');
 
 /**
  * Middleware para gerar e adicionar Request ID
@@ -12,8 +13,9 @@ const { v4: uuidv4 } = require('uuid');
  * @param {function} next - Next middleware
  */
 function requestIdMiddleware(req, res, next) {
-  // Gerar UUID único para esta requisição
-  const requestId = uuidv4();
+  // Gerar UUID único para esta requisição usando crypto nativo
+  // crypto.randomUUID() está disponível no Node.js 18+
+  const requestId = crypto.randomUUID();
   
   // Adicionar ao request para uso nos handlers
   req.requestId = requestId;
