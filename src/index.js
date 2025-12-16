@@ -106,6 +106,10 @@ app.use((req, res) => {
 
 // Inicializar servidor
 app.listen(PORT, () => {
+  // Log simples primeiro para garantir que o servidor iniciou
+  console.log(`✅ Servidor iniciado na porta ${PORT}`);
+  
+  // Depois usar o logger estruturado
   globalLogger.info('🚀 WhatsApp Flow Endpoint - Barbearia', {
     port: PORT,
     endpoint: `http://localhost:${PORT}/webhook/whatsapp-flow`,
@@ -116,9 +120,6 @@ app.listen(PORT, () => {
     nodeVersion: process.version,
     timezone: process.env.TZ || 'UTC'
   });
-  
-  // Log adicional para confirmar que o servidor está pronto
-  console.log(`✅ Servidor iniciado na porta ${PORT}`);
 });
 
 module.exports = app;
