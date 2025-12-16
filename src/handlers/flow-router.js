@@ -11,6 +11,7 @@ const { handleSelectTime, setPreviousData: setTimePreviousData } = require('./ti
 const { handleSubmitDetails, setPreviousData: setDetailsPreviousData } = require('./details-handler');
 const { handleConfirmBooking } = require('./booking-handler');
 const { cleanPlaceholders } = require('../utils/placeholder-cleaner');
+const { validateFlowRequest, validateByActionType } = require('../utils/validators');
 
 // Armazenamento de dados anteriores para resolução de placeholders
 let previousFlowData = {};
@@ -21,13 +22,20 @@ let previousFlowData = {};
  * @returns {Promise<object>} Resposta do Flow
  */
 async function handleFlowRequest(data) {
-  // Validar se data existe
-  if (!data || typeof data !== 'object') {
-    console.error('❌ Dados inválidos recebidos:', data);
-    return { version: '3.0', data: { error: 'Invalid request data' } };
+  // Validar estrutura básica da requisição
+  const requestValidation = validateFlowRequest(data);
+  if (!requestValidation.valid) {
+    console.error('❌ Validação de requisição falhou:', requestValidation.error);
+    return {
+      version: '3.0',
+      data: {
+        error: true,
+        error_message: requestValidation.error
+      }
+    };
   }
   
-  const { action, screen, data: flowData, version, flow_token } = data;
+  const { action, screen, data: flowData, version, flow_token } = requestValidation.data;
   let payload = flowData || {};
   
   console.log(`📋 Processando Flow Request - Action: ${action}, Screen: ${screen}, Version: ${version}`);
@@ -71,6 +79,25 @@ async function handleFlowRequest(data) {
   // data_exchange - Navegação entre telas
   if (action === 'data_exchange') {
     console.log(`🔄 Processando data_exchange com action_type: ${actionType}`);
+    
+    // Validar dados do payload baseado no action_type
+    if (actionType) {
+      const payloadValidation = validateByActionType(actionType, payload);
+      if (!payloadValidation.valid) {
+        console.error(`❌ Validação de payload falhou para ${actionType}:`, payloadValidation.error);
+        return {
+          version: '3.0',
+          screen: screen || 'SERVICE_SELECTION',
+          data: {
+            error: true,
+            error_message: payloadValidation.error
+          }
+        };
+      }
+      // Usar dados validados e normalizados
+      payload = { ...payload, ...payloadValidation.data };
+    }
+    
     switch (actionType) {
       case 'INIT':
         console.log('🚀 Processando INIT via data_exchange...');

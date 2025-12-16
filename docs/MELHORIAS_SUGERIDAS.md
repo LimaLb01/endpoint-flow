@@ -8,19 +8,32 @@ Após análise completa do código, identifiquei várias oportunidades de melhor
 
 ## 🎯 Melhorias Prioritárias (Alto Impacto)
 
-### 1. ✅ **Validação de Dados de Entrada**
+### 1. ✅ **Validação de Dados de Entrada** [CONCLUÍDA]
 **Problema:** Não há validação robusta dos dados recebidos do WhatsApp Flow.
 
 **Solução:**
-- Criar validadores para cada tipo de ação
-- Validar estrutura dos dados antes de processar
-- Retornar erros claros quando dados inválidos
+- ✅ Criar validadores para cada tipo de ação
+- ✅ Validar estrutura dos dados antes de processar
+- ✅ Retornar erros claros quando dados inválidos
 
 **Impacto:** 🔴 Alto - Previne bugs e melhora segurança
 
+**Status:** ✅ Concluída  
+**Iniciado em:** 16/12/2025  
+**Concluída em:** 16/12/2025  
+**Última atualização:** 16/12/2025  
+
+**Implementação:**
+- ✅ Validadores criados em `src/utils/validators.js` para todos os action_types
+- ✅ Validação integrada no `flow-router.js`
+- ✅ Validação de estrutura básica da requisição
+- ✅ Validação de payload específico por action_type
+- ✅ Retorno de erros claros e estruturados
+- ✅ Normalização de dados (trim, limpeza de telefone, etc.)
+
 ---
 
-### 2. ✅ **Health Check Detalhado**
+### 2. ⏸️ **Health Check Detalhado** [PENDENTE]
 **Problema:** Health check atual é muito básico, não verifica dependências.
 
 **Solução:**
@@ -31,9 +44,11 @@ Após análise completa do código, identifiquei várias oportunidades de melhor
 
 **Impacto:** 🟡 Médio - Melhora observabilidade
 
+**Status:** ⏸️ Pendente
+
 ---
 
-### 3. ✅ **Logging Estruturado**
+### 3. ⏸️ **Logging Estruturado** [PENDENTE]
 **Problema:** Logs são apenas `console.log`, difícil de analisar em produção.
 
 **Solução:**
@@ -44,9 +59,11 @@ Após análise completa do código, identifiquei várias oportunidades de melhor
 
 **Impacto:** 🟡 Médio - Facilita debug e monitoramento
 
+**Status:** ⏸️ Pendente
+
 ---
 
-### 4. ✅ **Request ID e Rastreamento**
+### 4. ⏸️ **Request ID e Rastreamento** [PENDENTE]
 **Problema:** Não há como rastrear uma requisição específica nos logs.
 
 **Solução:**
@@ -57,9 +74,11 @@ Após análise completa do código, identifiquei várias oportunidades de melhor
 
 **Impacto:** 🟡 Médio - Melhora debugging
 
+**Status:** ⏸️ Pendente
+
 ---
 
-### 5. ✅ **Tratamento de Erros Mais Robusto**
+### 5. ⏸️ **Tratamento de Erros Mais Robusto** [PENDENTE]
 **Problema:** Erros genéricos, difícil identificar causa raiz.
 
 **Solução:**
@@ -70,11 +89,13 @@ Após análise completa do código, identifiquei várias oportunidades de melhor
 
 **Impacto:** 🔴 Alto - Melhora experiência do usuário
 
+**Status:** ⏸️ Pendente
+
 ---
 
 ## 🎯 Melhorias Secundárias (Médio Impacto)
 
-### 6. ✅ **Rate Limiting**
+### 6. ⏸️ **Rate Limiting** [PENDENTE]
 **Problema:** Não há proteção contra abuso ou DDoS.
 
 **Solução:**
@@ -86,7 +107,7 @@ Após análise completa do código, identifiquei várias oportunidades de melhor
 
 ---
 
-### 7. ✅ **Cache de Horários Disponíveis**
+### 7. ⏸️ **Cache de Horários Disponíveis** [PENDENTE]
 **Problema:** Busca horários do Google Calendar a cada requisição.
 
 **Solução:**
@@ -98,7 +119,7 @@ Após análise completa do código, identifiquei várias oportunidades de melhor
 
 ---
 
-### 8. ✅ **Validação de Schema**
+### 8. ⏸️ **Validação de Schema** [PENDENTE]
 **Problema:** Não valida estrutura dos dados do Flow.
 
 **Solução:**
@@ -110,7 +131,7 @@ Após análise completa do código, identifiquei várias oportunidades de melhor
 
 ---
 
-### 9. ✅ **Timeout para Requisições Externas**
+### 9. ⏸️ **Timeout para Requisições Externas** [PENDENTE]
 **Problema:** Requisições ao Google Calendar podem travar.
 
 **Solução:**
@@ -122,7 +143,7 @@ Após análise completa do código, identifiquei várias oportunidades de melhor
 
 ---
 
-### 10. ✅ **Métricas e Monitoramento**
+### 10. ⏸️ **Métricas e Monitoramento** [PENDENTE]
 **Problema:** Não há métricas de uso ou performance.
 
 **Solução:**
@@ -165,20 +186,29 @@ Após análise completa do código, identifiquei várias oportunidades de melhor
 ## 🚀 Plano de Implementação Recomendado
 
 ### Fase 1: Essenciais (Implementar Agora)
-1. ✅ Validação de Dados
-2. ✅ Health Check Detalhado
-3. ✅ Request ID e Rastreamento
-4. ✅ Tratamento de Erros Robusto
+1. ✅ Validação de Dados [CONCLUÍDA]
+2. ⏸️ Health Check Detalhado [PENDENTE]
+3. ⏸️ Request ID e Rastreamento [PENDENTE]
+4. ⏸️ Tratamento de Erros Robusto [PENDENTE]
 
 ### Fase 2: Importantes (Próximas Semanas)
-5. ✅ Logging Estruturado
-6. ✅ Rate Limiting
-7. ✅ Validação de Schema
+5. ⏸️ Logging Estruturado [PENDENTE]
+6. ⏸️ Rate Limiting [PENDENTE]
+7. ⏸️ Validação de Schema [PENDENTE]
 
 ### Fase 3: Otimizações (Futuro)
-8. ✅ Cache de Horários
-9. ✅ Timeout para Requisições
-10. ✅ Métricas e Monitoramento
+8. ⏸️ Cache de Horários [PENDENTE]
+9. ⏸️ Timeout para Requisições [PENDENTE]
+10. ⏸️ Métricas e Monitoramento [PENDENTE]
+
+---
+
+## 📊 Legenda de Status
+
+- ⏳ **EM ANDAMENTO** - Melhoria sendo implementada no momento
+- ✅ **CONCLUÍDA** - Melhoria implementada e testada
+- ⏸️ **PENDENTE** - Melhoria aguardando implementação
+- ❌ **FALHADA** - Tentativa de implementação falhou (com motivo)
 
 ---
 
