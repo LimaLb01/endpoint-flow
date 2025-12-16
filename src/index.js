@@ -7,6 +7,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const axios = require('axios');
 const { decryptRequest, encryptResponse, isRequestSignatureValid } = require('./crypto-utils');
 const { getAvailableSlots, createAppointment, getBarbers } = require('./calendar-service');
 
@@ -112,21 +113,29 @@ app.post('/webhook/whatsapp-flow', async (req, res) => {
 
     // Verificar se é um webhook de mensagem (quando Flow é concluído)
     if (decryptedData.object === 'whatsapp_business_account' && decryptedData.entry) {
+      console.log('🔍 Detectado webhook do WhatsApp Business Account');
       let isWebhookMessage = false;
       
       for (const entry of decryptedData.entry) {
         if (entry.changes) {
+          console.log(`🔍 Processando ${entry.changes.length} mudança(s) no entry`);
           for (const change of entry.changes) {
+            console.log(`🔍 Campo da mudança: ${change.field}`);
             // Webhook de status de mensagem (sent, delivered, etc) - ignorar
             if (change.field === 'messages' && change.value?.statuses) {
               console.log('📨 Webhook de status de mensagem - ignorando');
               return res.status(200).json({});
             }
             
-            // Webhook de mensagem recebida (nfm_reply quando Flow é concluído)
+            // Webhook de mensagem recebida
             if (change.field === 'messages' && change.value?.messages) {
+              console.log(`🔍 Processando ${change.value.messages.length} mensagem(ns) recebida(s)`);
+              
               for (const message of change.value.messages) {
-                // Verificar se é uma resposta de Flow (nfm_reply)
+                const fromNumber = message.from;
+                console.log(`🔍 Analisando mensagem - Tipo: ${message.type}, De: ${fromNumber}`);
+                
+                // Verificar se é uma resposta de Flow (nfm_reply quando Flow é concluído)
                 if (message.type === 'interactive' && 
                     message.interactive?.type === 'nfm_reply' &&
                     message.interactive?.nfm_reply?.response_json) {
@@ -156,6 +165,42 @@ app.post('/webhook/whatsapp-flow', async (req, res) => {
                   // Retornar resposta vazia para webhooks de mensagem
                   return res.status(200).json({});
                 }
+                
+                // Verificar se é uma mensagem de texto normal (para enviar flow automaticamente)
+                if (message.type === 'text' && message.text) {
+                  isWebhookMessage = true;
+                  console.log(`📨 Mensagem de texto recebida de ${fromNumber}: ${message.text.body}`);
+                  
+                  // Verificar se deve enviar flow automaticamente
+                  const AUTO_SEND_FLOW_NUMBER = process.env.AUTO_SEND_FLOW_NUMBER; // Número específico ou deixar vazio para qualquer número
+                  
+                  console.log(`🔍 AUTO_SEND_FLOW_NUMBER configurado: ${AUTO_SEND_FLOW_NUMBER || '(vazio - enviar para qualquer número)'}`);
+                  
+                  // Formatar números para comparação (remover caracteres não numéricos)
+                  const formattedFromNumber = fromNumber.replace(/\D/g, '');
+                  const formattedAutoSendNumber = AUTO_SEND_FLOW_NUMBER ? AUTO_SEND_FLOW_NUMBER.replace(/\D/g, '') : '';
+                  
+                  console.log(`🔍 Comparando números - De: ${formattedFromNumber}, Configurado: ${formattedAutoSendNumber || '(qualquer número)'}`);
+                  
+                  if (!AUTO_SEND_FLOW_NUMBER || formattedFromNumber === formattedAutoSendNumber) {
+                    console.log('🚀 Enviando flow automaticamente...');
+                    
+                    try {
+                      await sendFlowAutomatically(fromNumber);
+                      console.log('✅ Flow enviado automaticamente!');
+                    } catch (error) {
+                      console.error('❌ Erro ao enviar flow automaticamente:', error.message);
+                      console.error('❌ Stack:', error.stack);
+                    }
+                  } else {
+                    console.log(`⏭️ Número ${fromNumber} não está na lista de envio automático`);
+                  }
+                  
+                  // Retornar resposta vazia
+                  return res.status(200).json({});
+                }
+                
+                console.log(`⚠️ Tipo de mensagem não tratado: ${message.type}`);
               }
             }
           }
@@ -572,11 +617,12 @@ async function handleSubmitDetails(payload) {
   
   console.log('📤 SUBMIT_DETAILS - Dados que serão retornados:', JSON.stringify(responseDataWithBooking, null, 2));
   
-  // ✅ SOLUÇÃO: Retornar diretamente para tela terminal CONFIRMATION com todos os dados
-  // O WhatsApp Flow aplica dados em telas terminais quando vêm diretamente do endpoint
+  // ✅ SOLUÇÃO: Retornar para DETAILS com todos os dados formatados
+  // A tela DETAILS então usa navigate para ir para CONFIRMATION com os dados
+  // Dados passados via navigate são aplicados corretamente na próxima tela
   return {
     version: '3.0',
-    screen: 'CONFIRMATION',
+    screen: 'DETAILS',
     data: responseDataWithBooking
   };
 }
@@ -671,6 +717,67 @@ async function handleConfirmBooking(payload) {
     // Se foi chamado via webhook, apenas logar o erro
     throw error;
   }
+}
+
+/**
+ * Envia Flow automaticamente quando recebe mensagem de texto
+ */
+async function sendFlowAutomatically(toNumber) {
+  const WHATSAPP_API_URL = 'https://graph.facebook.com/v21.0';
+  const PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
+  const ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN || process.env.WHATSAPP_TOKEN;
+  const FLOW_ID = process.env.WHATSAPP_FLOW_ID || '888145740552051';
+  
+  if (!ACCESS_TOKEN || !PHONE_NUMBER_ID) {
+    throw new Error('WHATSAPP_ACCESS_TOKEN e WHATSAPP_PHONE_NUMBER_ID devem estar configurados');
+  }
+  
+  // Formatar número de telefone (remover caracteres especiais)
+  const formattedPhone = toNumber.replace(/\D/g, '');
+  
+  // Gerar flow_token único
+  const flowToken = `agendamento-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  
+  // Payload da mensagem
+  const messagePayload = {
+    messaging_product: 'whatsapp',
+    to: formattedPhone,
+    type: 'interactive',
+    interactive: {
+      type: 'flow',
+      body: {
+        text: 'Olá! Agende seu horário na barbearia de forma rápida e prática. 🎯'
+      },
+      action: {
+        name: 'flow',
+        parameters: {
+          flow_message_version: '3',
+          flow_token: flowToken,
+          flow_id: FLOW_ID,
+          flow_cta: 'Agendar Horário',
+          flow_action: 'navigate',
+          flow_action_payload: {
+            screen: 'WELCOME'
+          }
+        }
+      }
+    }
+  };
+  
+  const url = `${WHATSAPP_API_URL}/${PHONE_NUMBER_ID}/messages`;
+  
+  const response = await axios.post(url, messagePayload, {
+    headers: {
+      'Authorization': `Bearer ${ACCESS_TOKEN}`,
+      'Content-Type': 'application/json'
+    }
+  });
+  
+  console.log(`✅ Flow enviado automaticamente para ${formattedPhone}`);
+  console.log(`   🆔 Flow ID: ${FLOW_ID}`);
+  console.log(`   🎫 Flow Token: ${flowToken}`);
+  
+  return response.data;
 }
 
 /**
