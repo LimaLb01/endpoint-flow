@@ -342,11 +342,13 @@ Agendado via WhatsApp Flow
       }
     };
 
-    // Se tiver email do cliente, adicionar como convidado
-    if (clientEmail) {
-      event.attendees = [{ email: clientEmail }];
-      event.sendUpdates = 'all'; // Enviar convite por email
-    }
+    // NOTA: Service Accounts não podem adicionar convidados sem Domain-Wide Delegation
+    // Se precisar enviar convites, use OAuth2 em vez de Service Account
+    // Por enquanto, o email do cliente será apenas incluído na descrição do evento
+    // if (clientEmail) {
+    //   event.attendees = [{ email: clientEmail }];
+    //   event.sendUpdates = 'all';
+    // }
 
     console.log('📤 Enviando requisição para Google Calendar API...');
     console.log('📋 Calendar ID:', calendarId);
