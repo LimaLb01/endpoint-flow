@@ -3,34 +3,34 @@
  */
 
 const { getBranchesForFlow } = require('../config/branches');
-
-// Mock temporário de CPFs com plano
-// TODO: Substituir por consulta real à API quando disponível
-const CPFS_WITH_PLAN = [
-  '12345678900',
-  '98765432100',
-  '11122233344'
-];
+const { getActiveSubscriptionByCpf } = require('../services/subscription-service');
+const { getOrCreateCustomer } = require('../services/customer-service');
+const { globalLogger } = require('../utils/logger');
 
 /**
  * Verifica se um CPF tem plano ativo
  * @param {string} cpf - CPF do cliente (apenas números)
- * @returns {boolean} true se tem plano, false caso contrário
+ * @returns {Promise<boolean>} true se tem plano, false caso contrário
  */
-function hasPlan(cpf) {
+async function hasPlan(cpf) {
   if (!cpf) return false;
   
-  // Remove formatação do CPF
-  const cleanCpf = cpf.replace(/\D/g, '');
-  
-  // Verifica no mock (substituir por consulta real)
-  return CPFS_WITH_PLAN.includes(cleanCpf);
+  try {
+    const result = await getActiveSubscriptionByCpf(cpf);
+    return result.has_plan === true;
+  } catch (error) {
+    globalLogger.error('Erro ao verificar plano do CPF', {
+      cpf: cpf.replace(/\d(?=\d{4})/g, '*'),
+      error: error.message
+    });
+    return false;
+  }
 }
 
 /**
  * Processa coleta de CPF
  * @param {object} payload - Dados da requisição
- * @returns {object} Resposta com dados para verificação de plano
+ * @returns {Promise<object>} Resposta com dados para verificação de plano
  */
 async function handleCpfInput(payload) {
   const { client_cpf } = payload;
@@ -61,23 +61,44 @@ async function handleCpfInput(payload) {
     };
   }
   
-  // Verifica se tem plano
-  const hasActivePlan = hasPlan(cleanCpf);
-  
-  if (hasActivePlan) {
-    // Cliente tem plano, vai direto para seleção de filial
-    return {
-      version: '3.0',
-      screen: 'BRANCH_SELECTION',
-      data: {
-        client_cpf: cleanCpf,
-        has_plan: true,
-        is_club_member: true,
-        branches: getBranchesForFlow()
-      }
-    };
-  } else {
-    // Cliente não tem plano, oferece opção de ser do clube
+  try {
+    // Verifica se tem plano ativo no banco de dados
+    const subscriptionInfo = await getActiveSubscriptionByCpf(cleanCpf);
+    
+    // Garante que o cliente existe no banco (cria se não existir)
+    await getOrCreateCustomer(cleanCpf);
+    
+    if (subscriptionInfo.has_plan) {
+      // Cliente tem plano ativo, vai direto para seleção de filial
+      return {
+        version: '3.0',
+        screen: 'BRANCH_SELECTION',
+        data: {
+          client_cpf: cleanCpf,
+          has_plan: true,
+          is_club_member: true,
+          branches: getBranchesForFlow()
+        }
+      };
+    } else {
+      // Cliente não tem plano, oferece opção de ser do clube
+      return {
+        version: '3.0',
+        screen: 'CLUB_OPTION',
+        data: {
+          client_cpf: cleanCpf,
+          has_plan: false,
+          is_club_member: false
+        }
+      };
+    }
+  } catch (error) {
+    globalLogger.error('Erro ao processar CPF', {
+      cpf: cleanCpf.replace(/\d(?=\d{4})/g, '*'),
+      error: error.message
+    });
+    
+    // Em caso de erro, oferece opção de clube (modo seguro)
     return {
       version: '3.0',
       screen: 'CLUB_OPTION',
