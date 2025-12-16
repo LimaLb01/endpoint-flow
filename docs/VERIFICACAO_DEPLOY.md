@@ -64,6 +64,10 @@ curl https://whatsapp-flow-endpoint-production.up.railway.app/
 - **Causa:** Detecção de ambiente não está funcionando
 - **Solução:** Verificar variáveis `NODE_ENV`, `RAILWAY_ENVIRONMENT`
 
+#### Problema: ERR_REQUIRE_ESM com uuid
+- **Causa:** uuid v13+ é ESM puro e não funciona com require()
+- **Solução:** Usar `crypto.randomUUID()` nativo do Node.js 18+ (já corrigido)
+
 ### Próximos Passos
 
 1. Verificar status do deploy atual
