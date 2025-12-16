@@ -122,7 +122,7 @@ function validateWithSchema(schema, data) {
       data: validated
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
+    if (error instanceof z.ZodError && error.errors && error.errors.length > 0) {
       // Pegar primeira mensagem de erro ou combinar todas
       const firstError = error.errors[0];
       const errorMessage = firstError
