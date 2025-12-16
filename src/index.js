@@ -189,12 +189,51 @@ app.post('/webhook/whatsapp-flow', async (req, res) => {
   }
 });
 
+// Armazenar dados anteriores para usar quando placeholders não são resolvidos
+let previousFlowData = {};
+
+/**
+ * Limpa placeholders não resolvidos do payload
+ * Se um valor contém ${...}, tenta buscar do contexto anterior
+ */
+function cleanPlaceholders(payload, previousData = {}) {
+  const cleaned = {};
+  for (const [key, value] of Object.entries(payload)) {
+    if (typeof value === 'string' && value.startsWith('${') && value.endsWith('}')) {
+      // É um placeholder não resolvido
+      // Tenta extrair o nome da variável e buscar no previousData
+      const varName = value.replace(/\$\{([^}]+)\}/, '$1').split('.').pop();
+      // Tenta buscar pelo nome completo primeiro, depois pelo nome da variável
+      cleaned[key] = previousData[key] || previousData[varName] || null;
+      if (cleaned[key]) {
+        console.log(`✅ Placeholder ${value} resolvido para: ${cleaned[key]}`);
+      } else {
+        console.warn(`⚠️ Placeholder ${value} não pôde ser resolvido`);
+      }
+    } else {
+      cleaned[key] = value;
+    }
+  }
+  return cleaned;
+}
+
 /**
  * Processa requisições do Flow
  */
 async function handleFlowRequest(data) {
   const { action, screen, data: flowData, version } = data;
-  const payload = flowData || {};
+  let payload = flowData || {};
+  
+  // Limpar placeholders não resolvidos usando dados anteriores
+  payload = cleanPlaceholders(payload, previousFlowData);
+  
+  // Atualizar dados anteriores com valores limpos (mantém valores válidos)
+  for (const [key, value] of Object.entries(payload)) {
+    if (value !== null && !(typeof value === 'string' && value.startsWith('${'))) {
+      previousFlowData[key] = value;
+    }
+  }
+  
   const actionType = payload.action_type;
 
   console.log(`📋 Action: ${action}, Screen: ${screen}, ActionType: ${actionType}`);
@@ -284,7 +323,16 @@ async function handleSelectService(payload) {
  * Seleção de data → vai para barbeiro
  */
 async function handleSelectDate(payload) {
-  const { selected_service, selected_date } = payload;
+  let { selected_service, selected_date } = payload;
+  
+  // Limpar placeholders se necessário
+  if (selected_service && typeof selected_service === 'string' && selected_service.startsWith('${')) {
+    selected_service = previousFlowData.selected_service;
+  }
+  if (selected_date && typeof selected_date === 'string' && selected_date.startsWith('${')) {
+    selected_date = previousFlowData.selected_date;
+  }
+  
   const service = SERVICES.find(s => s.id === selected_service) || SERVICES[0];
   
   // Buscar barbeiros disponíveis
@@ -317,10 +365,54 @@ async function handleSelectDate(payload) {
  * Seleção de barbeiro → vai para horário
  */
 async function handleSelectBarber(payload) {
-  const { selected_service, selected_date, selected_barber } = payload;
+  let { selected_service, selected_date, selected_barber } = payload;
+  
+  // Limpar placeholders se necessário
+  if (selected_service && selected_service.startsWith('${')) {
+    selected_service = previousFlowData.selected_service;
+  }
+  if (selected_date && selected_date.startsWith('${')) {
+    selected_date = previousFlowData.selected_date;
+  }
+  if (selected_barber && selected_barber.startsWith('${')) {
+    selected_barber = previousFlowData.selected_barber;
+  }
+  
   const service = SERVICES.find(s => s.id === selected_service) || SERVICES[0];
   const barbers = await getBarbers();
   const barber = barbers.find(b => b.id === selected_barber) || barbers[0];
+  
+  // Validar dados antes de buscar horários
+  if (!selected_barber || !selected_date || selected_barber.startsWith('${') || selected_date.startsWith('${')) {
+    console.warn('⚠️ Dados inválidos para buscar horários:', { selected_barber, selected_date });
+    // Retornar horários padrão
+    const availableTimes = [
+      { id: '09:00', title: '09:00', description: 'Disponível - 45 min' },
+      { id: '10:00', title: '10:00', description: 'Disponível - 45 min' },
+      { id: '14:00', title: '14:00', description: 'Disponível - 45 min' },
+      { id: '15:00', title: '15:00', description: 'Disponível - 45 min' },
+      { id: '16:00', title: '16:00', description: 'Disponível - 45 min' }
+    ];
+    
+    const dateObj = new Date((selected_date || new Date().toISOString().split('T')[0]) + 'T12:00:00');
+    const diasSemana = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+    const formattedDate = `${(selected_date || new Date().toISOString().split('T')[0]).split('-').reverse().join('/')} (${diasSemana[dateObj.getDay()]})`;
+    
+    return {
+      version: '3.0',
+      screen: 'TIME_SELECTION',
+      data: {
+        selected_service: selected_service || previousFlowData.selected_service,
+        selected_date: selected_date || previousFlowData.selected_date,
+        selected_barber: selected_barber || previousFlowData.selected_barber,
+        service_name: service.title,
+        service_price: `R$ ${service.price}`,
+        barber_name: barber.title,
+        formatted_date: formattedDate,
+        available_times: availableTimes
+      }
+    };
+  }
   
   // Buscar horários disponíveis do Google Calendar
   const availableTimes = await getAvailableSlots(selected_barber, selected_date, selected_service);
@@ -352,24 +444,40 @@ async function handleSelectBarber(payload) {
  * Seleção de horário → vai para dados pessoais
  */
 async function handleSelectTime(payload) {
-  const { selected_service, selected_date, selected_barber, selected_time } = payload;
+  let { selected_service, selected_date, selected_barber, selected_time } = payload;
+  
+  // Limpar placeholders se necessário
+  if (selected_service && typeof selected_service === 'string' && selected_service.startsWith('${')) {
+    selected_service = previousFlowData.selected_service;
+  }
+  if (selected_date && typeof selected_date === 'string' && selected_date.startsWith('${')) {
+    selected_date = previousFlowData.selected_date;
+  }
+  if (selected_barber && typeof selected_barber === 'string' && selected_barber.startsWith('${')) {
+    selected_barber = previousFlowData.selected_barber;
+  }
+  if (selected_time && typeof selected_time === 'string' && selected_time.startsWith('${')) {
+    selected_time = previousFlowData.selected_time;
+  }
+  
   const service = SERVICES.find(s => s.id === selected_service) || SERVICES[0];
   const barbers = await getBarbers();
   const barber = barbers.find(b => b.id === selected_barber) || barbers[0];
   
   // Formatar data
-  const dateObj = new Date(selected_date + 'T12:00:00');
+  const dateToFormat = selected_date || previousFlowData.selected_date || new Date().toISOString().split('T')[0];
+  const dateObj = new Date(dateToFormat + 'T12:00:00');
   const diasSemana = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
-  const formattedDate = `${selected_date.split('-').reverse().join('/')} (${diasSemana[dateObj.getDay()]})`;
+  const formattedDate = `${dateToFormat.split('-').reverse().join('/')} (${diasSemana[dateObj.getDay()]})`;
   
   return {
     version: '3.0',
     screen: 'DETAILS',
     data: {
-      selected_service,
-      selected_date,
-      selected_barber,
-      selected_time,
+      selected_service: selected_service || previousFlowData.selected_service,
+      selected_date: selected_date || previousFlowData.selected_date,
+      selected_barber: selected_barber || previousFlowData.selected_barber,
+      selected_time: selected_time || previousFlowData.selected_time,
       service_name: service.title,
       service_price: `R$ ${service.price}`,
       barber_name: barber.title,
@@ -382,7 +490,7 @@ async function handleSelectTime(payload) {
  * Envio dos dados pessoais → vai para confirmação
  */
 async function handleSubmitDetails(payload) {
-  const { 
+  let { 
     selected_service, selected_date, selected_barber, selected_time,
     client_name, client_phone, client_email, contact_preference, notes,
     // Dados formatados podem vir do payload (se passados no Flow)
@@ -394,32 +502,59 @@ async function handleSubmitDetails(payload) {
   
   console.log('📋 SUBMIT_DETAILS - Payload recebido:', JSON.stringify(payload, null, 2));
   
+  // Limpar placeholders não resolvidos usando dados anteriores
+  if (selected_service && typeof selected_service === 'string' && selected_service.startsWith('${')) {
+    selected_service = previousFlowData.selected_service;
+  }
+  if (selected_date && typeof selected_date === 'string' && selected_date.startsWith('${')) {
+    selected_date = previousFlowData.selected_date;
+  }
+  if (selected_barber && typeof selected_barber === 'string' && selected_barber.startsWith('${')) {
+    selected_barber = previousFlowData.selected_barber;
+  }
+  if (selected_time && typeof selected_time === 'string' && selected_time.startsWith('${')) {
+    selected_time = previousFlowData.selected_time;
+  }
+  if (client_name && typeof client_name === 'string' && client_name.startsWith('${')) {
+    client_name = previousFlowData.client_name;
+  }
+  if (client_phone && typeof client_phone === 'string' && client_phone.startsWith('${')) {
+    client_phone = previousFlowData.client_phone;
+  }
+  if (client_email && typeof client_email === 'string' && client_email.startsWith('${')) {
+    client_email = previousFlowData.client_email;
+  }
+  if (notes && typeof notes === 'string' && notes.startsWith('${')) {
+    notes = previousFlowData.notes;
+  }
+  
   const service = SERVICES.find(s => s.id === selected_service) || SERVICES[0];
   const barbers = await getBarbers();
   const barber = barbers.find(b => b.id === selected_barber) || barbers[0];
   
   // Formatar data (usar do payload se disponível, senão formatar)
   let formattedDate = payloadFormattedDate;
-  if (!formattedDate) {
-    const dateObj = new Date(selected_date + 'T12:00:00');
+  if (!formattedDate || (typeof formattedDate === 'string' && formattedDate.startsWith('${'))) {
+    const dateToFormat = selected_date || previousFlowData.selected_date || new Date().toISOString().split('T')[0];
+    const dateObj = new Date(dateToFormat + 'T12:00:00');
     const diasSemana = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
-    formattedDate = `${selected_date.split('-').reverse().join('/')} (${diasSemana[dateObj.getDay()]})`;
+    formattedDate = `${dateToFormat.split('-').reverse().join('/')} (${diasSemana[dateObj.getDay()]})`;
   }
   
   // Usar dados formatados do payload se disponíveis, senão formatar
   const responseData = {
-    selected_service,
-    selected_date,
-    selected_barber,
-    selected_time,
-    client_name,
-    client_phone,
-    client_email: client_email || '',
+    selected_service: selected_service || previousFlowData.selected_service,
+    selected_date: selected_date || previousFlowData.selected_date,
+    selected_barber: selected_barber || previousFlowData.selected_barber,
+    selected_time: selected_time || previousFlowData.selected_time,
+    client_name: client_name || previousFlowData.client_name || '',
+    client_phone: client_phone || previousFlowData.client_phone || '',
+    client_email: client_email || previousFlowData.client_email || '',
     contact_preference: contact_preference || '',
-    notes: notes || '',
-    service_name: payloadServiceName || service.title,
-    service_price: payloadServicePrice || `R$ ${service.price}`,
-    barber_name: payloadBarberName || barber.title,
+    notes: notes || previousFlowData.notes || '',
+    service_name: (payloadServiceName && !payloadServiceName.startsWith('${')) ? payloadServiceName : service.title,
+    service_price: (payloadServicePrice && !payloadServicePrice.startsWith('${')) ? payloadServicePrice : `R$ ${service.price}`,
+    barber_name: (payloadBarberName && !payloadBarberName.startsWith('${')) ? payloadBarberName : barber.title,
     formatted_date: formattedDate
   };
   
