@@ -3,15 +3,25 @@
   "data_api_version": "3.0",
   "routing_model": {
     "WELCOME": [
+      "CPF_INPUT"
+    ],
+    "CPF_INPUT": [
+      "BRANCH_SELECTION",
+      "CLUB_OPTION"
+    ],
+    "CLUB_OPTION": [
+      "BRANCH_SELECTION"
+    ],
+    "BRANCH_SELECTION": [
+      "BARBER_SELECTION"
+    ],
+    "BARBER_SELECTION": [
       "SERVICE_SELECTION"
     ],
     "SERVICE_SELECTION": [
       "DATE_SELECTION"
     ],
     "DATE_SELECTION": [
-      "BARBER_SELECTION"
-    ],
-    "BARBER_SELECTION": [
       "TIME_SELECTION"
     ],
     "TIME_SELECTION": [
@@ -41,15 +51,19 @@
           },
           {
             "type": "TextHeading",
-            "text": "💈 Agende seu horário"
+            "text": "💈 Code - Identidade Masculina"
           },
           {
             "type": "TextBody",
-            "text": "Olá! Agende seu atendimento de forma rápida e prática. Em poucos passos você escolhe o serviço, data, barbeiro e horário."
+            "text": "Bem-vindo à Code! Somos especialistas em Identidade Masculina. Oferecemos diversos serviços para manter sua aparência alinhada e condizente com a imagem que você deseja transmitir."
+          },
+          {
+            "type": "TextBody",
+            "text": "Nosso propósito é gerar satisfação ao cliente quando o assunto é a sua identidade masculina. Buscamos auxiliar o homem a aumentar a sua autoestima, mostrando novas opções e possibilidades para seu estilo, fazendo com que se sinta mais bonito, confiante e elegante."
           },
           {
             "type": "TextCaption",
-            "text": "⏱️ Leva menos de 1 minuto"
+            "text": "⏱️ Agendamento rápido e prático"
           },
           {
             "type": "Footer",
@@ -65,10 +79,229 @@
       }
     },
     {
+      "id": "CPF_INPUT",
+      "title": "Informe seu CPF",
+      "terminal": false,
+      "data": {},
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "📋 Verificação de CPF"
+          },
+          {
+            "type": "TextBody",
+            "text": "Para verificar se você possui plano ativo e oferecer os melhores preços, precisamos do seu CPF."
+          },
+          {
+            "type": "Form",
+            "name": "cpf_form",
+            "children": [
+              {
+                "type": "TextEntry",
+                "name": "client_cpf",
+                "label": "CPF",
+                "required": true,
+                "input-type": "number",
+                "placeholder": "000.000.000-00"
+              }
+            ]
+          },
+          {
+            "type": "Footer",
+            "label": "Verificar CPF",
+            "on-click-action": {
+              "name": "data_exchange",
+              "payload": {
+                "action_type": "CPF_INPUT",
+                "client_cpf": "${form.client_cpf}"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "CLUB_OPTION",
+      "title": "Clube CODE",
+      "terminal": false,
+      "data": {
+        "client_cpf": {
+          "type": "string",
+          "__example__": "12345678900"
+        },
+        "has_plan": {
+          "type": "boolean",
+          "__example__": false
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "🎯 Clube CODE"
+          },
+          {
+            "type": "TextBody",
+            "text": "Você não possui plano ativo, mas pode fazer parte do Clube CODE e ter acesso a preços especiais!"
+          },
+          {
+            "type": "TextBody",
+            "text": "O Clube CODE é dedicado a homens que buscam a excelência e sabem que podem alcançar mais. Com mais de 400 membros, oferecemos benefícios exclusivos e preços diferenciados."
+          },
+          {
+            "type": "Form",
+            "name": "club_form",
+            "children": [
+              {
+                "type": "RadioButtonsGroup",
+                "name": "wants_club",
+                "label": "Deseja fazer parte do Clube CODE?",
+                "required": true,
+                "data-source": [
+                  {
+                    "id": "true",
+                    "title": "Sim, quero fazer parte do Clube",
+                    "description": "Acesso a preços especiais"
+                  },
+                  {
+                    "id": "false",
+                    "title": "Não, continuar sem clube",
+                    "description": "Valores regulares"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "Footer",
+            "label": "Continuar",
+            "on-click-action": {
+              "name": "data_exchange",
+              "payload": {
+                "action_type": "CLUB_OPTION",
+                "client_cpf": "${data.client_cpf}",
+                "wants_club": "${form.wants_club}"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "BRANCH_SELECTION",
+      "title": "Escolha a Filial",
+      "terminal": false,
+      "data": {
+        "client_cpf": {
+          "type": "string",
+          "__example__": "12345678900"
+        },
+        "has_plan": {
+          "type": "boolean",
+          "__example__": false
+        },
+        "is_club_member": {
+          "type": "boolean",
+          "__example__": false
+        },
+        "branches": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
+            }
+          },
+          "__example__": [
+            {
+              "id": "desvio_rizzo",
+              "title": "Desvio Rizzo",
+              "description": "Rua Nilceu de Melo Catarina, 2791"
+            }
+          ]
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "📍 Selecione a Filial"
+          },
+          {
+            "type": "TextBody",
+            "text": "Escolha uma de nossas filiais para continuar com o agendamento."
+          },
+          {
+            "type": "Form",
+            "name": "branch_form",
+            "children": [
+              {
+                "type": "RadioButtonsGroup",
+                "name": "selected_branch",
+                "label": "Filiais disponíveis",
+                "required": true,
+                "data-source": "${data.branches}"
+              }
+            ]
+          },
+          {
+            "type": "Footer",
+            "label": "Continuar",
+            "on-click-action": {
+              "name": "data_exchange",
+              "payload": {
+                "action_type": "SELECT_BRANCH",
+                "selected_branch": "${form.selected_branch}",
+                "client_cpf": "${data.client_cpf}",
+                "has_plan": "${data.has_plan}",
+                "is_club_member": "${data.is_club_member}"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
       "id": "SERVICE_SELECTION",
       "title": "Escolha o Serviço",
       "terminal": false,
       "data": {
+        "selected_branch": {
+          "type": "string",
+          "__example__": "desvio_rizzo"
+        },
+        "selected_barber": {
+          "type": "string",
+          "__example__": "emanoel_pires"
+        },
+        "barber_name": {
+          "type": "string",
+          "__example__": "Emanoel Pires"
+        },
+        "client_cpf": {
+          "type": "string",
+          "__example__": "12345678900"
+        },
+        "has_plan": {
+          "type": "boolean",
+          "__example__": false
+        },
+        "is_club_member": {
+          "type": "boolean",
+          "__example__": false
+        },
         "services": {
           "type": "array",
           "items": {
@@ -89,7 +322,7 @@
             {
               "id": "corte_masculino",
               "title": "Corte Masculino",
-              "description": "R$ 45 • 45 min"
+              "description": "A partir de R$ 70,00"
             }
           ]
         }
@@ -125,7 +358,12 @@
               "name": "data_exchange",
               "payload": {
                 "action_type": "SELECT_SERVICE",
-                "selected_service": "${form.selected_service}"
+                "selected_service": "${form.selected_service}",
+                "selected_branch": "${data.selected_branch}",
+                "selected_barber": "${data.selected_barber}",
+                "client_cpf": "${data.client_cpf}",
+                "has_plan": "${data.has_plan}",
+                "is_club_member": "${data.is_club_member}"
               }
             }
           }
@@ -141,13 +379,33 @@
           "type": "string",
           "__example__": "corte_masculino"
         },
+        "selected_branch": {
+          "type": "string",
+          "__example__": "desvio_rizzo"
+        },
+        "selected_barber": {
+          "type": "string",
+          "__example__": "emanoel_pires"
+        },
+        "client_cpf": {
+          "type": "string",
+          "__example__": "12345678900"
+        },
+        "has_plan": {
+          "type": "boolean",
+          "__example__": false
+        },
+        "is_club_member": {
+          "type": "boolean",
+          "__example__": false
+        },
         "service_name": {
           "type": "string",
           "__example__": "Corte Masculino"
         },
         "service_price": {
           "type": "string",
-          "__example__": "R$ 45"
+          "__example__": "R$ 70,00"
         },
         "min_date": {
           "type": "string",
@@ -199,13 +457,18 @@
           },
           {
             "type": "Footer",
-            "label": "Ver barbeiros disponíveis",
+            "label": "Ver horários disponíveis",
             "on-click-action": {
               "name": "data_exchange",
               "payload": {
                 "action_type": "SELECT_DATE",
                 "selected_service": "${data.selected_service}",
-                "selected_date": "${form.selected_date}"
+                "selected_date": "${form.selected_date}",
+                "selected_branch": "${data.selected_branch}",
+                "selected_barber": "${data.selected_barber}",
+                "client_cpf": "${data.client_cpf}",
+                "has_plan": "${data.has_plan}",
+                "is_club_member": "${data.is_club_member}"
               }
             }
           }
@@ -217,25 +480,29 @@
       "title": "Escolha o Barbeiro",
       "terminal": false,
       "data": {
-        "selected_service": {
+        "selected_branch": {
           "type": "string",
-          "__example__": "corte_masculino"
+          "__example__": "desvio_rizzo"
         },
-        "selected_date": {
+        "branch_name": {
           "type": "string",
-          "__example__": "2025-01-15"
+          "__example__": "Desvio Rizzo"
         },
-        "service_name": {
+        "branch_address": {
           "type": "string",
-          "__example__": "Corte Masculino"
+          "__example__": "Rua Nilceu de Melo Catarina, 2791"
         },
-        "service_price": {
+        "client_cpf": {
           "type": "string",
-          "__example__": "R$ 45"
+          "__example__": "12345678900"
         },
-        "formatted_date": {
-          "type": "string",
-          "__example__": "15/01/2025"
+        "has_plan": {
+          "type": "boolean",
+          "__example__": false
+        },
+        "is_club_member": {
+          "type": "boolean",
+          "__example__": false
         },
         "barbers": {
           "type": "array",
@@ -255,8 +522,8 @@
           },
           "__example__": [
             {
-              "id": "joao",
-              "title": "João Silva",
+              "id": "emanoel_pires",
+              "title": "Emanoel Pires",
               "description": "Disponível"
             }
           ]
@@ -270,12 +537,12 @@
             "text": "Quem vai te atender?"
           },
           {
-            "type": "TextCaption",
-            "text": "${data.service_name}"
+            "type": "TextBody",
+            "text": "${data.branch_name}"
           },
           {
             "type": "TextCaption",
-            "text": "${data.formatted_date}"
+            "text": "${data.branch_address}"
           },
           {
             "type": "Form",
@@ -292,14 +559,16 @@
           },
           {
             "type": "Footer",
-            "label": "Ver horários",
+            "label": "Escolher serviço",
             "on-click-action": {
               "name": "data_exchange",
               "payload": {
                 "action_type": "SELECT_BARBER",
-                "selected_service": "${data.selected_service}",
-                "selected_date": "${data.selected_date}",
-                "selected_barber": "${form.selected_barber}"
+                "selected_branch": "${data.selected_branch}",
+                "selected_barber": "${form.selected_barber}",
+                "client_cpf": "${data.client_cpf}",
+                "has_plan": "${data.has_plan}",
+                "is_club_member": "${data.is_club_member}"
               }
             }
           }
@@ -319,9 +588,25 @@
           "type": "string",
           "__example__": "2025-01-15"
         },
+        "selected_branch": {
+          "type": "string",
+          "__example__": "desvio_rizzo"
+        },
         "selected_barber": {
           "type": "string",
-          "__example__": "joao"
+          "__example__": "emanoel_pires"
+        },
+        "client_cpf": {
+          "type": "string",
+          "__example__": "12345678900"
+        },
+        "has_plan": {
+          "type": "boolean",
+          "__example__": false
+        },
+        "is_club_member": {
+          "type": "boolean",
+          "__example__": false
         },
         "service_name": {
           "type": "string",
@@ -329,11 +614,11 @@
         },
         "service_price": {
           "type": "string",
-          "__example__": "R$ 45"
+          "__example__": "R$ 70,00"
         },
         "barber_name": {
           "type": "string",
-          "__example__": "João Silva"
+          "__example__": "Emanoel Pires"
         },
         "formatted_date": {
           "type": "string",
@@ -405,8 +690,12 @@
                 "action_type": "SELECT_TIME",
                 "selected_service": "${data.selected_service}",
                 "selected_date": "${data.selected_date}",
+                "selected_branch": "${data.selected_branch}",
                 "selected_barber": "${data.selected_barber}",
-                "selected_time": "${form.selected_time}"
+                "selected_time": "${form.selected_time}",
+                "client_cpf": "${data.client_cpf}",
+                "has_plan": "${data.has_plan}",
+                "is_club_member": "${data.is_club_member}"
               }
             }
           }

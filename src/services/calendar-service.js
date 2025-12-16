@@ -31,11 +31,28 @@ const WORKING_HOURS = {
 
 // Mapeamento de barbeiros para calendários
 // Para uso único (apenas um calendário), definir CALENDAR_LUCAS
-const BARBER_CALENDARS = {
-  joao: process.env.CALENDAR_LUCAS || process.env.CALENDAR_JOAO || 'primary',
-  pedro: process.env.CALENDAR_LUCAS || process.env.CALENDAR_PEDRO || 'primary',
-  carlos: process.env.CALENDAR_LUCAS || process.env.CALENDAR_CARLOS || 'primary'
-};
+// Para barbeiros específicos, definir CALENDAR_[BARBER_ID] (ex: CALENDAR_EMANOEL_PIRES)
+const { BRANCHES } = require('../config/branches');
+
+// Gerar mapeamento dinâmico de todos os barbeiros
+const BARBER_CALENDARS = {};
+BRANCHES.forEach(branch => {
+  branch.barbers.forEach(barber => {
+    // Ignorar "Sem preferência"
+    if (!barber.id.startsWith('sem_preferencia')) {
+      const envKey = `CALENDAR_${barber.id.toUpperCase().replace(/-/g, '_')}`;
+      BARBER_CALENDARS[barber.id] = process.env.CALENDAR_LUCAS || process.env[envKey] || 'primary';
+    }
+  });
+});
+
+// Mapeamento de nomes dos barbeiros
+const BARBER_NAMES = {};
+BRANCHES.forEach(branch => {
+  branch.barbers.forEach(barber => {
+    BARBER_NAMES[barber.id] = barber.name;
+  });
+});
 
 /**
  * Inicializa a autenticação com Google Calendar
@@ -72,32 +89,12 @@ async function initializeCalendar() {
 
 /**
  * Retorna lista de barbeiros disponíveis
+ * @deprecated Use getBarbersByBranch de branches.js para obter barbeiros por filial
+ * Mantido para compatibilidade
  */
 async function getBarbers() {
-  // Lista de barbeiros configurada
-  // Você pode buscar de um banco de dados ou Google Sheets
-  const barbers = [
-    { 
-      id: 'joao', 
-      title: 'João Silva', 
-      description: 'Especialista em cortes modernos',
-      image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300'
-    },
-    { 
-      id: 'pedro', 
-      title: 'Pedro Santos', 
-      description: 'Expert em barbas',
-      image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300'
-    },
-    { 
-      id: 'carlos', 
-      title: 'Carlos Oliveira', 
-      description: 'Cortes clássicos e infantis',
-      image: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=300'
-    }
-  ];
-
-  return barbers;
+  const { getAllBarbers } = require('../config/branches');
+  return getAllBarbers();
 }
 
 /**
@@ -368,15 +365,9 @@ async function createAppointment(appointment, requestId = null) {
       'pigmentacao': 'Pigmentação'
     };
 
-    // Mapear nome do barbeiro
-    const barberNames = {
-      'joao': 'João Silva',
-      'pedro': 'Pedro Santos',
-      'carlos': 'Carlos Oliveira'
-    };
-
+    // Mapear nome do barbeiro (usando BARBER_NAMES gerado dinamicamente)
     const serviceName = serviceNames[service] || service;
-    const barberName = barberNames[barber] || barber;
+    const barberName = BARBER_NAMES[barber] || barber;
 
     // Calcular horário de fim (adicionar duração)
     const [hours, minutes] = time.split(':').map(Number);

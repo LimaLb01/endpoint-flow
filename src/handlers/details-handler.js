@@ -2,8 +2,8 @@
  * Handler para envio de dados pessoais (SUBMIT_DETAILS)
  */
 
-const { getServiceById } = require('../config/services');
-const { getBarbers } = require('../services/calendar-service');
+const { getServiceById, getServicePrice } = require('../config/services');
+const { getBarbersByBranch } = require('../config/branches');
 const { formatDate } = require('../utils/date-formatter');
 const { cleanMultipleFields } = require('../utils/placeholder-cleaner');
 const { generateBookingId } = require('../utils/booking-id-generator');
@@ -27,7 +27,8 @@ function setPreviousData(data) {
 async function handleSubmitDetails(payload) {
   let { 
     selected_service, selected_date, selected_barber, selected_time,
-    client_name, client_phone, client_email, contact_preference, notes,
+    selected_branch, client_name, client_phone, client_email, contact_preference, notes,
+    client_cpf, has_plan, is_club_member,
     service_name: payloadServiceName,
     service_price: payloadServicePrice,
     barber_name: payloadBarberName,
@@ -42,6 +43,7 @@ async function handleSubmitDetails(payload) {
     selected_date,
     selected_barber,
     selected_time,
+    selected_branch,
     client_name,
     client_phone,
     client_email,
@@ -51,8 +53,16 @@ async function handleSubmitDetails(payload) {
   const cleaned = cleanMultipleFields(fieldsToClean, previousFlowData);
   
   const service = getServiceById(cleaned.selected_service);
-  const barbers = await getBarbers();
+  const barbers = getBarbersByBranch(cleaned.selected_branch || previousFlowData.selected_branch);
   const barber = barbers.find(b => b.id === cleaned.selected_barber) || barbers[0];
+  
+  // Calcular preço baseado em plano/clube
+  const price = getServicePrice(
+    cleaned.selected_service, 
+    has_plan || previousFlowData.has_plan || false, 
+    is_club_member || previousFlowData.is_club_member || false
+  );
+  const priceText = price === 0 ? 'R$ 0,00' : `R$ ${price.toFixed(2).replace('.', ',')}`;
   
   // Formatar data
   let formattedDate = payloadFormattedDate;
@@ -65,16 +75,20 @@ async function handleSubmitDetails(payload) {
   const responseData = {
     selected_service: cleaned.selected_service || previousFlowData.selected_service,
     selected_date: cleaned.selected_date || previousFlowData.selected_date,
+    selected_branch: cleaned.selected_branch || previousFlowData.selected_branch,
     selected_barber: cleaned.selected_barber || previousFlowData.selected_barber,
     selected_time: cleaned.selected_time || previousFlowData.selected_time,
+    client_cpf: client_cpf || previousFlowData.client_cpf || '',
+    has_plan: has_plan || previousFlowData.has_plan || false,
+    is_club_member: is_club_member || previousFlowData.is_club_member || false,
     client_name: cleaned.client_name || previousFlowData.client_name || '',
     client_phone: cleaned.client_phone || previousFlowData.client_phone || '',
     client_email: cleaned.client_email || previousFlowData.client_email || '',
     contact_preference: contact_preference || '',
     notes: cleaned.notes || previousFlowData.notes || '',
     service_name: (payloadServiceName && !payloadServiceName.startsWith('${')) ? payloadServiceName : service.title,
-    service_price: (payloadServicePrice && !payloadServicePrice.startsWith('${')) ? payloadServicePrice : `R$ ${service.price}`,
-    barber_name: (payloadBarberName && !payloadBarberName.startsWith('${')) ? payloadBarberName : barber.title,
+    service_price: (payloadServicePrice && !payloadServicePrice.startsWith('${')) ? payloadServicePrice : priceText,
+    barber_name: (payloadBarberName && !payloadBarberName.startsWith('${')) ? payloadBarberName : (barber ? barber.title : 'Barbeiro'),
     formatted_date: formattedDate
   };
   

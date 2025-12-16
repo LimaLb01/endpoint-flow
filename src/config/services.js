@@ -1,43 +1,107 @@
 /**
- * Configuração de Serviços da Barbearia
- * Pode ser movido para banco de dados no futuro
+ * Configuração de Serviços da Code Identidade Masculina
+ * Suporta valores diferentes para clientes com plano/clube
  */
 
 const SERVICES = [
   { 
     id: 'corte_masculino', 
     title: 'Corte Masculino', 
-    description: 'R$ 45 • 45 min', 
-    price: 45, 
-    duration: 45 
+    description: 'A partir de R$ 0,00',
+    price: 70.00, // Valor sem plano
+    priceWithPlan: 0.00, // Valor com plano
+    duration: 45,
+    showForClub: false // Não é serviço exclusivo do clube
   },
   { 
     id: 'barba', 
     title: 'Barba', 
-    description: 'R$ 35 • 30 min', 
-    price: 35, 
-    duration: 30 
+    description: 'A partir de R$ 65,00',
+    price: 65.00,
+    priceWithPlan: 65.00, // Mesmo valor
+    duration: 30,
+    showForClub: false
   },
   { 
-    id: 'corte_barba', 
-    title: 'Corte + Barba', 
-    description: 'R$ 70 • 1h15', 
-    price: 70, 
-    duration: 75 
+    id: 'corte_clube', 
+    title: 'Corte Clube', 
+    description: 'R$ 0,00',
+    price: 0.00,
+    priceWithPlan: 0.00,
+    duration: 45,
+    showForClub: true // Apenas para membros do clube
+  },
+  { 
+    id: 'barba_clube', 
+    title: 'Barba Clube', 
+    description: 'R$ 0,00',
+    price: 0.00,
+    priceWithPlan: 0.00,
+    duration: 30,
+    showForClub: true
+  },
+  { 
+    id: 'pezinho_clube', 
+    title: 'Pézinho Clube', 
+    description: 'R$ 0,00',
+    price: 0.00,
+    priceWithPlan: 0.00,
+    duration: 15,
+    showForClub: true
   },
   { 
     id: 'corte_infantil', 
     title: 'Corte Infantil', 
-    description: 'R$ 40 • 30 min', 
-    price: 40, 
-    duration: 30 
+    description: 'A partir de R$ 70,00',
+    price: 70.00,
+    priceWithPlan: 70.00,
+    duration: 30,
+    showForClub: false
   },
   { 
-    id: 'pigmentacao', 
-    title: 'Pigmentação', 
-    description: 'R$ 50 • 45 min', 
-    price: 50, 
-    duration: 45 
+    id: 'terapia_capilar', 
+    title: 'Terapia Capilar', 
+    description: 'A partir de R$ 63,00',
+    price: 70.00,
+    priceWithPlan: 63.00,
+    duration: 45,
+    showForClub: false
+  },
+  { 
+    id: 'sobrancelha', 
+    title: 'Sobrancelha', 
+    description: 'A partir de R$ 27,00',
+    price: 30.00,
+    priceWithPlan: 27.00,
+    duration: 15,
+    showForClub: false
+  },
+  { 
+    id: 'hidratacao_capilar', 
+    title: 'Hidratação Capilar', 
+    description: 'A partir de R$ 27,00',
+    price: 30.00,
+    priceWithPlan: 27.00,
+    duration: 30,
+    showForClub: false
+  },
+  { 
+    id: 'depilacao_orelha', 
+    title: 'Depilação de Orelha', 
+    description: 'A partir de R$ 27,00',
+    price: 30.00,
+    priceWithPlan: 27.00,
+    duration: 15,
+    showForClub: false
+  },
+  { 
+    id: 'depilacao_nariz', 
+    title: 'Depilação de Nariz', 
+    description: 'A partir de R$ 27,00',
+    price: 30.00,
+    priceWithPlan: 27.00,
+    duration: 15,
+    showForClub: false
   }
 ];
 
@@ -52,19 +116,48 @@ function getServiceById(serviceId) {
 
 /**
  * Retorna todos os serviços formatados para o Flow
+ * @param {boolean} hasPlan - Cliente tem plano?
+ * @param {boolean} isClubMember - Cliente é membro do clube?
  * @returns {Array} Lista de serviços formatados
  */
-function getServicesForFlow() {
-  return SERVICES.map(s => ({
-    id: s.id,
-    title: s.title,
-    description: s.description
-  }));
+function getServicesForFlow(hasPlan = false, isClubMember = false) {
+  return SERVICES
+    .filter(service => {
+      // Se o serviço é exclusivo do clube, só mostra para membros
+      if (service.showForClub && !isClubMember) {
+        return false;
+      }
+      return true;
+    })
+    .map(service => {
+      const price = hasPlan || isClubMember ? service.priceWithPlan : service.price;
+      const priceText = price === 0 ? 'R$ 0,00' : `A partir de R$ ${price.toFixed(2).replace('.', ',')}`;
+      
+      return {
+        id: service.id,
+        title: service.title,
+        description: priceText
+      };
+    });
+}
+
+/**
+ * Retorna o preço de um serviço baseado no plano
+ * @param {string} serviceId - ID do serviço
+ * @param {boolean} hasPlan - Cliente tem plano?
+ * @param {boolean} isClubMember - Cliente é membro do clube?
+ * @returns {number} Preço do serviço
+ */
+function getServicePrice(serviceId, hasPlan = false, isClubMember = false) {
+  const service = getServiceById(serviceId);
+  if (!service) return 0;
+  
+  return hasPlan || isClubMember ? service.priceWithPlan : service.price;
 }
 
 module.exports = {
   SERVICES,
   getServiceById,
-  getServicesForFlow
+  getServicesForFlow,
+  getServicePrice
 };
-

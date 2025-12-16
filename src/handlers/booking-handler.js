@@ -2,8 +2,9 @@
  * Handler para confirmação de agendamento
  */
 
-const { getServiceById } = require('../config/services');
-const { getBarbers, createAppointment } = require('../services/calendar-service');
+const { getServiceById, getServicePrice } = require('../config/services');
+const { getBarbersByBranch } = require('../config/branches');
+const { createAppointment } = require('../services/calendar-service');
 const { WHATSAPP_CONFIG, MESSAGES } = require('../config/constants');
 const { recordBooking } = require('../utils/metrics');
 
@@ -16,13 +17,16 @@ const { recordBooking } = require('../utils/metrics');
 async function handleConfirmBooking(payload, requestId = null) {
   const { 
     selected_service, selected_date, selected_barber, selected_time,
-    client_name, client_phone, client_email, contact_preference, notes,
-    booking_id
+    selected_branch, client_name, client_phone, client_email, contact_preference, notes,
+    client_cpf, has_plan, is_club_member, booking_id
   } = payload;
   
   const service = getServiceById(selected_service);
-  const barbers = await getBarbers();
+  const barbers = getBarbersByBranch(selected_branch);
   const barber = barbers.find(b => b.id === selected_barber) || barbers[0];
+  
+  // Calcular preço baseado em plano/clube
+  const price = getServicePrice(selected_service, has_plan || false, is_club_member || false);
   
   console.log('✅ Criando agendamento no Google Calendar...');
   console.log('📝 Dados do agendamento:', {

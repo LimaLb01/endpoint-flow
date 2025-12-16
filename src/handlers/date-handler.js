@@ -21,10 +21,10 @@ function setPreviousData(data) {
 /**
  * Processa seleção de data
  * @param {object} payload - Dados da requisição
- * @returns {object} Resposta com lista de barbeiros
+ * @returns {object} Resposta com horários disponíveis
  */
 async function handleSelectDate(payload) {
-  let { selected_service, selected_date } = payload;
+  let { selected_service, selected_date, selected_branch, selected_barber, client_cpf, has_plan, is_club_member } = payload;
   
   // Limpar placeholders se necessário
   const cleaned = cleanMultipleFields({ selected_service, selected_date }, previousFlowData);
@@ -32,22 +32,33 @@ async function handleSelectDate(payload) {
   selected_date = cleaned.selected_date;
   
   const service = getServiceById(selected_service);
-  const barbers = await getBarbers();
+  const { getServicePrice } = require('../config/services');
+  const { getAvailableSlots } = require('../services/calendar-service');
+  
+  const price = getServicePrice(selected_service, has_plan || false, is_club_member || false);
+  const priceText = price === 0 ? 'R$ 0,00' : `R$ ${price.toFixed(2).replace('.', ',')}`;
+  
+  // Buscar horários disponíveis do Google Calendar
+  const requestId = payload.requestId || null;
+  const availableTimes = await getAvailableSlots(selected_barber, selected_date, selected_service, requestId);
   
   return {
     version: '3.0',
-    screen: 'BARBER_SELECTION',
+    screen: 'TIME_SELECTION',
     data: {
       selected_service,
       selected_date,
+      selected_branch,
+      selected_barber,
+      client_cpf,
+      has_plan: has_plan || false,
+      is_club_member: is_club_member || false,
       service_name: service.title,
-      service_price: `R$ ${service.price}`,
+      service_price: priceText,
       formatted_date: formatDate(selected_date),
-      barbers: barbers.map(b => ({
-        id: b.id,
-        title: b.title,
-        description: b.description || 'Disponível'
-      }))
+      available_times: availableTimes.length > 0 ? availableTimes : [
+        { id: 'sem_horario', title: 'Sem horários', description: 'Tente outra data' }
+      ]
     }
   };
 }

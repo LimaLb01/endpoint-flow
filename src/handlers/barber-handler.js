@@ -1,105 +1,63 @@
 /**
  * Handler para seleção de barbeiro
+ * Nova ordem: CPF → Filial → Barbeiro → Serviço → Data → Hora
  */
 
-const { getServiceById } = require('../config/services');
-const { getBarbers, getAvailableSlots } = require('../services/calendar-service');
-const { formatDate } = require('../utils/date-formatter');
-const { cleanMultipleFields } = require('../utils/placeholder-cleaner');
-
-// Armazenamento temporário de dados anteriores
-let previousFlowData = {};
-
-/**
- * Define dados anteriores
- */
-function setPreviousData(data) {
-  previousFlowData = { ...previousFlowData, ...data };
-}
+const { getServicesForFlow } = require('../config/services');
+const { getBarbersByBranch } = require('../config/branches');
 
 /**
  * Processa seleção de barbeiro
  * @param {object} payload - Dados da requisição
- * @returns {object} Resposta com horários disponíveis
+ * @returns {object} Resposta com lista de serviços
  */
 async function handleSelectBarber(payload) {
-  let { selected_service, selected_date, selected_barber } = payload;
+  const { selected_branch, selected_barber, client_cpf, has_plan, is_club_member } = payload;
   
-  // Limpar placeholders
-  const cleaned = cleanMultipleFields(
-    { selected_service, selected_date, selected_barber },
-    previousFlowData
-  );
-  selected_service = cleaned.selected_service;
-  selected_date = cleaned.selected_date;
-  selected_barber = cleaned.selected_barber;
-  
-  const service = getServiceById(selected_service);
-  const barbers = await getBarbers();
-  const barber = barbers.find(b => b.id === selected_barber) || barbers[0];
-  
-  // Validar dados antes de buscar horários
-  if (!selected_barber || !selected_date || 
-      selected_barber.startsWith('${') || selected_date.startsWith('${')) {
-    console.warn('⚠️ Dados inválidos para buscar horários:', { selected_barber, selected_date });
-    return getFallbackTimeSelection(selected_service, selected_date, selected_barber, service, barber);
+  if (!selected_branch || !selected_barber) {
+    return {
+      version: '3.0',
+      screen: 'BARBER_SELECTION',
+      data: {
+        error: true,
+        error_message: 'Por favor, selecione um barbeiro'
+      }
+    };
   }
   
-  // Buscar horários disponíveis do Google Calendar (com cache)
-  // requestId será passado se disponível para logs
-  const requestId = payload.requestId || null;
-  const availableTimes = await getAvailableSlots(selected_barber, selected_date, selected_service, requestId);
+  // Busca barbeiros da filial para validar
+  const barbers = getBarbersByBranch(selected_branch);
+  const barber = barbers.find(b => b.id === selected_barber);
+  
+  if (!barber) {
+    return {
+      version: '3.0',
+      screen: 'BARBER_SELECTION',
+      data: {
+        error: true,
+        error_message: 'Barbeiro não encontrado'
+      }
+    };
+  }
+  
+  // Busca serviços considerando plano/clube
+  const services = getServicesForFlow(has_plan || false, is_club_member || false);
   
   return {
     version: '3.0',
-    screen: 'TIME_SELECTION',
+    screen: 'SERVICE_SELECTION',
     data: {
-      selected_service,
-      selected_date,
-      selected_barber,
-      service_name: service.title,
-      service_price: `R$ ${service.price}`,
+      selected_branch: selected_branch,
+      selected_barber: selected_barber,
       barber_name: barber.title,
-      formatted_date: formatDate(selected_date),
-      available_times: availableTimes.length > 0 ? availableTimes : [
-        { id: 'sem_horario', title: 'Sem horários', description: 'Tente outra data' }
-      ]
-    }
-  };
-}
-
-/**
- * Retorna horários padrão quando não consegue buscar do calendário
- */
-function getFallbackTimeSelection(selected_service, selected_date, selected_barber, service, barber) {
-  const availableTimes = [
-    { id: '09:00', title: '09:00', description: 'Disponível - 45 min' },
-    { id: '10:00', title: '10:00', description: 'Disponível - 45 min' },
-    { id: '14:00', title: '14:00', description: 'Disponível - 45 min' },
-    { id: '15:00', title: '15:00', description: 'Disponível - 45 min' },
-    { id: '16:00', title: '16:00', description: 'Disponível - 45 min' }
-  ];
-  
-  const dateToFormat = selected_date || previousFlowData.selected_date || new Date().toISOString().split('T')[0];
-  
-  return {
-    version: '3.0',
-    screen: 'TIME_SELECTION',
-    data: {
-      selected_service: selected_service || previousFlowData.selected_service,
-      selected_date: selected_date || previousFlowData.selected_date,
-      selected_barber: selected_barber || previousFlowData.selected_barber,
-      service_name: service.title,
-      service_price: `R$ ${service.price}`,
-      barber_name: barber.title,
-      formatted_date: formatDate(dateToFormat),
-      available_times: availableTimes
+      client_cpf: client_cpf,
+      has_plan: has_plan || false,
+      is_club_member: is_club_member || false,
+      services: services
     }
   };
 }
 
 module.exports = {
-  handleSelectBarber,
-  setPreviousData
+  handleSelectBarber
 };
-

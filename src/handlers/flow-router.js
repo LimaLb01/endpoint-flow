@@ -4,9 +4,12 @@
  */
 
 const { handleInit } = require('./init-handler');
+const { handleCpfInput } = require('./cpf-handler');
+const { handleClubOption } = require('./club-handler');
+const { handleSelectBranch } = require('./branch-handler');
+const { handleSelectBarber } = require('./barber-handler');
 const { handleSelectService } = require('./service-handler');
 const { handleSelectDate, setPreviousData: setDatePreviousData } = require('./date-handler');
-const { handleSelectBarber, setPreviousData: setBarberPreviousData } = require('./barber-handler');
 const { handleSelectTime, setPreviousData: setTimePreviousData } = require('./time-handler');
 const { handleSubmitDetails, setPreviousData: setDetailsPreviousData } = require('./details-handler');
 const { handleConfirmBooking } = require('./booking-handler');
@@ -111,12 +114,18 @@ async function handleFlowRequest(data, requestId = null) {
       case 'INIT':
         logger.info('Processando INIT via data_exchange');
         return handleInit();
+      case 'CPF_INPUT':
+        return handleCpfInput(payload);
+      case 'CLUB_OPTION':
+        return handleClubOption(payload);
+      case 'SELECT_BRANCH':
+        return handleSelectBranch(payload);
+      case 'SELECT_BARBER':
+        return handleSelectBarber(payload);
       case 'SELECT_SERVICE':
         return handleSelectService(payload);
       case 'SELECT_DATE':
         return handleSelectDate(payload);
-      case 'SELECT_BARBER':
-        return handleSelectBarber(payload);
       case 'SELECT_TIME':
         return handleSelectTime(payload);
       case 'SUBMIT_DETAILS':
@@ -144,12 +153,18 @@ async function handleByScreen(screen, payload) {
   switch (screen) {
     case 'WELCOME':
       return handleInit();
+    case 'CPF_INPUT':
+      return handleCpfInput(payload);
+    case 'CLUB_OPTION':
+      return handleClubOption(payload);
+    case 'BRANCH_SELECTION':
+      return handleSelectBranch(payload);
+    case 'BARBER_SELECTION':
+      return handleSelectBarber(payload);
     case 'SERVICE_SELECTION':
       return handleSelectService(payload);
     case 'DATE_SELECTION':
       return handleSelectDate(payload);
-    case 'BARBER_SELECTION':
-      return handleSelectBarber(payload);
     case 'TIME_SELECTION':
       return handleSelectTime(payload);
     case 'DETAILS':
