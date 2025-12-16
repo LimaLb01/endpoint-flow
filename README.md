@@ -90,6 +90,19 @@ npm start
 
 URL gerada: `https://seu-app.onrender.com/webhook/whatsapp-flow`
 
+#### 🤖 MCP Render (Automação)
+
+Este projeto suporta o **MCP Render** para automação de tarefas:
+
+- ✅ Deploy automatizado
+- ✅ Gerenciamento de variáveis de ambiente
+- ✅ Monitoramento de logs em tempo real
+- ✅ Verificação de status e saúde do serviço
+
+**Configuração:** Veja `MCP_RENDER_CONFIG.md` para instruções detalhadas.
+
+**Exemplos de uso:** Veja `scripts/render-mcp-examples.js` para casos de uso práticos.
+
 ### Vercel
 
 ```bash

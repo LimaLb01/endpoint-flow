@@ -1,0 +1,33 @@
+{
+  "mcpServers": {
+    "Magic MCP": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@21st-dev/magic@latest",
+        "API_KEY=\"3a004e35dec828305869bf648b338c7194f2fd9c8d743a412aa8d7c5f4fc3cc6\""
+      ],
+      "env": {}
+    },
+    "TestSprite": {
+      "command": "npx @testsprite/testsprite-mcp@latest",
+      "env": {
+        "API_KEY": "sk-user-TBsvoVMVNlHJu4vHQ29d_BFxE6kiwRqh_u1wReHe3hM_5GkQpDc15UJFutBToQtUtMBPCQ798KZGRqd81gK1iCCHVrgzoqTTQIZ_AhWFYPqbAO7zq6Iz_hEEXqbFjIlwIUI"
+      },
+      "args": []
+    },
+    "supabase": {
+      "url": "https://mcp.supabase.com/mcp",
+      "headers": {}
+    },
+    "render": {
+      "url": "https://mcp.render.com/mcp",
+      "headers": {
+        "Authorization": "Bearer rnd_ERaKoCTU6uDtRgv4obLxDtupuvwJ"
+      }
+    }
+  }
+}
+
