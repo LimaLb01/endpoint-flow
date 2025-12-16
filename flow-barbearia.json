@@ -7,7 +7,8 @@
     "DATE_SELECTION": ["BARBER_SELECTION"],
     "BARBER_SELECTION": ["TIME_SELECTION"],
     "TIME_SELECTION": ["DETAILS"],
-    "DETAILS": ["CONFIRMATION"],
+    "DETAILS": ["CONFIRMATION_PREP"],
+    "CONFIRMATION_PREP": ["CONFIRMATION"],
     "CONFIRMATION": []
   },
   "screens": [
@@ -103,7 +104,7 @@
               "name": "data_exchange",
               "payload": {
                 "action_type": "SELECT_SERVICE",
-                "selected_service": "${form.selected_service}"
+                "selected_service": "${service_form.selected_service}"
               }
             }
           }
@@ -179,7 +180,7 @@
               "payload": {
                 "action_type": "SELECT_DATE",
                 "selected_service": "${data.selected_service}",
-                "selected_date": "${form.selected_date}"
+                "selected_date": "${date_form.selected_date}"
               }
             }
           }
@@ -263,7 +264,7 @@
                 "action_type": "SELECT_BARBER",
                 "selected_service": "${data.selected_service}",
                 "selected_date": "${data.selected_date}",
-                "selected_barber": "${form.selected_barber}"
+                "selected_barber": "${barber_form.selected_barber}"
               }
             }
           }
@@ -360,7 +361,7 @@
                 "selected_service": "${data.selected_service}",
                 "selected_date": "${data.selected_date}",
                 "selected_barber": "${data.selected_barber}",
-                "selected_time": "${form.selected_time}"
+                "selected_time": "${time_form.selected_time}"
               }
             }
           }
@@ -441,14 +442,6 @@
             "text": "${data.selected_time}"
           },
           {
-            "type": "If",
-            "condition": "${data.booking_id}",
-            "then": {
-              "type": "TextBody",
-              "text": "✅ Dados validados! Código: ${data.booking_id}"
-            }
-          },
-          {
             "type": "Form",
             "name": "details_form",
             "children": [
@@ -482,54 +475,126 @@
             ]
           },
           {
-            "type": "If",
-            "condition": "${data.booking_id}",
-            "then": {
-              "type": "Footer",
-              "label": "Confirmar agendamento",
-              "on-click-action": {
-                "name": "navigate",
-                "next": {
-                  "type": "screen",
-                  "name": "CONFIRMATION"
-                },
-                "payload": {
-                  "booking_id": "${data.booking_id}",
-                  "selected_service": "${data.selected_service}",
-                  "selected_date": "${data.selected_date}",
-                  "selected_barber": "${data.selected_barber}",
-                  "selected_time": "${data.selected_time}",
-                  "client_name": "${form.client_name}",
-                  "client_phone": "${form.client_phone}",
-                  "client_email": "${form.client_email}",
-                  "notes": "${form.notes}",
-                  "service_name": "${data.service_name}",
-                  "service_price": "${data.service_price}",
-                  "barber_name": "${data.barber_name}",
-                  "formatted_date": "${data.formatted_date}"
-                }
+            "type": "Footer",
+            "label": "Revisar agendamento",
+            "on-click-action": {
+              "name": "data_exchange",
+              "payload": {
+                "action_type": "SUBMIT_DETAILS",
+                "selected_service": "${data.selected_service}",
+                "selected_date": "${data.selected_date}",
+                "selected_barber": "${data.selected_barber}",
+                "selected_time": "${data.selected_time}",
+                "client_name": "${details_form.client_name}",
+                "client_phone": "${details_form.client_phone}",
+                "client_email": "${details_form.client_email}",
+                "notes": "${details_form.notes}",
+                "service_name": "${data.service_name}",
+                "service_price": "${data.service_price}",
+                "barber_name": "${data.barber_name}",
+                "formatted_date": "${data.formatted_date}"
               }
-            },
-            "else": {
-              "type": "Footer",
-              "label": "Revisar agendamento",
-              "on-click-action": {
-                "name": "data_exchange",
-                "payload": {
-                  "action_type": "SUBMIT_DETAILS",
-                  "selected_service": "${data.selected_service}",
-                  "selected_date": "${data.selected_date}",
-                  "selected_barber": "${data.selected_barber}",
-                  "selected_time": "${data.selected_time}",
-                  "client_name": "${form.client_name}",
-                  "client_phone": "${form.client_phone}",
-                  "client_email": "${form.client_email}",
-                  "notes": "${form.notes}",
-                  "service_name": "${data.service_name}",
-                  "service_price": "${data.service_price}",
-                  "barber_name": "${data.barber_name}",
-                  "formatted_date": "${data.formatted_date}"
-                }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "CONFIRMATION_PREP",
+      "title": "Processando",
+      "terminal": false,
+      "data": {
+        "booking_id": {
+          "type": "string",
+          "__example__": "AGD-12345"
+        },
+        "selected_service": {
+          "type": "string",
+          "__example__": "corte_masculino"
+        },
+        "selected_date": {
+          "type": "string",
+          "__example__": "2025-01-15"
+        },
+        "selected_barber": {
+          "type": "string",
+          "__example__": "joao"
+        },
+        "selected_time": {
+          "type": "string",
+          "__example__": "09:00"
+        },
+        "client_name": {
+          "type": "string",
+          "__example__": "João Cliente"
+        },
+        "client_phone": {
+          "type": "string",
+          "__example__": "+55 11 99999-9999"
+        },
+        "client_email": {
+          "type": "string",
+          "__example__": "cliente@email.com"
+        },
+        "notes": {
+          "type": "string",
+          "__example__": ""
+        },
+        "service_name": {
+          "type": "string",
+          "__example__": "Corte Masculino"
+        },
+        "service_price": {
+          "type": "string",
+          "__example__": "R$ 45"
+        },
+        "barber_name": {
+          "type": "string",
+          "__example__": "João Silva"
+        },
+        "formatted_date": {
+          "type": "string",
+          "__example__": "15/01/2025 (Quarta-feira)"
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "✅ Agendamento confirmado!"
+          },
+          {
+            "type": "TextSubheading",
+            "text": "Código: ${data.booking_id}"
+          },
+          {
+            "type": "TextBody",
+            "text": "Seu horário está reservado"
+          },
+          {
+            "type": "Footer",
+            "label": "Ver detalhes",
+            "on-click-action": {
+              "name": "navigate",
+              "next": {
+                "type": "screen",
+                "name": "CONFIRMATION"
+              },
+              "payload": {
+                "booking_id": "${data.booking_id}",
+                "selected_service": "${data.selected_service}",
+                "selected_date": "${data.selected_date}",
+                "selected_barber": "${data.selected_barber}",
+                "selected_time": "${data.selected_time}",
+                "client_name": "${data.client_name}",
+                "client_phone": "${data.client_phone}",
+                "client_email": "${data.client_email}",
+                "notes": "${data.notes}",
+                "service_name": "${data.service_name}",
+                "service_price": "${data.service_price}",
+                "barber_name": "${data.barber_name}",
+                "formatted_date": "${data.formatted_date}"
               }
             }
           }
@@ -599,9 +664,21 @@
         "type": "SingleColumnLayout",
         "children": [
           {
+            "type": "TextHeading",
+            "text": "✅ Agendamento confirmado!"
+          },
+          {
+            "type": "TextSubheading",
+            "text": "Código: ${data.booking_id}"
+          },
+          {
             "type": "Form",
             "name": "form",
             "children": [
+              {
+                "type": "TextBody",
+                "text": "Seu horário está reservado:"
+              },
               {
                 "type": "TextBody",
                 "text": "💈 ${data.service_name}"
