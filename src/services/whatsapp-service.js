@@ -4,6 +4,7 @@
 
 const axios = require('axios');
 const { WHATSAPP_CONFIG } = require('../config/constants');
+const { withWhatsAppTimeout } = require('../utils/timeout');
 
 /**
  * Envia Flow automaticamente quando recebe mensagem de texto
@@ -63,12 +64,17 @@ async function sendFlowAutomatically(toNumber) {
   console.log(`📦 Payload: ${JSON.stringify(messagePayload, null, 2)}`);
   
   try {
-    const response = await axios.post(url, messagePayload, {
-      headers: {
-        'Authorization': `Bearer ${ACCESS_TOKEN}`,
-        'Content-Type': 'application/json'
-      }
-    });
+    // Fazer requisição com timeout
+    const response = await withWhatsAppTimeout(
+      () => axios.post(url, messagePayload, {
+        headers: {
+          'Authorization': `Bearer ${ACCESS_TOKEN}`,
+          'Content-Type': 'application/json'
+        },
+        timeout: 10000 // Timeout do axios também (redundante, mas seguro)
+      }),
+      'WhatsApp API - Send Flow'
+    );
   
     console.log(`✅ Flow enviado automaticamente para ${formattedPhone}`);
     console.log(`   🆔 Flow ID: ${FLOW_ID}`);

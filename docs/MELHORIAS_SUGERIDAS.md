@@ -299,15 +299,41 @@ Após análise completa do código, identifiquei várias oportunidades de melhor
 
 ---
 
-### 9. ⏸️ **Timeout para Requisições Externas** [PENDENTE]
-**Problema:** Requisições ao Google Calendar podem travar.
+### 9. ✅ **Timeout para Requisições Externas** [CONCLUÍDA]
+**Problema:** Requisições ao Google Calendar e WhatsApp API podiam travar o servidor.
 
 **Solução:**
-- Adicionar timeout (ex: 10 segundos)
-- Retornar erro claro se timeout
-- Não travar o servidor
+- ✅ Adicionar timeout configurável (10-15 segundos)
+- ✅ Retornar erro claro se timeout
+- ✅ Não travar o servidor
+- ✅ Integração com TimeoutError
 
 **Impacto:** 🟡 Médio - Estabilidade
+
+**Status:** ✅ Concluída  
+**Iniciado em:** 16/12/2025  
+**Concluída em:** 16/12/2025  
+**Última atualização:** 16/12/2025  
+
+**Implementação:**
+- ✅ Utilitário de timeout criado em `src/utils/timeout.js`:
+  - `withTimeout`: Função genérica para aplicar timeout em qualquer Promise
+  - `withGoogleCalendarTimeout`: Wrapper específico para Google Calendar (15s)
+  - `withWhatsAppTimeout`: Wrapper específico para WhatsApp API (10s)
+  - Timeouts configuráveis via variáveis de ambiente
+- ✅ Timeout aplicado em requisições do Google Calendar:
+  - `calendar.events.list()` - Buscar horários disponíveis
+  - `calendar.events.insert()` - Criar agendamento
+- ✅ Timeout aplicado em requisições do WhatsApp API:
+  - `axios.post()` - Enviar Flow automaticamente
+- ✅ Integração com sistema de erros:
+  - Usa `TimeoutError` existente
+  - Mensagens claras quando timeout ocorre
+  - Logs estruturados para monitoramento
+- ✅ Configuração via variáveis de ambiente:
+  - `REQUEST_TIMEOUT_MS`: Timeout padrão (10s)
+  - `GOOGLE_CALENDAR_TIMEOUT_MS`: Timeout para Google Calendar (15s)
+  - `WHATSAPP_API_TIMEOUT_MS`: Timeout para WhatsApp API (10s)
 
 ---
 

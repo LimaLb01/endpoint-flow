@@ -6,6 +6,7 @@
 const { google } = require('googleapis');
 const { generateCacheKey, get, set, clearByPrefix } = require('../utils/cache');
 const { globalLogger } = require('../utils/logger');
+const { withGoogleCalendarTimeout } = require('../utils/timeout');
 
 // Configuração do Google Calendar
 let calendar;
@@ -159,15 +160,19 @@ async function getAvailableSlots(barberId, date, serviceId, requestId = null) {
       timeMax: endOfDayStr
     });
 
-    // Buscar eventos existentes no calendário
-    const response = await calendar.events.list({
-      calendarId,
-      timeMin: startOfDayStr,
-      timeMax: endOfDayStr,
-      singleEvents: true,
-      orderBy: 'startTime',
-      timeZone: 'America/Sao_Paulo'
-    });
+    // Buscar eventos existentes no calendário (com timeout)
+    const response = await withGoogleCalendarTimeout(
+      () => calendar.events.list({
+        calendarId,
+        timeMin: startOfDayStr,
+        timeMax: endOfDayStr,
+        singleEvents: true,
+        orderBy: 'startTime',
+        timeZone: 'America/Sao_Paulo'
+      }),
+      'Google Calendar - List Events',
+      requestId
+    );
 
     logger.debug('Eventos encontrados no Google Calendar', {
       count: response.data.items.length
@@ -428,10 +433,15 @@ Agendado via WhatsApp Flow
         eventSummary: event.summary
       });
       
-      const response = await calendar.events.insert({
-        calendarId,
-        resource: event
-      });
+      // Criar evento com timeout
+      const response = await withGoogleCalendarTimeout(
+        () => calendar.events.insert({
+          calendarId,
+          resource: event
+        }),
+        'Google Calendar - Create Event',
+        requestId
+      );
 
       logger.info('Evento criado no Google Calendar', {
         eventId: response.data.id,
