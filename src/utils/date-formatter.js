@@ -28,22 +28,42 @@ function formatDate(dateString, includeWeekday = true) {
 }
 
 /**
- * Calcula data mínima (hoje)
+ * Calcula data mínima (hoje) no timezone de São Paulo
  * @returns {string} Data no formato YYYY-MM-DD
  */
 function getMinDate() {
-  return new Date().toISOString().split('T')[0];
+  // Usar Intl.DateTimeFormat para obter a data atual no timezone de São Paulo
+  const now = new Date();
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+  
+  // Formato retornado: YYYY-MM-DD
+  return formatter.format(now);
 }
 
 /**
- * Calcula data máxima (hoje + N dias)
+ * Calcula data máxima (hoje + N dias) no timezone de São Paulo
  * @param {number} daysAhead - Número de dias à frente
  * @returns {string} Data no formato YYYY-MM-DD
  */
 function getMaxDate(daysAhead = DATE_CONFIG.DAYS_AHEAD) {
-  const today = new Date();
-  const maxDate = new Date(today.getTime() + daysAhead * 24 * 60 * 60 * 1000);
-  return maxDate.toISOString().split('T')[0];
+  // Calcular data futura no timezone de São Paulo
+  const now = new Date();
+  const futureDate = new Date(now.getTime() + daysAhead * 24 * 60 * 60 * 1000);
+  
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+  
+  // Formato retornado: YYYY-MM-DD
+  return formatter.format(futureDate);
 }
 
 /**

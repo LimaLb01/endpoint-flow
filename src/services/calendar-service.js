@@ -303,7 +303,17 @@ async function createAppointment(appointment) {
     const endMins = endMinutes % 60;
     const endTime = `${String(endHours).padStart(2, '0')}:${String(endMins).padStart(2, '0')}`;
 
-    // Criar evento usando formato de data/hora local (sem conversão UTC)
+    // IMPORTANTE: Usar formato RFC3339 com offset explícito -03:00 (Brasil não usa mais horário de verão)
+    // Isso garante que o Google Calendar interprete corretamente o horário de São Paulo
+    // Formato: YYYY-MM-DDTHH:MM:SS-03:00
+    const startDateTime = `${date}T${time}:00-03:00`;
+    const endDateTime = `${date}T${endTime}:00-03:00`;
+
+    console.log('🕐 Datas formatadas com timezone:');
+    console.log(`   Início: ${startDateTime} (America/Sao_Paulo)`);
+    console.log(`   Fim: ${endDateTime} (America/Sao_Paulo)`);
+
+    // Criar evento usando formato RFC3339 com timezone explícito
     const event = {
       summary: `${serviceName} - ${clientName} (${barberName})`,
       description: `
@@ -316,11 +326,11 @@ ${notes ? `📝 Obs: ${notes}` : ''}
 Agendado via WhatsApp Flow
       `.trim(),
       start: {
-        dateTime: `${date}T${time}:00`,
+        dateTime: startDateTime,
         timeZone: 'America/Sao_Paulo'
       },
       end: {
-        dateTime: `${date}T${endTime}:00`,
+        dateTime: endDateTime,
         timeZone: 'America/Sao_Paulo'
       },
       reminders: {
