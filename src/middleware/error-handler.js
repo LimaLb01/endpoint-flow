@@ -5,6 +5,7 @@
 
 const { normalizeError, getUserFriendlyMessage, ErrorCodes } = require('../utils/errors');
 const { createRequestLogger, globalLogger } = require('../utils/logger');
+const { recordError } = require('../utils/metrics');
 
 /**
  * Middleware de tratamento de erros para Express
@@ -14,6 +15,9 @@ function errorHandlerMiddleware(err, req, res, next) {
   
   // Normalizar erro
   const error = normalizeError(err);
+  
+  // Registrar erro nas métricas
+  recordError(error.constructor.name, error.code);
   
   // Log do erro
   logger.error('Erro capturado pelo middleware de tratamento de erros', error);

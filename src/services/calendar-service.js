@@ -7,6 +7,7 @@ const { google } = require('googleapis');
 const { generateCacheKey, get, set, clearByPrefix } = require('../utils/cache');
 const { globalLogger } = require('../utils/logger');
 const { withGoogleCalendarTimeout } = require('../utils/timeout');
+const { recordCache } = require('../utils/metrics');
 
 // Configuração do Google Calendar
 let calendar;
@@ -143,8 +144,11 @@ async function getAvailableSlots(barberId, date, serviceId, requestId = null) {
       serviceId,
       slotsCount: cached.length
     });
+    recordCache(true); // Cache hit
     return cached;
   }
+  
+  recordCache(false); // Cache miss
 
   try {
     const calendarId = BARBER_CALENDARS[barberId] || 'primary';

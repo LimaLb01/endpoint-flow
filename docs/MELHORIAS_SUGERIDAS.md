@@ -337,16 +337,48 @@ Após análise completa do código, identifiquei várias oportunidades de melhor
 
 ---
 
-### 10. ⏸️ **Métricas e Monitoramento** [PENDENTE]
-**Problema:** Não há métricas de uso ou performance.
+### 10. ✅ **Métricas e Monitoramento** [CONCLUÍDA]
+**Problema:** Não havia métricas de uso ou performance.
 
 **Solução:**
-- Contar requisições por tipo
-- Medir tempo de resposta
-- Contar agendamentos criados
-- Endpoint `/metrics` (opcional)
+- ✅ Contar requisições por tipo e action_type
+- ✅ Medir tempo de resposta (média, min, max, p50, p95, p99)
+- ✅ Contar agendamentos criados (por serviço e barbeiro)
+- ✅ Endpoint `/metrics` para consulta
+- ✅ Métricas de cache e erros
 
 **Impacto:** 🟢 Baixo - Observabilidade
+
+**Status:** ✅ Concluída  
+**Iniciado em:** 16/12/2025  
+**Concluída em:** 16/12/2025  
+**Última atualização:** 16/12/2025  
+
+**Implementação:**
+- ✅ Sistema de métricas criado em `src/utils/metrics.js`:
+  - Contadores de requisições (total, por tipo, por action_type, por status)
+  - Métricas de tempo de resposta (média, min, max, percentis p50, p95, p99)
+  - Contadores de agendamentos (total, sucesso, falha, por serviço, por barbeiro)
+  - Métricas de erros (total, por tipo, por código)
+  - Métricas de cache (hits, misses, hit rate)
+  - Uptime do servidor
+- ✅ Middleware de métricas em `src/middleware/metrics-middleware.js`:
+  - Mede tempo de resposta automaticamente
+  - Registra requisições com tipo e status
+  - Adiciona header `X-Response-Time` nas respostas
+- ✅ Integração nas operações principais:
+  - Requisições registradas automaticamente via middleware
+  - Agendamentos registrados no `booking-handler.js`
+  - Erros registrados no `error-handler.js`
+  - Cache registrado no `calendar-service.js`
+- ✅ Endpoint `/metrics` criado:
+  - Retorna todas as métricas em formato JSON
+  - Inclui uptime, requisições, tempo de resposta, agendamentos, erros e cache
+  - Formato estruturado para fácil consumo
+- ✅ Métricas em tempo real:
+  - Todas as métricas são atualizadas em tempo real
+  - Percentis calculados dinamicamente
+  - Taxas de sucesso calculadas automaticamente
 
 ---
 

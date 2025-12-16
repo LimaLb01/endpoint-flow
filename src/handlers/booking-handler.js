@@ -5,6 +5,7 @@
 const { getServiceById } = require('../config/services');
 const { getBarbers, createAppointment } = require('../services/calendar-service');
 const { WHATSAPP_CONFIG, MESSAGES } = require('../config/constants');
+const { recordBooking } = require('../utils/metrics');
 
 /**
  * Processa confirmação de agendamento
@@ -74,6 +75,9 @@ async function handleConfirmBooking(payload, requestId = null) {
     console.log(`📊 Status: ${appointment.status || 'N/A'}`);
     console.log('='.repeat(60));
     
+    // Registrar agendamento bem-sucedido nas métricas
+    recordBooking(true, selected_service, selected_barber);
+    
     // Se foi chamado via data_exchange, retornar SUCCESS
     if (payload.action_type === 'CONFIRM_BOOKING') {
       return {
@@ -103,6 +107,9 @@ async function handleConfirmBooking(payload, requestId = null) {
     return null;
     
   } catch (error) {
+    // Registrar agendamento falhado nas métricas
+    recordBooking(false, payload.selected_service, payload.selected_barber);
+    
     const { CalendarError, FlowError, getUserFriendlyMessage } = require('../utils/errors');
     const { globalLogger } = require('../utils/logger');
     

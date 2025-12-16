@@ -18,6 +18,8 @@ const { requestIdMiddleware } = require('./middleware/request-id-middleware');
 const { globalLogger } = require('./utils/logger');
 const { errorHandlerMiddleware } = require('./middleware/error-handler');
 const { generalRateLimiter } = require('./middleware/rate-limit-middleware');
+const { metricsMiddleware } = require('./middleware/metrics-middleware');
+const { getMetrics } = require('./utils/metrics');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -30,6 +32,9 @@ app.use(express.json({ limit: '10mb' })); // Aumentar limite para requisições 
 
 // Request ID middleware (deve ser aplicado antes de outros middlewares)
 app.use(requestIdMiddleware);
+
+// Metrics middleware (deve ser aplicado após request ID)
+app.use(metricsMiddleware);
 
 // Rate Limiting geral por IP (aplicado após request ID para ter logs)
 app.use(generalRateLimiter);
@@ -72,6 +77,24 @@ app.get('/health', async (req, res) => {
       status: 'error',
       timestamp: new Date().toISOString(),
       error: error.message || 'Erro ao verificar status do sistema'
+    });
+  }
+});
+
+/**
+ * GET /metrics
+ * Endpoint de métricas e monitoramento
+ */
+app.get('/metrics', (req, res) => {
+  try {
+    const metrics = getMetrics();
+    res.json(metrics);
+  } catch (error) {
+    const requestLogger = req.requestId ? require('./utils/logger').createRequestLogger(req.requestId) : globalLogger;
+    requestLogger.error('Erro ao obter métricas', error);
+    res.status(500).json({
+      error: 'Erro ao obter métricas',
+      message: error.message
     });
   }
 });
