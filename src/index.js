@@ -617,12 +617,11 @@ async function handleSubmitDetails(payload) {
   
   console.log('📤 SUBMIT_DETAILS - Dados que serão retornados:', JSON.stringify(responseDataWithBooking, null, 2));
   
-  // ✅ SOLUÇÃO: Retornar para DETAILS com todos os dados formatados
-  // A tela DETAILS então usa navigate para ir para CONFIRMATION com os dados
-  // Dados passados via navigate são aplicados corretamente na próxima tela
+  // ✅ SOLUÇÃO: Retornar diretamente para CONFIRMATION com todos os dados formatados
+  // Isso evita o problema do componente If não funcionar corretamente na tela DETAILS
   return {
     version: '3.0',
-    screen: 'DETAILS',
+    screen: 'CONFIRMATION',
     data: responseDataWithBooking
   };
 }
