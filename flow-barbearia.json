@@ -14,7 +14,7 @@
   "screens": [
     {
       "id": "WELCOME",
-      "title": "Bem-vindo",
+      "title": "Bem-vindo 07.1",
       "terminal": false,
       "data": {},
       "layout": {
@@ -404,10 +404,6 @@
         "formatted_date": {
           "type": "string",
           "__example__": "15/01/2025"
-        },
-        "booking_id": {
-          "type": "string",
-          "__example__": "AGD-123456"
         }
       },
       "layout": {
@@ -485,10 +481,10 @@
                 "selected_date": "${data.selected_date}",
                 "selected_barber": "${data.selected_barber}",
                 "selected_time": "${data.selected_time}",
-                  "client_name": "${form.client_name}",
-                  "client_phone": "${form.client_phone}",
-                  "client_email": "${form.client_email}",
-                  "notes": "${form.notes}",
+                "client_name": "${form.client_name}",
+                "client_phone": "${form.client_phone}",
+                "client_email": "${form.client_email}",
+                "notes": "${form.notes}",
                 "service_name": "${data.service_name}",
                 "service_price": "${data.service_price}",
                 "barber_name": "${data.barber_name}",
@@ -673,7 +669,7 @@
           },
           {
             "type": "Form",
-            "name": "form",
+            "name": "confirmation_form",
             "children": [
               {
                 "type": "TextBody",
