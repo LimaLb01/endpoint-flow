@@ -8,12 +8,15 @@ const crypto = require('crypto');
 
 /**
  * Descriptografa a requisição do WhatsApp Flow
- * Código baseado no exemplo oficial NodeJS da documentação
+ * @param {object} body - Corpo da requisição
+ * @param {string} privatePem - Chave privada RSA
+ * @param {string} passphrase - Senha da chave privada
+ * @returns {object} Dados descriptografados
  */
 function decryptRequest(body, privatePem, passphrase = '') {
   const { encrypted_aes_key, encrypted_flow_data, initial_vector } = body;
 
-  // Normalizar a chave privada (converter \n literal para quebras de linha reais)
+  // Normalizar a chave privada
   let normalizedKey = privatePem;
   
   // Remover aspas extras se existirem
@@ -30,7 +33,7 @@ function decryptRequest(body, privatePem, passphrase = '') {
   console.log('🔑 Primeiros 60 chars da chave:', JSON.stringify(normalizedKey.substring(0, 60)));
   console.log('🔑 Chave começa com BEGIN:', normalizedKey.includes('-----BEGIN'));
 
-  // Decrypt the AES key created by the client
+  // Decrypt the AES key
   const decryptedAesKey = crypto.privateDecrypt(
     {
       key: crypto.createPrivateKey({
@@ -73,7 +76,10 @@ function decryptRequest(body, privatePem, passphrase = '') {
 
 /**
  * Criptografa a resposta para o WhatsApp Flow
- * Código baseado no exemplo oficial NodeJS da documentação
+ * @param {object} response - Resposta a criptografar
+ * @param {Buffer} aesKeyBuffer - Chave AES
+ * @param {Buffer} initialVectorBuffer - Vetor de inicialização
+ * @returns {string} Resposta criptografada em Base64
  */
 function encryptResponse(response, aesKeyBuffer, initialVectorBuffer) {
   // Flip the initialization vector
@@ -98,6 +104,10 @@ function encryptResponse(response, aesKeyBuffer, initialVectorBuffer) {
 
 /**
  * Valida a assinatura da requisição
+ * @param {object|string} rawBody - Corpo da requisição (objeto ou string)
+ * @param {string} signature - Assinatura recebida
+ * @param {string} appSecret - App Secret do Meta
+ * @returns {boolean} True se válida
  */
 function isRequestSignatureValid(rawBody, signature, appSecret) {
   if (!appSecret) {
@@ -105,9 +115,14 @@ function isRequestSignatureValid(rawBody, signature, appSecret) {
   }
 
   try {
+    // Converter body para string se necessário
+    const bodyString = typeof rawBody === 'string' 
+      ? rawBody 
+      : JSON.stringify(rawBody);
+    
     const expectedSignature = crypto
       .createHmac('sha256', appSecret)
-      .update(rawBody)
+      .update(bodyString)
       .digest('hex');
 
     const providedSignature = signature.replace('sha256=', '');
@@ -127,3 +142,4 @@ module.exports = {
   encryptResponse,
   isRequestSignatureValid
 };
+

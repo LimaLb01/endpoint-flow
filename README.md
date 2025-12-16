@@ -8,6 +8,7 @@ Servidor Node.js para integrar WhatsApp Flow com Google Calendar para agendament
 - 📅 **Google Calendar** - Consulta horários disponíveis em tempo real
 - 🔄 **Dados Dinâmicos** - Horários atualizados automaticamente
 - 💇 **Agendamentos** - Cria eventos no calendário do barbeiro
+- 🤖 **Envio Automático de Flow** - Envia o flow automaticamente quando recebe mensagem de texto
 
 ## 📋 Pré-requisitos
 
@@ -63,6 +64,25 @@ Isso irá:
 4. Cole o conteúdo do arquivo `flow.json`
 5. Clique em **"Assinar chave pública"** e cole a chave gerada
 6. Clique em **"Definir URI do ponto de extremidade"** e cole a URL do seu servidor
+
+### 6. Configure o Envio Automático de Flow (Opcional)
+
+Para enviar o flow automaticamente quando receber mensagens de texto, adicione ao `.env`:
+
+```bash
+# WhatsApp API (para envio automático de flow)
+WHATSAPP_ACCESS_TOKEN=seu_token_aqui
+WHATSAPP_PHONE_NUMBER_ID=seu_phone_number_id
+WHATSAPP_FLOW_ID=888145740552051
+
+# Número específico para enviar flow (deixe vazio para enviar para qualquer número)
+AUTO_SEND_FLOW_NUMBER=555492917132
+```
+
+**Como funciona:**
+- Quando alguém enviar uma mensagem de texto para o número configurado, o flow será enviado automaticamente
+- Se `AUTO_SEND_FLOW_NUMBER` estiver vazio, o flow será enviado para qualquer número que enviar mensagem
+- Se `AUTO_SEND_FLOW_NUMBER` estiver configurado, o flow será enviado apenas para esse número específico
 
 ## 🏃 Executando
 
@@ -122,22 +142,50 @@ vercel
 ```
 endpoint-flow/
 ├── src/
-│   ├── index.js           # Servidor principal
-│   ├── crypto-utils.js    # Criptografia RSA/AES
-│   ├── calendar-service.js # Integração Google Calendar
-│   └── flow-responses.js  # Helpers de resposta
-├── scripts/
-│   └── generate-keys.js   # Gerador de chaves RSA
-├── keys/                  # Chaves RSA (não commitada)
-├── flow.json              # JSON do WhatsApp Flow
+│   ├── config/            # Configurações
+│   │   ├── constants.js   # Constantes do sistema
+│   │   └── services.js    # Configuração de serviços
+│   ├── handlers/          # Handlers do Flow
+│   │   ├── init-handler.js
+│   │   ├── service-handler.js
+│   │   ├── date-handler.js
+│   │   ├── barber-handler.js
+│   │   ├── time-handler.js
+│   │   ├── details-handler.js
+│   │   ├── booking-handler.js
+│   │   └── flow-router.js
+│   ├── middleware/        # Middlewares Express
+│   │   ├── encryption-middleware.js
+│   │   └── signature-middleware.js
+│   ├── routes/            # Rotas Express
+│   │   └── webhook-routes.js
+│   ├── services/          # Serviços externos
+│   │   ├── calendar-service.js
+│   │   └── whatsapp-service.js
+│   ├── storage/           # Armazenamento
+│   │   └── booking-storage.js
+│   ├── utils/             # Utilitários
+│   │   ├── crypto-utils.js
+│   │   ├── date-formatter.js
+│   │   ├── placeholder-cleaner.js
+│   │   └── booking-id-generator.js
+│   └── index.js           # Servidor principal
+├── scripts/               # Scripts utilitários
+│   ├── generate-keys.js
+│   └── send-flow.js
+├── docs/                  # Documentação
+├── examples/              # Exemplos e templates
+├── flow-barbearia.json    # Flow JSON principal
 ├── package.json
 ├── env.example
 └── README.md
 ```
 
+**📖 Para mais detalhes sobre a estrutura, veja:** `ESTRUTURA_PROJETO.md`
+
 ## 🔧 Configuração dos Barbeiros
 
-Edite o arquivo `src/calendar-service.js` para configurar:
+Edite o arquivo `src/services/calendar-service.js` para configurar:
 
 ```javascript
 // Lista de barbeiros

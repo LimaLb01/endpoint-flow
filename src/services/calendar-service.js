@@ -338,21 +338,50 @@ Agendado via WhatsApp Flow
       event.sendUpdates = 'all'; // Enviar convite por email
     }
 
+    console.log('📤 Enviando requisição para Google Calendar API...');
+    console.log('📋 Calendar ID:', calendarId);
+    console.log('📋 Evento a ser criado:', JSON.stringify(event, null, 2));
+    
     const response = await calendar.events.insert({
       calendarId,
       resource: event
     });
 
-    console.log('✅ Evento criado:', response.data.id);
+    console.log('='.repeat(60));
+    console.log('✅ EVENTO CRIADO NO GOOGLE CALENDAR');
+    console.log('='.repeat(60));
+    console.log('📅 Evento ID:', response.data.id);
+    console.log('📊 Status:', response.data.status);
+    console.log('🔗 Link:', response.data.htmlLink);
+    console.log('📋 Resposta completa:', JSON.stringify(response.data, null, 2));
+    console.log('='.repeat(60));
 
     return {
       id: response.data.id,
-      status: 'confirmed',
+      status: response.data.status || 'confirmed',
       htmlLink: response.data.htmlLink
     };
 
   } catch (error) {
-    console.error('❌ Erro ao criar evento:', error.message);
+    console.error('='.repeat(60));
+    console.error('❌ ERRO AO CRIAR EVENTO NO GOOGLE CALENDAR');
+    console.error('='.repeat(60));
+    console.error('❌ Erro:', error.message);
+    console.error('❌ Stack:', error.stack);
+    console.error('❌ Error name:', error.name);
+    console.error('❌ Error code:', error.code);
+    
+    if (error.response) {
+      console.error('❌ Status code:', error.response.status);
+      console.error('❌ Response data:', JSON.stringify(error.response.data, null, 2));
+      console.error('❌ Response headers:', JSON.stringify(error.response.headers, null, 2));
+    }
+    
+    if (error.errors) {
+      console.error('❌ Errors array:', JSON.stringify(error.errors, null, 2));
+    }
+    
+    console.error('='.repeat(60));
     throw error;
   }
 }
