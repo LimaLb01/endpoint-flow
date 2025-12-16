@@ -99,7 +99,7 @@
             "name": "cpf_form",
             "children": [
               {
-                "type": "TextEntry",
+                "type": "TextInput",
                 "name": "client_cpf",
                 "label": "CPF",
                 "required": true,
