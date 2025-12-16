@@ -45,8 +45,10 @@ async function handleSelectBarber(payload) {
     return getFallbackTimeSelection(selected_service, selected_date, selected_barber, service, barber);
   }
   
-  // Buscar horários disponíveis do Google Calendar
-  const availableTimes = await getAvailableSlots(selected_barber, selected_date, selected_service);
+  // Buscar horários disponíveis do Google Calendar (com cache)
+  // requestId será passado se disponível para logs
+  const requestId = payload.requestId || null;
+  const availableTimes = await getAvailableSlots(selected_barber, selected_date, selected_service, requestId);
   
   return {
     version: '3.0',

@@ -217,15 +217,44 @@ Após análise completa do código, identifiquei várias oportunidades de melhor
 
 ---
 
-### 7. ⏸️ **Cache de Horários Disponíveis** [PENDENTE]
-**Problema:** Busca horários do Google Calendar a cada requisição.
+### 7. ✅ **Cache de Horários Disponíveis** [CONCLUÍDA]
+**Problema:** Buscava horários do Google Calendar a cada requisição.
 
 **Solução:**
-- Cachear horários por 5-10 minutos
-- Reduzir chamadas à API do Google
-- Melhorar performance
+- ✅ Cachear horários por 5 minutos
+- ✅ Reduzir chamadas à API do Google
+- ✅ Melhorar performance
+- ✅ Invalidação automática quando agendamento é criado
 
 **Impacto:** 🟢 Baixo - Performance
+
+**Status:** ✅ Concluída  
+**Iniciado em:** 16/12/2025  
+**Concluída em:** 16/12/2025  
+**Última atualização:** 16/12/2025  
+
+**Implementação:**
+- ✅ Sistema de cache em memória criado em `src/utils/cache.js`:
+  - Cache com TTL (Time To Live) configurável
+  - Limpeza automática de entradas expiradas (a cada 1 minuto)
+  - Estatísticas de cache (hits, misses, hit rate)
+  - Funções para gerenciar cache (get, set, del, clearByPrefix, clear)
+- ✅ Cache integrado em `getAvailableSlots()`:
+  - Verifica cache antes de buscar no Google Calendar
+  - Armazena resultados no cache com TTL de 5 minutos
+  - Chave de cache baseada em barberId, date, serviceId
+- ✅ Invalidação automática de cache:
+  - Cache invalidado quando agendamento é criado
+  - Garante que novos agendamentos apareçam rapidamente
+  - Invalidação por prefixo (todos os horários do barbeiro/data)
+- ✅ Logs estruturados para monitoramento:
+  - Log quando cache hit ocorre
+  - Log quando cache miss ocorre
+  - Log quando cache é invalidado
+  - Estatísticas de cache disponíveis via `getStats()`
+- ✅ Integração com sistema de logs:
+  - Request ID passado através da cadeia de chamadas
+  - Logs estruturados em todas as operações de cache
 
 ---
 

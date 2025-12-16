@@ -4,6 +4,8 @@
  */
 
 const { google } = require('googleapis');
+const { generateCacheKey, get, set, clearByPrefix } = require('../utils/cache');
+const { globalLogger } = require('../utils/logger');
 
 // Configuração do Google Calendar
 let calendar;
@@ -98,13 +100,21 @@ async function getBarbers() {
 
 /**
  * Busca horários disponíveis para um barbeiro em uma data específica
+ * Usa cache para reduzir chamadas à API do Google Calendar
  * @param {string} barberId - ID do barbeiro
  * @param {string} date - Data no formato YYYY-MM-DD
  * @param {string} serviceId - ID do serviço (para calcular duração)
+ * @param {string} requestId - Request ID para logs (opcional)
  * @returns {Array} Lista de horários disponíveis
  */
-async function getAvailableSlots(barberId, date, serviceId) {
-  console.log(`📅 Buscando horários para ${barberId} em ${date}`);
+async function getAvailableSlots(barberId, date, serviceId, requestId = null) {
+  const logger = requestId ? require('../utils/logger').createRequestLogger(requestId) : globalLogger;
+  
+  logger.debug('Buscando horários disponíveis', {
+    barberId,
+    date,
+    serviceId
+  });
   
   await initializeCalendar();
   
@@ -112,20 +122,42 @@ async function getAvailableSlots(barberId, date, serviceId) {
   
   // Se não houver integração real, retornar dados mock
   if (!calendar) {
-    console.log('⚠️ Calendar não inicializado, usando mock');
+    logger.warn('Calendar não inicializado, usando mock');
     return getMockAvailableSlots(date, serviceDuration);
+  }
+
+  // Verificar cache primeiro
+  const cacheKey = generateCacheKey('availableSlots', {
+    barberId,
+    date,
+    serviceId,
+    serviceDuration
+  });
+  
+  const cached = get(cacheKey);
+  if (cached) {
+    logger.debug('Horários encontrados no cache', {
+      barberId,
+      date,
+      serviceId,
+      slotsCount: cached.length
+    });
+    return cached;
   }
 
   try {
     const calendarId = BARBER_CALENDARS[barberId] || 'primary';
-    console.log(`📅 Usando calendário: ${calendarId}`);
+    logger.debug('Usando calendário', { calendarId });
     
     // Usar formato ISO com timezone de São Paulo para buscar eventos
     // O Google Calendar API aceita RFC3339 com offset
     const startOfDayStr = `${date}T${String(WORKING_HOURS.start).padStart(2, '0')}:00:00-03:00`;
     const endOfDayStr = `${date}T${String(WORKING_HOURS.end).padStart(2, '0')}:00:00-03:00`;
 
-    console.log(`📅 Buscando eventos de ${startOfDayStr} até ${endOfDayStr}`);
+    logger.debug('Buscando eventos do Google Calendar', {
+      timeMin: startOfDayStr,
+      timeMax: endOfDayStr
+    });
 
     // Buscar eventos existentes no calendário
     const response = await calendar.events.list({
@@ -137,7 +169,9 @@ async function getAvailableSlots(barberId, date, serviceId) {
       timeZone: 'America/Sao_Paulo'
     });
 
-    console.log(`📋 Eventos encontrados: ${response.data.items.length}`);
+    logger.debug('Eventos encontrados no Google Calendar', {
+      count: response.data.items.length
+    });
     
     // Extrair horários ocupados (em formato local de São Paulo)
     const busySlots = response.data.items.map(event => {
@@ -148,7 +182,11 @@ async function getAvailableSlots(barberId, date, serviceId) {
       const startHour = startTime.substring(11, 16); // "2025-12-11T14:30:00-03:00" -> "14:30"
       const endHour = endTime.substring(11, 16);
       
-      console.log(`   📌 Evento ocupado: ${startHour} - ${endHour} (${event.summary})`);
+      logger.debug('Evento ocupado encontrado', {
+        startHour,
+        endHour,
+        summary: event.summary
+      });
       
       return {
         startHour,
@@ -158,7 +196,7 @@ async function getAvailableSlots(barberId, date, serviceId) {
       };
     });
 
-    console.log(`📋 Total de ${busySlots.length} eventos ocupados`);
+    logger.debug('Total de eventos ocupados', { count: busySlots.length });
 
     // Gerar todos os slots possíveis (em minutos desde meia-noite)
     const allSlots = [];
@@ -185,24 +223,46 @@ async function getAvailableSlots(barberId, date, serviceId) {
       });
       
       if (hasConflict) {
-        console.log(`   ❌ Slot ${slot.time} bloqueado por conflito`);
+        logger.debug('Slot bloqueado por conflito', { time: slot.time });
       }
       
       return !hasConflict;
     });
 
-    console.log(`✅ ${availableSlots.length} horários disponíveis`);
+    logger.info('Horários disponíveis calculados', {
+      barberId,
+      date,
+      serviceId,
+      availableCount: availableSlots.length,
+      busyCount: busySlots.length
+    });
 
     // Formatar para o formato do WhatsApp Flow
-    return availableSlots.map(slot => ({
+    const formattedSlots = availableSlots.map(slot => ({
       id: slot.time,
       title: slot.time,
       description: `Disponível - ${serviceDuration} min`
     }));
 
+    // Armazenar no cache (TTL de 5 minutos)
+    // Cache mais curto para garantir que novos agendamentos apareçam rapidamente
+    set(cacheKey, formattedSlots, 5 * 60 * 1000);
+    
+    logger.debug('Horários armazenados no cache', {
+      cacheKey,
+      ttl: '5 minutos'
+    });
+
+    return formattedSlots;
+
   } catch (error) {
-    console.error('❌ Erro ao buscar horários:', error.message);
-    console.error('❌ Stack:', error.stack);
+    logger.error('Erro ao buscar horários do Google Calendar', {
+      error: error.message,
+      stack: error.stack,
+      barberId,
+      date,
+      serviceId
+    });
     return getMockAvailableSlots(date, serviceDuration);
   }
 }
@@ -256,12 +316,12 @@ function getMockAvailableSlots(date, duration) {
  * @param {object} appointment - Dados do agendamento
  * @returns {object} Evento criado
  */
-async function createAppointment(appointment) {
+async function createAppointment(appointment, requestId = null) {
   const { CalendarError } = require('../utils/errors');
   const { withRetry } = require('../utils/retry');
-  const { globalLogger } = require('../utils/logger');
+  const logger = requestId ? require('../utils/logger').createRequestLogger(requestId) : globalLogger;
   
-  globalLogger.debug('Criando agendamento', {
+  logger.debug('Criando agendamento', {
     service: appointment.service,
     barber: appointment.barber,
     date: appointment.date,
@@ -275,7 +335,9 @@ async function createAppointment(appointment) {
 
   // Se não houver integração real, retornar mock
   if (!calendar) {
-    globalLogger.warn('Usando mock - agendamento não foi salvo no Google Calendar');
+    logger.warn('Usando mock - agendamento não foi salvo no Google Calendar');
+    // Invalidar cache mesmo em modo mock para consistência
+    clearByPrefix(`availableSlots:barberId:${barber}|date:${date}`);
     return {
       id: `mock_${Date.now()}`,
       status: 'confirmed',
@@ -361,7 +423,7 @@ Agendado via WhatsApp Flow
     //   event.sendUpdates = 'all';
     // }
 
-      globalLogger.debug('Enviando requisição para Google Calendar API', {
+      logger.debug('Enviando requisição para Google Calendar API', {
         calendarId,
         eventSummary: event.summary
       });
@@ -371,10 +433,20 @@ Agendado via WhatsApp Flow
         resource: event
       });
 
-      globalLogger.info('Evento criado no Google Calendar', {
+      logger.info('Evento criado no Google Calendar', {
         eventId: response.data.id,
         status: response.data.status,
         htmlLink: response.data.htmlLink
+      });
+
+      // Invalidar cache de horários disponíveis para este barbeiro e data
+      // Isso garante que novos agendamentos apareçam imediatamente
+      clearByPrefix(`availableSlots:barberId:${barber}|date:${date}`);
+      
+      logger.debug('Cache invalidado após criação de agendamento', {
+        barber,
+        date,
+        eventId: response.data.id
       });
 
       return {

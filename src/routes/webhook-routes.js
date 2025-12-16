@@ -174,7 +174,7 @@ router.post('/whatsapp-flow', flowWebhookRateLimiter, async (req, res) => {
                           bookingId: bookingData.booking_id
                         });
                         
-                        const result = await handleConfirmBooking(completeBookingData);
+                        const result = await handleConfirmBooking(completeBookingData, req.requestId);
                         
                         logger.info('handleConfirmBooking concluído', {
                           bookingId: bookingData.booking_id,
@@ -193,7 +193,7 @@ router.post('/whatsapp-flow', flowWebhookRateLimiter, async (req, res) => {
                         
                         logger.warn('Tentando criar agendamento com dados limitados do webhook');
                         
-                        const result = await handleConfirmBooking(bookingData);
+                        const result = await handleConfirmBooking(bookingData, req.requestId);
                         logger.info('handleConfirmBooking concluído (dados limitados)', {
                           bookingId: bookingData.booking_id,
                           hasResult: !!result

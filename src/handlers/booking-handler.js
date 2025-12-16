@@ -9,9 +9,10 @@ const { WHATSAPP_CONFIG, MESSAGES } = require('../config/constants');
 /**
  * Processa confirmação de agendamento
  * @param {object} payload - Dados da requisição
+ * @param {string} requestId - Request ID para logs (opcional)
  * @returns {object|null} Resposta ou null se chamado via webhook
  */
-async function handleConfirmBooking(payload) {
+async function handleConfirmBooking(payload, requestId = null) {
   const { 
     selected_service, selected_date, selected_barber, selected_time,
     client_name, client_phone, client_email, contact_preference, notes,
@@ -60,7 +61,7 @@ async function handleConfirmBooking(payload) {
       clientEmail: client_email || '',
       contactPreference: contact_preference || '',
       notes: notes || ''
-    });
+    }, requestId);
     
     const finalBookingId = booking_id || `AGD-${Date.now().toString().slice(-6)}`;
     
