@@ -103,8 +103,7 @@
                 "name": "client_cpf",
                 "label": "CPF",
                 "required": true,
-                "input-type": "number",
-                "placeholder": "000.000.000-00"
+                "input-type": "number"
               }
             ]
           },
