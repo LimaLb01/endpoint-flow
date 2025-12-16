@@ -470,6 +470,9 @@ async function handleSelectTime(payload) {
   const diasSemana = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
   const formattedDate = `${dateToFormat.split('-').reverse().join('/')} (${diasSemana[dateObj.getDay()]})`;
   
+  // Gerar booking_id antecipadamente para mostrar na tela DETAILS
+  const bookingId = `AGD-${Date.now().toString().slice(-6)}`;
+  
   return {
     version: '3.0',
     screen: 'DETAILS',
@@ -481,7 +484,8 @@ async function handleSelectTime(payload) {
       service_name: service.title,
       service_price: `R$ ${service.price}`,
       barber_name: barber.title,
-      formatted_date: formattedDate
+      formatted_date: formattedDate,
+      booking_id: bookingId
     }
   };
 }
