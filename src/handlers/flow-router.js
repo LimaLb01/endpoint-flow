@@ -66,9 +66,8 @@ async function handleFlowRequest(data, requestId = null) {
     }
   }
   
-  // Sincronizar dados anteriores com handlers
+  // Sincronizar dados anteriores com handlers (apenas os que ainda usam)
   setDatePreviousData(previousFlowData);
-  setBarberPreviousData(previousFlowData);
   setTimePreviousData(previousFlowData);
   setDetailsPreviousData(previousFlowData);
   
