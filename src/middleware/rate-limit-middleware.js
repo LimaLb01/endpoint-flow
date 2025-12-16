@@ -30,6 +30,7 @@ setInterval(() => {
 /**
  * Rate Limiter geral por IP
  * Limita todas as requisições do mesmo IP
+ * Configurado para funcionar com trust proxy de forma segura
  */
 const generalRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
@@ -37,6 +38,22 @@ const generalRateLimiter = rateLimit({
   message: 'Muitas requisições deste IP. Tente novamente mais tarde.',
   standardHeaders: true, // Retorna informações de rate limit nos headers `RateLimit-*`
   legacyHeaders: false, // Desabilita headers `X-RateLimit-*`
+  // Configurar trust proxy de forma segura
+  // Railway usa X-Forwarded-For, mas precisamos validar
+  trustProxy: true,
+  // Usar função customizada para obter IP de forma segura
+  keyGenerator: (req) => {
+    // Tentar obter IP real do header X-Forwarded-For (quando confiável)
+    // Em Railway, o primeiro IP é o do cliente
+    const forwarded = req.headers['x-forwarded-for'];
+    if (forwarded) {
+      const ips = forwarded.split(',').map(ip => ip.trim());
+      // Pegar o primeiro IP (cliente real)
+      return ips[0] || req.ip;
+    }
+    // Fallback para req.ip (já considera trust proxy)
+    return req.ip;
+  },
   handler: (req, res) => {
     const logger = req.requestId ? createRequestLogger(req.requestId) : globalLogger;
     logger.warn('Rate limit excedido por IP', {

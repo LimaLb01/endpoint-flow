@@ -10,7 +10,16 @@ const { z } = require('zod');
  */
 const flowRequestSchema = z.object({
   action: z.string().min(1, 'Campo "action" é obrigatório'),
-  version: z.string().optional().default('3.0'),
+  version: z.union([
+    z.string(),
+    z.number()
+  ]).transform((val) => {
+    // Normalizar version: aceitar "3.0" (string) ou 300 (number)
+    if (typeof val === 'number') {
+      return val === 300 ? '3.0' : String(val);
+    }
+    return val === '3.0' ? '3.0' : val;
+  }).optional().default('3.0'),
   screen: z.string().nullable().optional(),
   data: z.object({}).passthrough().optional().default({})
 });

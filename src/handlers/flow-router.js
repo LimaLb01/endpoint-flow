@@ -87,10 +87,11 @@ async function handleFlowRequest(data, requestId = null) {
 
   // data_exchange - Navegação entre telas
   if (action === 'data_exchange') {
-    logger.debug('Processando data_exchange', { actionType });
+    logger.debug('Processando data_exchange', { actionType, screen, payloadKeys: Object.keys(payload) });
     
     // Validar dados do payload baseado no action_type
-    if (actionType) {
+    // INIT não precisa de validação de payload
+    if (actionType && actionType !== 'INIT') {
       const payloadValidation = validateByActionType(actionType, payload);
       if (!payloadValidation.valid) {
         logger.error('Validação de payload falhou', {
@@ -99,7 +100,7 @@ async function handleFlowRequest(data, requestId = null) {
         });
         return {
           version: '3.0',
-          screen: screen || 'SERVICE_SELECTION',
+          screen: screen || 'CPF_INPUT',
           data: {
             error: true,
             error_message: payloadValidation.error
@@ -110,10 +111,11 @@ async function handleFlowRequest(data, requestId = null) {
       payload = { ...payload, ...payloadValidation.data };
     }
     
-    switch (actionType) {
-      case 'INIT':
-        logger.info('Processando INIT via data_exchange');
-        return handleInit();
+    try {
+      switch (actionType) {
+        case 'INIT':
+          logger.info('Processando INIT via data_exchange');
+          return handleInit();
       case 'CPF_INPUT':
         return handleCpfInput(payload);
       case 'CLUB_OPTION':
@@ -135,6 +137,21 @@ async function handleFlowRequest(data, requestId = null) {
       default:
         // Fallback baseado na tela atual
         return handleByScreen(screen, payload);
+      }
+    } catch (error) {
+      logger.error('Erro ao processar action_type', {
+        actionType,
+        error: error.message,
+        stack: error.stack
+      });
+      return {
+        version: '3.0',
+        screen: screen || 'CPF_INPUT',
+        data: {
+          error: true,
+          error_message: 'Ocorreu um erro ao processar sua solicitação. Por favor, tente novamente.'
+        }
+      };
     }
   }
 

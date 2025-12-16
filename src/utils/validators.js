@@ -50,8 +50,20 @@ function validateFlowRequest(data) {
     };
   }
 
-  // Validar version (deve ser 3.0)
-  if (version && version !== '3.0') {
+  // Normalizar version (pode vir como número 300 ou string "3.0")
+  let normalizedVersion = version;
+  if (typeof version === 'number') {
+    // Se vier como número (ex: 300), converter para string "3.0"
+    if (version === 300) {
+      normalizedVersion = '3.0';
+    } else {
+      return {
+        valid: false,
+        error: `Versão "${version}" não suportada. Versão esperada: 3.0`,
+        data: null
+      };
+    }
+  } else if (version && version !== '3.0') {
     return {
       valid: false,
       error: `Versão "${version}" não suportada. Versão esperada: 3.0`,
@@ -73,7 +85,7 @@ function validateFlowRequest(data) {
     error: null,
     data: {
       action,
-      version: version || '3.0',
+      version: normalizedVersion || '3.0',
       screen: screen || null,
       data: flowData || {}
     }
