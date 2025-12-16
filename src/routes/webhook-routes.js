@@ -11,6 +11,7 @@ const bookingStorage = require('../storage/booking-storage');
 const { handleConfirmBooking } = require('../handlers/booking-handler');
 const { sendFlowAutomatically } = require('../services/whatsapp-service');
 const { createRequestLogger, globalLogger } = require('../utils/logger');
+const { flowWebhookRateLimiter, criticalEndpointRateLimiter } = require('../middleware/rate-limit-middleware');
 
 /**
  * GET /webhook/whatsapp-flow
@@ -42,8 +43,9 @@ router.get('/whatsapp-flow', (req, res) => {
 /**
  * POST /webhook/whatsapp-flow
  * Endpoint principal do WhatsApp Flow
+ * Aplica rate limiting por número de WhatsApp e por IP
  */
-router.post('/whatsapp-flow', async (req, res) => {
+router.post('/whatsapp-flow', flowWebhookRateLimiter, async (req, res) => {
   const logger = req.requestId ? createRequestLogger(req.requestId) : globalLogger;
   
   logger.request(req.method, req.url, {

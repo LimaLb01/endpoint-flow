@@ -184,15 +184,36 @@ Após análise completa do código, identifiquei várias oportunidades de melhor
 
 ## 🎯 Melhorias Secundárias (Médio Impacto)
 
-### 6. ⏸️ **Rate Limiting** [PENDENTE]
-**Problema:** Não há proteção contra abuso ou DDoS.
+### 6. ✅ **Rate Limiting** [CONCLUÍDA]
+**Problema:** Não havia proteção contra abuso ou DDoS.
 
 **Solução:**
-- Limitar requisições por IP
-- Limitar requisições por número de WhatsApp
-- Proteger endpoints críticos
+- ✅ Limitar requisições por IP (100 req/15min)
+- ✅ Limitar requisições por número de WhatsApp (20 req/15min)
+- ✅ Proteger endpoints críticos com limites mais restritivos (10 req/15min)
+- ✅ Integração com sistema de erros (RateLimitError)
 
 **Impacto:** 🟡 Médio - Segurança
+
+**Status:** ✅ Concluída  
+**Iniciado em:** 16/12/2025  
+**Concluída em:** 16/12/2025  
+**Última atualização:** 16/12/2025  
+
+**Implementação:**
+- ✅ Biblioteca `express-rate-limit` instalada
+- ✅ Middleware de rate limiting criado em `src/middleware/rate-limit-middleware.js`:
+  - `generalRateLimiter`: 100 requisições por IP a cada 15 minutos
+  - `criticalEndpointRateLimiter`: 10 requisições por IP a cada 15 minutos (endpoints críticos)
+  - `whatsappNumberRateLimiter`: 20 requisições por número de WhatsApp a cada 15 minutos
+  - `flowWebhookRateLimiter`: Combina proteção por IP e por número
+- ✅ Rate limiting aplicado globalmente em `src/index.js`
+- ✅ Rate limiting específico para webhook do WhatsApp Flow em `src/routes/webhook-routes.js`
+- ✅ Integração com `RateLimitError` do sistema de erros
+- ✅ Limpeza automática de entradas antigas do store (a cada 5 minutos)
+- ✅ Logs estruturados quando rate limit é excedido
+- ✅ Headers de rate limit (`RateLimit-*`) incluídos nas respostas
+- ✅ Health checks (`/` e `/health`) excluídos do rate limiting
 
 ---
 

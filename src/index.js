@@ -17,6 +17,7 @@ const { signatureValidationMiddleware } = require('./middleware/signature-middle
 const { requestIdMiddleware } = require('./middleware/request-id-middleware');
 const { globalLogger } = require('./utils/logger');
 const { errorHandlerMiddleware } = require('./middleware/error-handler');
+const { generalRateLimiter } = require('./middleware/rate-limit-middleware');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -29,6 +30,9 @@ app.use(express.json({ limit: '10mb' })); // Aumentar limite para requisições 
 
 // Request ID middleware (deve ser aplicado antes de outros middlewares)
 app.use(requestIdMiddleware);
+
+// Rate Limiting geral por IP (aplicado após request ID para ter logs)
+app.use(generalRateLimiter);
 
 // ============================================
 // Rotas de Health Check
