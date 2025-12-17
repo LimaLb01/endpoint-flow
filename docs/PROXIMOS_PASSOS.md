@@ -1,117 +1,196 @@
-# ✅ Passo 1 Concluído: Chaves RSA Geradas!
+# 🚀 Próximos Passos - Painel Administrativo
 
-## 📋 O que foi feito:
-- ✅ Chaves RSA geradas com sucesso
-- ✅ Arquivo `.env` criado com a chave privada
-- ✅ Arquivo `CHAVE_PUBLICA.txt` criado para facilitar a cópia
+## ✅ O que já está pronto
 
----
+### Backend
+- ✅ API completa implementada
+- ✅ Autenticação JWT funcionando
+- ✅ Integração com Supabase
+- ✅ Integração com Stripe (código pronto)
+- ✅ Rotas administrativas protegidas
 
-## 🎯 PRÓXIMO PASSO: Configurar Google Calendar
-
-### 📅 Passo 2: Criar Service Account no Google Cloud
-
-**Tempo estimado:** 10-15 minutos
-
-#### 2.1. Criar Projeto no Google Cloud
-
-1. Acesse: https://console.cloud.google.com/
-2. Se não tiver conta, crie uma (é grátis)
-3. Clique em **"Selecionar projeto"** (canto superior direito)
-4. Clique em **"Novo Projeto"**
-5. Nome do projeto: `barbearia-whatsapp-flow`
-6. Clique em **"Criar"**
-7. Aguarde alguns segundos e selecione o projeto criado
-
-#### 2.2. Ativar Google Calendar API
-
-1. No menu lateral esquerdo, clique em **"APIs e Serviços"** > **"Biblioteca"**
-2. Na barra de pesquisa, digite: `Google Calendar API`
-3. Clique na opção **"Google Calendar API"**
-4. Clique no botão azul **"ATIVAR"**
-5. Aguarde alguns segundos até aparecer "API ativada"
-
-#### 2.3. Criar Service Account
-
-1. No menu lateral, vá em **"APIs e Serviços"** > **"Credenciais"**
-2. Clique no botão **"+ CRIAR CREDENCIAIS"** (no topo)
-3. Selecione **"Conta de serviço"**
-4. Preencha:
-   - **Nome da conta de serviço:** `barbearia-calendar`
-   - **ID da conta de serviço:** (deixe o padrão)
-   - **Descrição:** `Conta para WhatsApp Flow - Barbearia`
-5. Clique em **"Criar e continuar"**
-6. Na próxima tela (Conceder acesso), **PULE** clicando em **"Continuar"**
-7. Na última tela, clique em **"Concluído"**
-
-#### 2.4. Baixar Chave JSON
-
-1. Na lista de **"Contas de serviço"**, clique no email que você criou (algo como `barbearia-calendar@seu-projeto.iam.gserviceaccount.com`)
-2. Vá na aba **"Chaves"** (no topo)
-3. Clique em **"Adicionar chave"** > **"Criar nova chave"**
-4. Selecione o tipo: **JSON**
-5. Clique em **"Criar"**
-6. ⚠️ **IMPORTANTE:** O arquivo JSON será baixado automaticamente. **GUARDE ELE EM LUGAR SEGURO!**
-
-#### 2.5. Copiar Credenciais para o .env
-
-1. Abra o arquivo JSON que foi baixado
-2. Você verá algo assim:
-```json
-{
-  "type": "service_account",
-  "project_id": "seu-projeto",
-  "private_key_id": "...",
-  "private_key": "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n",
-  "client_email": "barbearia-calendar@seu-projeto.iam.gserviceaccount.com",
-  ...
-}
-```
-
-3. Copie o valor de `client_email` e cole no arquivo `.env` na linha `GOOGLE_CLIENT_EMAIL=`
-4. Copie o valor de `private_key` (todo o conteúdo entre as aspas, incluindo `\n`) e cole no arquivo `.env` na linha `GOOGLE_PRIVATE_KEY=`
-
-**Exemplo:**
-```env
-GOOGLE_CLIENT_EMAIL=barbearia-calendar@seu-projeto.iam.gserviceaccount.com
-GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQ...\n-----END PRIVATE KEY-----\n"
-```
-
-#### 2.6. Compartilhar Calendários com a Service Account
-
-Para cada barbeiro, você precisa compartilhar o calendário:
-
-1. Abra o Google Calendar (https://calendar.google.com)
-2. No lado esquerdo, passe o mouse sobre o calendário do barbeiro
-3. Clique nos **3 pontinhos** ao lado do nome
-4. Clique em **"Configurações e compartilhamento"**
-5. Role até a seção **"Compartilhar com pessoas específicas"**
-6. Clique em **"+ Adicionar pessoas"**
-7. Cole o email da Service Account (o `client_email` que você copiou)
-8. No menu de permissões, selecione: **"Fazer alterações nos eventos"**
-9. Clique em **"Enviar"**
-10. ⚠️ **IMPORTANTE:** Repita isso para CADA calendário de barbeiro!
+### Frontend
+- ✅ Projeto React (Vite) criado
+- ✅ Todas as telas convertidas de HTML para React:
+  - ✅ Login
+  - ✅ Dashboard
+  - ✅ Buscar Cliente
+  - ✅ Registrar Pagamento
+  - ✅ Listar Assinaturas
+  - ✅ Detalhes da Assinatura
+  - ✅ Planos
+- ✅ Tailwind CSS configurado
+- ✅ Roteamento configurado
+- ✅ Proteção de rotas implementada
+- ✅ API client integrado
 
 ---
 
-## ✅ Quando terminar o Passo 2:
+## 🎯 Próximos Passos (Prioridade)
 
-Me avise quando:
-- ✅ Service Account criada
-- ✅ Chave JSON baixada
-- ✅ Credenciais copiadas para o `.env`
-- ✅ Calendários compartilhados
+### 1. **Testar todas as telas do frontend** ⚠️ URGENTE
+**Objetivo:** Garantir que todas as telas estão funcionando corretamente
 
-Depois disso, vamos para o **Passo 3: Deploy do Servidor**! 🚀
+**Tarefas:**
+- [ ] Testar Login (já funcionando ✅)
+- [ ] Testar Dashboard (corrigido, mas precisa validar)
+- [ ] Testar Buscar Cliente
+- [ ] Testar Registrar Pagamento
+- [ ] Testar Listar Assinaturas
+- [ ] Testar Detalhes da Assinatura
+- [ ] Testar Planos
+
+**Como testar:**
+1. Iniciar servidor: `cd painel-admin && npm run dev`
+2. Acessar `http://localhost:5173/login`
+3. Fazer login
+4. Navegar por todas as telas
+5. Verificar se há erros no console (F12)
+6. Verificar se os dados estão sendo carregados corretamente
 
 ---
 
-## 💡 Dica:
+### 2. **Verificar e corrigir estilos/cores** 🎨
+**Objetivo:** Garantir que todas as telas estão com o design correto
 
-Se você ainda não tem calendários criados para os barbeiros:
-1. No Google Calendar, clique em **"+"** ao lado de "Outros calendários"
-2. Clique em **"Criar novo calendário"**
-3. Nome: `João Silva - Barbearia` (ou o nome do barbeiro)
-4. Clique em **"Criar calendário"**
-5. Repita para cada barbeiro
+**Tarefas:**
+- [ ] Comparar cada tela React com o HTML original
+- [ ] Verificar cores, espaçamentos, fontes
+- [ ] Verificar responsividade (mobile/tablet/desktop)
+- [ ] Corrigir qualquer diferença visual
 
+**Arquivos para verificar:**
+- `painel-admin/src/pages/BuscarCliente.jsx`
+- `painel-admin/src/pages/RegistrarPagamento.jsx`
+- `painel-admin/src/pages/ListarAssinaturas.jsx`
+- `painel-admin/src/pages/DetalhesAssinatura.jsx`
+- `painel-admin/src/pages/Planos.jsx`
+
+---
+
+### 3. **Testar integração completa frontend-backend** 🔗
+**Objetivo:** Garantir que todas as chamadas de API estão funcionando
+
+**Tarefas:**
+- [ ] Testar login e armazenamento de token
+- [ ] Testar busca de cliente por CPF
+- [ ] Testar registro de pagamento manual
+- [ ] Testar listagem de assinaturas
+- [ ] Testar cancelamento de assinatura
+- [ ] Testar listagem de planos
+- [ ] Verificar tratamento de erros (401, 404, 500)
+- [ ] Verificar redirecionamento quando não autenticado
+
+**Endpoints para testar:**
+- `POST /api/auth/login`
+- `GET /api/admin/customers/:cpf`
+- `POST /api/admin/payments/manual`
+- `GET /api/admin/subscriptions`
+- `PUT /api/admin/subscriptions/:id/cancel`
+- `GET /api/admin/plans`
+
+---
+
+### 4. **Configurar Stripe** 💳
+**Objetivo:** Ativar sistema de pagamentos online
+
+**Tarefas:**
+- [ ] Criar conta no Stripe (se ainda não tiver)
+- [ ] Obter chaves API:
+  - `STRIPE_SECRET_KEY` (sk_test_...)
+  - `STRIPE_PUBLISHABLE_KEY` (pk_test_...)
+- [ ] Configurar webhook no Stripe:
+  - URL: `https://seu-dominio.com/api/webhooks/stripe`
+  - Eventos: `checkout.session.completed`, `invoice.payment_succeeded`, `customer.subscription.deleted`
+- [ ] Obter `STRIPE_WEBHOOK_SECRET`
+- [ ] Adicionar variáveis no Railway
+- [ ] Criar produtos e preços no Stripe
+- [ ] Atualizar tabela `plans` no Supabase com `stripe_price_id`
+
+**Documentação:** Ver `docs/IMPLEMENTACAO_CLUBE_CODE.md`
+
+---
+
+### 5. **Implementar notificações** 📧📱
+**Objetivo:** Notificar clientes sobre pagamentos e assinaturas
+
+**Tarefas:**
+- [ ] Implementar notificações por WhatsApp
+- [ ] Implementar notificações por Email
+- [ ] Notificar quando pagamento é confirmado
+- [ ] Notificar quando assinatura está prestes a vencer
+- [ ] Notificar quando assinatura é cancelada
+
+**Status:** Código backend já preparado, falta implementar os serviços de notificação
+
+---
+
+### 6. **Deploy do frontend** 🚀
+**Objetivo:** Disponibilizar painel administrativo online
+
+**Opções de deploy:**
+- **Vercel** (recomendado para React)
+- **Netlify**
+- **Railway** (mesmo lugar do backend)
+- **GitHub Pages**
+
+**Tarefas:**
+- [ ] Fazer build de produção: `npm run build`
+- [ ] Configurar variáveis de ambiente (API_BASE_URL)
+- [ ] Fazer deploy
+- [ ] Configurar domínio personalizado (opcional)
+- [ ] Testar em produção
+
+---
+
+## 📋 Checklist Rápido
+
+### Testes Imediatos
+- [ ] Login funciona
+- [ ] Dashboard carrega sem erros
+- [ ] Buscar Cliente funciona
+- [ ] Registrar Pagamento funciona
+- [ ] Listar Assinaturas funciona
+- [ ] Detalhes da Assinatura funciona
+- [ ] Planos lista corretamente
+
+### Correções Necessárias
+- [ ] Verificar cores em todas as telas
+- [ ] Verificar responsividade
+- [ ] Corrigir erros no console
+- [ ] Melhorar tratamento de erros na UI
+
+### Configurações
+- [ ] Configurar Stripe
+- [ ] Configurar variáveis de ambiente
+- [ ] Testar webhook do Stripe
+
+### Deploy
+- [ ] Build de produção
+- [ ] Deploy do frontend
+- [ ] Testar em produção
+
+---
+
+## 🎯 Recomendação de Ordem
+
+1. **PRIMEIRO:** Testar todas as telas (passo 1)
+2. **SEGUNDO:** Corrigir estilos/cores (passo 2)
+3. **TERCEIRO:** Testar integração completa (passo 3)
+4. **QUARTO:** Configurar Stripe (passo 4)
+5. **QUINTO:** Implementar notificações (passo 5)
+6. **SEXTO:** Deploy (passo 6)
+
+---
+
+## 💡 Dicas
+
+1. **Teste uma tela por vez** - Não tente testar tudo de uma vez
+2. **Use o console do navegador** - F12 para ver erros
+3. **Verifique a Network tab** - Veja se as requisições estão sendo feitas corretamente
+4. **Teste com dados reais** - Use o Supabase para criar dados de teste
+5. **Documente problemas encontrados** - Anote qualquer bug ou erro
+
+---
+
+**Última atualização:** 19/12/2025
