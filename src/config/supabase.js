@@ -13,6 +13,9 @@ const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
   globalLogger.warn('⚠️ Variáveis do Supabase não configuradas. Configure SUPABASE_URL e SUPABASE_ANON_KEY no .env');
+} else if (!supabaseServiceRoleKey) {
+  globalLogger.warn('⚠️ SUPABASE_SERVICE_ROLE_KEY não configurada. O sistema funcionará com limitações. Configure para funcionalidade completa.');
+  globalLogger.warn('📖 Veja docs/COMO_OBTER_SERVICE_ROLE_KEY.md para instruções');
 }
 
 /**
@@ -30,6 +33,9 @@ const supabase = supabaseUrl && supabaseAnonKey
 /**
  * Cliente Supabase para operações administrativas (service_role key)
  * Use apenas no backend, nunca exponha esta chave no frontend
+ * 
+ * Se service_role não estiver configurada, usa anon key como fallback
+ * (funcionalidade limitada, mas permite testes)
  */
 const supabaseAdmin = supabaseUrl && supabaseServiceRoleKey
   ? createClient(supabaseUrl, supabaseServiceRoleKey, {
@@ -38,7 +44,14 @@ const supabaseAdmin = supabaseUrl && supabaseServiceRoleKey
         autoRefreshToken: false
       }
     })
-  : null;
+  : (supabaseUrl && supabaseAnonKey
+      ? createClient(supabaseUrl, supabaseAnonKey, {
+          auth: {
+            persistSession: false,
+            autoRefreshToken: false
+          }
+        })
+      : null);
 
 /**
  * Verifica se o Supabase está configurado
