@@ -184,8 +184,53 @@ async function handleCheckoutCompleted(session) {
 
     // Se foi uma assinatura, buscar dados da assinatura
     if (session.mode === 'subscription' && session.subscription) {
-      const subscription = await stripe.subscriptions.retrieve(session.subscription);
-      return await handleSubscriptionUpdated(subscription, customer.id, planId);
+      const stripeSubscription = await stripe.subscriptions.retrieve(session.subscription);
+      
+      // Buscar dados do plano
+      const { data: plan } = await supabaseAdmin
+        .from('plans')
+        .select('*')
+        .eq('id', planId)
+        .single();
+      
+      // Criar assinatura
+      const subscriptionResult = await handleSubscriptionUpdated(stripeSubscription, customer.id, planId);
+      
+      // Buscar invoice inicial da assinatura para registrar pagamento
+      if (stripeSubscription.latest_invoice) {
+        try {
+          const invoice = await stripe.invoices.retrieve(stripeSubscription.latest_invoice);
+          
+          if (invoice.paid && invoice.amount_paid > 0) {
+            // Criar registro de pagamento inicial
+            const { data: payment } = await supabaseAdmin
+              .from('manual_payments')
+              .insert({
+                customer_id: customer.id,
+                plan_id: planId,
+                amount: invoice.amount_paid / 100,
+                payment_date: new Date(invoice.created * 1000),
+                confirmed_by: 'Stripe',
+                status: 'confirmed',
+                stripe_invoice_id: invoice.id
+              })
+              .select()
+              .single();
+            
+            // Enviar notificações
+            if (payment && plan) {
+              await notifyPaymentConfirmed(customer, payment, plan);
+            }
+          }
+        } catch (invoiceError) {
+          globalLogger.warn('Erro ao buscar invoice inicial', {
+            error: invoiceError.message,
+            subscriptionId: stripeSubscription.id
+          });
+        }
+      }
+      
+      return subscriptionResult;
     }
 
     // Se foi pagamento único, criar assinatura manual

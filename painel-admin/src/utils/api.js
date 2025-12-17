@@ -15,10 +15,16 @@ export function getToken() {
  * Obtém headers de autenticação
  */
 export function getAuthHeaders() {
-  return {
-    'Authorization': `Bearer ${getToken()}`,
+  const token = getToken();
+  const headers = {
     'Content-Type': 'application/json'
   };
+  
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  
+  return headers;
 }
 
 /**
@@ -144,6 +150,36 @@ export const api = {
    */
   obterAssinatura: async (subscriptionId) => {
     return apiRequest(`/admin/subscriptions/${subscriptionId}`);
+  },
+
+  /**
+   * Criar cliente
+   */
+  criarCliente: async (dados) => {
+    return apiRequest('/admin/customers', {
+      method: 'POST',
+      body: JSON.stringify({
+        cpf: dados.cpf.replace(/\D/g, ''),
+        name: dados.name,
+        email: dados.email,
+        phone: dados.phone ? dados.phone.replace(/\D/g, '') : null
+      })
+    });
+  },
+
+  /**
+   * Atualizar cliente
+   */
+  atualizarCliente: async (cpf, dados) => {
+    const cpfLimpo = cpf.replace(/\D/g, '');
+    return apiRequest(`/admin/customers/${cpfLimpo}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        name: dados.name,
+        email: dados.email,
+        phone: dados.phone ? dados.phone.replace(/\D/g, '') : null
+      })
+    });
   }
 };
 
@@ -196,6 +232,30 @@ export const utils = {
       style: 'currency',
       currency: 'BRL'
     }).format(valor);
+  },
+
+  /**
+   * Aplicar máscara de telefone
+   */
+  aplicarMascaraTelefone: (telefone) => {
+    const telefoneLimpo = telefone.replace(/\D/g, '');
+    if (telefoneLimpo.length <= 10) {
+      return telefoneLimpo
+        .replace(/(\d{2})(\d)/, '($1) $2')
+        .replace(/(\d{4})(\d)/, '$1-$2');
+    } else {
+      return telefoneLimpo
+        .replace(/(\d{2})(\d)/, '($1) $2')
+        .replace(/(\d{5})(\d)/, '$1-$2');
+    }
+  },
+
+  /**
+   * Validar email
+   */
+  validarEmail: (email) => {
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return regex.test(email);
   }
 };
 

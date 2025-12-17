@@ -15,6 +15,7 @@ const webhookRoutes = require('./routes/webhook-routes');
 const stripeRoutes = require('./routes/stripe-routes');
 const adminRoutes = require('./routes/admin-routes');
 const authRoutes = require('./routes/auth-routes');
+const subscriptionRoutes = require('./routes/subscription-routes');
 const { encryptionMiddleware } = require('./middleware/encryption-middleware');
 const { signatureValidationMiddleware } = require('./middleware/signature-middleware');
 const { requestIdMiddleware } = require('./middleware/request-id-middleware');
@@ -248,6 +249,11 @@ app.use('/webhook', webhookRoutes);
 // ============================================
 // Webhook do Stripe precisa receber raw body para verificar assinatura
 app.use('/api/webhooks', stripeRoutes);
+
+// ============================================
+// Rotas Públicas de Assinaturas (WhatsApp Flow)
+// ============================================
+app.use('/api', subscriptionRoutes);
 
 // ============================================
 // Rotas de Autenticação
