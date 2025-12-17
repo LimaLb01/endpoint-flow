@@ -215,21 +215,13 @@ function validateSelectBarber(payload) {
     };
   }
 
-  const { selected_service, selected_date, selected_barber } = payload;
+  const { selected_branch, selected_barber } = payload;
 
   // Validar campos obrigatórios
-  if (!selected_service || typeof selected_service !== 'string') {
+  if (!selected_branch || typeof selected_branch !== 'string') {
     return {
       valid: false,
-      error: 'Campo "selected_service" é obrigatório para SELECT_BARBER',
-      data: null
-    };
-  }
-
-  if (!selected_date || typeof selected_date !== 'string') {
-    return {
-      valid: false,
-      error: 'Campo "selected_date" é obrigatório para SELECT_BARBER',
+      error: 'Campo "selected_branch" é obrigatório para SELECT_BARBER',
       data: null
     };
   }
@@ -242,22 +234,11 @@ function validateSelectBarber(payload) {
     };
   }
 
-  // Validar se o barbeiro é válido
-  const validBarbers = ['joao', 'pedro', 'carlos'];
-  if (!validBarbers.includes(selected_barber)) {
-    return {
-      valid: false,
-      error: `Barbeiro "${selected_barber}" não é válido`,
-      data: null
-    };
-  }
-
   return {
     valid: true,
     error: null,
     data: {
-      selected_service,
-      selected_date,
+      selected_branch,
       selected_barber,
       action_type: 'SELECT_BARBER'
     }
