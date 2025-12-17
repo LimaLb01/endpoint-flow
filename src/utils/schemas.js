@@ -55,9 +55,8 @@ const selectDateSchema = z.object({
  * Schema para SELECT_BARBER
  */
 const selectBarberSchema = z.object({
-  selected_barber: z.enum(['joao', 'pedro', 'carlos'], {
-    errorMap: () => ({ message: 'Barbeiro selecionado não é válido' })
-  }),
+  selected_branch: z.string().min(1, 'Filial é obrigatória'),
+  selected_barber: z.string().min(1, 'Barbeiro é obrigatório'),
   action_type: z.literal('SELECT_BARBER').optional()
 });
 
