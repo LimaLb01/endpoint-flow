@@ -588,7 +588,7 @@ export default function BuscarCliente() {
               </form>
             </div>
           </>
-        ) : !mostrarDetalhes ? (
+        ) : (
           <>
             {/* Search Section */}
             <div className="bg-white rounded-lg shadow-sm border border-[#e6e6db] overflow-hidden">
