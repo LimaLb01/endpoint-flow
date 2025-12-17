@@ -75,8 +75,7 @@ function getBarbersByBranch(branchId) {
   return branch.barbers.map(barber => ({
     id: barber.id,
     title: barber.name,
-    description: 'Disponível',
-    branch_id: branchId
+    description: 'Disponível'
   }));
 }
 
@@ -97,8 +96,7 @@ function getAllBarbers(branchId = null) {
       allBarbers.push({
         id: barber.id,
         title: barber.name,
-        description: 'Disponível',
-        branch_id: branch.id
+        description: 'Disponível'
       });
     });
   });
