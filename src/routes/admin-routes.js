@@ -363,6 +363,54 @@ router.get('/subscriptions', requireAuth, async (req, res) => {
 });
 
 /**
+ * GET /api/admin/subscriptions/:id
+ * Obtém detalhes de uma assinatura específica
+ */
+router.get('/subscriptions/:id', requireAuth, async (req, res) => {
+  const logger = req.requestId ? createRequestLogger(req.requestId) : globalLogger;
+  
+  try {
+    const { id } = req.params;
+    
+    const { data, error } = await supabaseAdmin
+      .from('subscriptions')
+      .select(`
+        *,
+        customer:customers(*),
+        plan:plans(*)
+      `)
+      .eq('id', id)
+      .single();
+    
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return res.status(404).json({
+          error: 'Assinatura não encontrada'
+        });
+      }
+      throw error;
+    }
+    
+    if (!data) {
+      return res.status(404).json({
+        error: 'Assinatura não encontrada'
+      });
+    }
+    
+    return res.json(data);
+  } catch (error) {
+    logger.error('Erro ao buscar assinatura', {
+      error: error.message,
+      subscriptionId: req.params.id
+    });
+    return res.status(500).json({
+      error: 'Erro ao buscar assinatura',
+      message: error.message
+    });
+  }
+});
+
+/**
  * PUT /api/admin/subscriptions/:id/cancel
  * Cancela uma assinatura
  */

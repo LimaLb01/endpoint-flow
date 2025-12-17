@@ -155,8 +155,16 @@ export default function BuscarCliente() {
 
   const carregarDetalhesAssinatura = async (subscriptionId) => {
     setCarregandoDetalhes(true);
+    setError('');
     try {
+      console.log('Carregando detalhes da assinatura:', subscriptionId);
       const detalhes = await api.obterAssinatura(subscriptionId);
+      console.log('Detalhes carregados:', detalhes);
+      
+      if (!detalhes) {
+        throw new Error('Assinatura não encontrada');
+      }
+      
       setDetalhesAssinatura(detalhes);
       
       // Buscar pagamentos do cliente via API
@@ -166,15 +174,19 @@ export default function BuscarCliente() {
             customer_id: detalhes.customer.id,
             limit: 20
           });
+          console.log('Pagamentos carregados:', pagamentosData);
           setPagamentos(pagamentosData || []);
         } catch (err) {
           console.warn('Erro ao buscar pagamentos:', err);
           setPagamentos([]);
         }
+      } else {
+        console.warn('Detalhes não têm customer.id');
       }
     } catch (error) {
       console.error('Erro ao carregar detalhes:', error);
-      setError('Erro ao carregar detalhes da assinatura');
+      setError('Erro ao carregar detalhes da assinatura: ' + (error.message || 'Erro desconhecido'));
+      setDetalhesAssinatura(null);
     } finally {
       setCarregandoDetalhes(false);
     }
@@ -461,10 +473,14 @@ export default function BuscarCliente() {
                     {assinaturaAtiva && (
                       <button
                         onClick={async () => {
+                          console.log('Botão Ver Detalhes clicado, mostrarDetalhes:', mostrarDetalhes);
                           if (!mostrarDetalhes) {
+                            console.log('Carregando detalhes para assinatura:', assinaturaAtiva.id);
                             await carregarDetalhesAssinatura(assinaturaAtiva.id);
+                            console.log('Detalhes carregados, mostrando tela');
                           }
                           setMostrarDetalhes(!mostrarDetalhes);
+                          console.log('mostrarDetalhes atualizado para:', !mostrarDetalhes);
                         }}
                         className="flex-1 md:flex-none h-12 px-6 rounded-full bg-primary text-[#181811] font-bold shadow-sm hover:brightness-95 transition-all flex items-center justify-center gap-2"
                       >
@@ -494,9 +510,17 @@ export default function BuscarCliente() {
                 )}
 
                 {/* Detalhes da Assinatura */}
-                {mostrarDetalhes && detalhesAssinatura && (
-                  <div className="flex flex-col gap-8">
-                    {/* Botão Voltar */}
+                {mostrarDetalhes && (
+                  carregandoDetalhes ? (
+                    <div className="flex items-center justify-center py-20">
+                      <div className="flex flex-col items-center gap-4">
+                        <span className="material-symbols-outlined animate-spin text-4xl text-primary">refresh</span>
+                        <p className="text-[#8c8b5f] dark:text-[#a3a272]">Carregando detalhes...</p>
+                      </div>
+                    </div>
+                  ) : detalhesAssinatura ? (
+                    <div className="flex flex-col gap-8">
+                      {/* Botão Voltar */}
                     <div className="mb-6 flex items-center gap-2">
                       <button
                         onClick={() => setMostrarDetalhes(false)}
@@ -537,12 +561,18 @@ export default function BuscarCliente() {
                           </div>
                           <div className="flex flex-col items-center text-center mb-6">
                             <div className="size-24 rounded-full bg-[#f8f8f5] dark:bg-[#23220f] border-4 border-[#f8f8f5] dark:border-[#23220f] mb-4 flex items-center justify-center text-3xl font-bold text-[#8c8b5f]">
-                              {iniciais}
+                              {detalhesAssinatura?.customer?.name 
+                                ? detalhesAssinatura.customer.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+                                : cliente?.customer?.name 
+                                  ? cliente.customer.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+                                  : '??'}
                             </div>
-                            <h4 className="text-xl font-bold text-[#181811] dark:text-white">{cliente.customer.name}</h4>
+                            <h4 className="text-xl font-bold text-[#181811] dark:text-white">
+                              {detalhesAssinatura?.customer?.name || cliente?.customer?.name || 'N/A'}
+                            </h4>
                             <p className="text-[#8c8b5f] dark:text-gray-400 text-sm mt-1">
-                              {cliente.customer.created_at 
-                                ? `Membro desde ${new Date(cliente.customer.created_at).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}`
+                              {(detalhesAssinatura?.customer?.created_at || cliente?.customer?.created_at)
+                                ? `Membro desde ${new Date((detalhesAssinatura?.customer?.created_at || cliente?.customer?.created_at)).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}`
                                 : 'Cliente'}
                             </p>
                           </div>
@@ -552,7 +582,7 @@ export default function BuscarCliente() {
                               <div className="flex flex-col overflow-hidden">
                                 <span className="text-xs text-[#8c8b5f] dark:text-gray-500 font-medium">Email</span>
                                 <span className="text-sm font-semibold text-[#181811] dark:text-white truncate">
-                                  {cliente.customer.email || 'N/A'}
+                                  {detalhesAssinatura?.customer?.email || cliente?.customer?.email || 'N/A'}
                                 </span>
                               </div>
                             </div>
@@ -561,7 +591,7 @@ export default function BuscarCliente() {
                               <div className="flex flex-col">
                                 <span className="text-xs text-[#8c8b5f] dark:text-gray-500 font-medium">Telefone</span>
                                 <span className="text-sm font-semibold text-[#181811] dark:text-white">
-                                  {cliente.customer.phone || 'N/A'}
+                                  {detalhesAssinatura?.customer?.phone || cliente?.customer?.phone || 'N/A'}
                                 </span>
                               </div>
                             </div>
@@ -660,6 +690,25 @@ export default function BuscarCliente() {
                       </div>
                     </div>
                   </div>
+                  ) : (
+                    <div className="flex items-center justify-center py-20">
+                      <div className="flex flex-col items-center gap-4">
+                        <span className="material-symbols-outlined text-4xl text-[#8c8b5f]">error</span>
+                        <p className="text-[#8c8b5f] dark:text-[#a3a272]">
+                          {error || 'Erro ao carregar detalhes da assinatura'}
+                        </p>
+                        <button
+                          onClick={() => {
+                            setMostrarDetalhes(false);
+                            setError('');
+                          }}
+                          className="px-6 h-12 rounded-full bg-primary text-[#181811] font-bold shadow-sm hover:brightness-95 transition-all"
+                        >
+                          Voltar
+                        </button>
+                      </div>
+                    </div>
+                  )
                 )}
               </div>
             )}
