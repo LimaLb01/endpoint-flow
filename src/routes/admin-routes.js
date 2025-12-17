@@ -11,6 +11,7 @@ const { getOrCreateCustomer } = require('../services/customer-service');
 const { createRequestLogger, globalLogger } = require('../utils/logger');
 const { supabaseAdmin, isAdminConfigured } = require('../config/supabase');
 const { requireAuth } = require('../middleware/auth-middleware');
+const { notifyPaymentConfirmed } = require('../services/notification-service');
 
 /**
  * GET /api/admin/customers/:cpf
@@ -104,6 +105,16 @@ router.post('/payments/manual', requireAuth, async (req, res) => {
       status: 'active'
     });
     
+    // Buscar dados do plano para notificação
+    const { data: plan } = await supabaseAdmin
+      .from('plans')
+      .select('*')
+      .eq('id', plan_id)
+      .single();
+    
+    // Enviar notificações
+    await notifyPaymentConfirmed(customer, payment, plan || {});
+    
     logger.info('Pagamento manual registrado', {
       paymentId: payment.id,
       customerId: customer.id,
@@ -183,6 +194,24 @@ router.put('/subscriptions/:id/cancel', requireAuth, async (req, res) => {
       return res.status(404).json({
         error: 'Assinatura não encontrada'
       });
+    }
+    
+    // Buscar dados do cliente e plano para notificação
+    const { data: customer } = await supabaseAdmin
+      .from('customers')
+      .select('*')
+      .eq('id', subscription.customer_id)
+      .single();
+    
+    const { data: plan } = await supabaseAdmin
+      .from('plans')
+      .select('*')
+      .eq('id', subscription.plan_id)
+      .single();
+    
+    // Enviar notificações
+    if (customer && plan) {
+      await notifySubscriptionCanceled(customer, subscription, plan);
     }
     
     logger.info('Assinatura cancelada', {

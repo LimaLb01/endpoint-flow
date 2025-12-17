@@ -7,6 +7,8 @@ const Stripe = require('stripe');
 const { globalLogger } = require('../utils/logger');
 const { createSubscription, updateSubscription, getSubscriptionByStripeId } = require('./subscription-service');
 const { getOrCreateCustomer } = require('./customer-service');
+const { notifyPaymentConfirmed, notifySubscriptionCanceled } = require('./notification-service');
+const { supabaseAdmin } = require('../config/supabase');
 
 // Inicializar Stripe
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
@@ -259,6 +261,24 @@ async function handleSubscriptionDeleted(stripeSubscription) {
       await updateSubscription(subscription.id, {
         status: 'canceled'
       });
+      
+      // Buscar dados do cliente e plano para notificação
+      const { data: customer } = await supabaseAdmin
+        .from('customers')
+        .select('*')
+        .eq('id', subscription.customer_id)
+        .single();
+      
+      const { data: plan } = await supabaseAdmin
+        .from('plans')
+        .select('*')
+        .eq('id', subscription.plan_id)
+        .single();
+      
+      // Enviar notificações
+      if (customer && plan) {
+        await notifySubscriptionCanceled(customer, subscription, plan);
+      }
     }
 
     return { success: true };
