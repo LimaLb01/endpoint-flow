@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>BarberAdmin Dashboard</title>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Theme Config -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f9f506",
+                        "background-light": "#f8f8f5",
+                        "background-dark": "#23220f",
+                        "neutral-dark": "#181811",
+                        "neutral-light": "#f5f5f0",
+                        "accent-green": "#078816",
+                        "accent-red": "#e71708",
+                    },
+                    fontFamily: {
+                        "display": ["Spline Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "1.5rem", "xl": "2rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-neutral-dark dark:text-white font-display antialiased overflow-x-hidden">
+<div class="relative flex min-h-screen w-full flex-col md:flex-row">
+<!-- Side Navigation -->
+<aside class="w-full md:w-64 flex-shrink-0 border-b md:border-b-0 md:border-r border-[#e5e5dc] dark:border-[#3a3928] bg-white dark:bg-[#1a190b] z-20">
+<div class="flex h-full flex-col justify-between p-4 md:p-6 sticky top-0">
+<div class="flex flex-col gap-8">
+<div class="flex flex-col px-2">
+<h1 class="text-neutral-dark dark:text-white text-xl font-bold leading-normal tracking-tight">BarberAdmin</h1>
+<p class="text-[#8c8b5f] dark:text-[#a3a272] text-xs font-normal leading-normal">Management Panel</p>
+</div>
+<nav class="flex flex-col gap-2">
+<a class="flex items-center gap-3 px-4 py-3 rounded-full bg-primary text-neutral-dark shadow-sm" href="#">
+<span class="material-symbols-outlined filled" style="font-variation-settings: 'FILL' 1;">dashboard</span>
+<span class="text-sm font-semibold">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-full hover:bg-neutral-light dark:hover:bg-[#2e2d1a] text-neutral-dark dark:text-[#d1d0c5] transition-colors" href="#">
+<span class="material-symbols-outlined">groups</span>
+<span class="text-sm font-medium">Clients</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-full hover:bg-neutral-light dark:hover:bg-[#2e2d1a] text-neutral-dark dark:text-[#d1d0c5] transition-colors" href="#">
+<span class="material-symbols-outlined">credit_card</span>
+<span class="text-sm font-medium">Subscriptions</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-full hover:bg-neutral-light dark:hover:bg-[#2e2d1a] text-neutral-dark dark:text-[#d1d0c5] transition-colors" href="#">
+<span class="material-symbols-outlined">payments</span>
+<span class="text-sm font-medium">Payments</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-full hover:bg-neutral-light dark:hover:bg-[#2e2d1a] text-neutral-dark dark:text-[#d1d0c5] transition-colors" href="#">
+<span class="material-symbols-outlined">event</span>
+<span class="text-sm font-medium">Bookings</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-full hover:bg-neutral-light dark:hover:bg-[#2e2d1a] text-neutral-dark dark:text-[#d1d0c5] transition-colors" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-sm font-medium">Settings</span>
+</a>
+</nav>
+</div>
+<div class="px-2 pb-2">
+<div class="flex items-center gap-3 p-3 rounded-xl bg-neutral-light dark:bg-[#2e2d1a]">
+<div class="bg-center bg-no-repeat bg-cover rounded-full size-10 flex-shrink-0" data-alt="Admin user profile picture" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBQow72plqKxtt5pG_szu0Zhzta2t3a5o7GAFSvLLP4c3euyyO3X-XXDCqahxbeXFh8RiIT1R33a6Ai_FTfIQqggLizGLybcNjSvNKiiGPEselfWR8kjl9s973z0Svgk0WPphn0BIxDL8lf2ylF-L5eVwjjZXSwmQVBX7wJohM0aNvl6-oXe0_f3qlFq8LKNWUFDEW_OBIouYq4AqE9DVFr-PFNuTmVpsCwaWHvBzFj0uI1HmN9lTNHtevrg9YmG9pmYyl4foOmbXc");'></div>
+<div class="overflow-hidden">
+<p class="text-sm font-bold truncate dark:text-white">Alex Barber</p>
+<p class="text-xs text-[#8c8b5f] dark:text-[#a3a272] truncate">Admin</p>
+</div>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 flex flex-col h-full min-h-screen relative overflow-hidden">
+<!-- Top Header -->
+<header class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#e5e5dc] dark:border-[#3a3928] bg-white/80 dark:bg-[#1a190b]/80 backdrop-blur-sm px-6 py-4 md:px-10 sticky top-0 z-10">
+<div class="flex items-center gap-4">
+<button class="md:hidden p-2 -ml-2 text-neutral-dark dark:text-white">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<h2 class="text-neutral-dark dark:text-white text-xl md:text-2xl font-bold leading-tight tracking-tight">Dashboard Overview</h2>
+</div>
+<div class="flex items-center gap-4 w-full sm:w-auto justify-end">
+<div class="relative hidden sm:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#8c8b5f] text-xl">search</span>
+<input class="h-10 pl-10 pr-4 rounded-full bg-neutral-light dark:bg-[#2e2d1a] border-none text-sm w-64 focus:ring-2 focus:ring-primary placeholder-[#8c8b5f]" placeholder="Search..." type="text"/>
+</div>
+<button class="relative p-2 rounded-full bg-neutral-light dark:bg-[#2e2d1a] text-neutral-dark dark:text-white hover:bg-neutral-light/80 transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-2 right-2 size-2 rounded-full bg-accent-red border border-white dark:border-[#2e2d1a]"></span>
+</button>
+</div>
+</header>
+<div class="p-6 md:p-10 flex flex-col gap-8 max-w-[1400px] mx-auto w-full">
+<!-- Quick Actions -->
+<div class="flex flex-wrap gap-3">
+<button class="flex items-center gap-2 h-12 px-6 bg-primary text-neutral-dark rounded-full font-bold shadow-lg shadow-primary/20 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200">
+<span class="material-symbols-outlined">person_search</span>
+<span>Search Client</span>
+</button>
+<button class="flex items-center gap-2 h-12 px-6 bg-white dark:bg-[#2e2d1a] border border-[#e5e5dc] dark:border-[#3a3928] text-neutral-dark dark:text-white rounded-full font-semibold hover:bg-neutral-light dark:hover:bg-[#3a3928] transition-colors">
+<span class="material-symbols-outlined text-neutral-dark dark:text-white">add_card</span>
+<span>Register Payment</span>
+</button>
+<button class="flex items-center gap-2 h-12 px-6 bg-white dark:bg-[#2e2d1a] border border-[#e5e5dc] dark:border-[#3a3928] text-neutral-dark dark:text-white rounded-full font-semibold hover:bg-neutral-light dark:hover:bg-[#3a3928] transition-colors">
+<span class="material-symbols-outlined text-neutral-dark dark:text-white">visibility</span>
+<span>View Subscriptions</span>
+</button>
+</div>
+<!-- Stats Grid -->
+<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
+<!-- Card 1 -->
+<div class="flex flex-col gap-4 rounded-xl p-6 bg-white dark:bg-[#1a190b] shadow-sm border border-[#f0f0eb] dark:border-[#2e2d1a] hover:border-primary/50 transition-colors group">
+<div class="flex justify-between items-start">
+<div class="p-3 rounded-full bg-neutral-light dark:bg-[#2e2d1a] group-hover:bg-primary/20 transition-colors">
+<span class="material-symbols-outlined text-neutral-dark dark:text-white">groups</span>
+</div>
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-[#e6f6e8] text-accent-green dark:bg-[#0f2e14] dark:text-[#4ade80]">
+                            +12%
+                            <span class="material-symbols-outlined text-xs">trending_up</span>
+</span>
+</div>
+<div>
+<p class="text-[#8c8b5f] dark:text-[#a3a272] text-sm font-medium mb-1">Total Clients</p>
+<p class="text-3xl font-bold text-neutral-dark dark:text-white tracking-tight">1,245</p>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="flex flex-col gap-4 rounded-xl p-6 bg-white dark:bg-[#1a190b] shadow-sm border border-[#f0f0eb] dark:border-[#2e2d1a] hover:border-primary/50 transition-colors group">
+<div class="flex justify-between items-start">
+<div class="p-3 rounded-full bg-neutral-light dark:bg-[#2e2d1a] group-hover:bg-primary/20 transition-colors">
+<span class="material-symbols-outlined text-neutral-dark dark:text-white">loyalty</span>
+</div>
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-[#e6f6e8] text-accent-green dark:bg-[#0f2e14] dark:text-[#4ade80]">
+                            +5%
+                            <span class="material-symbols-outlined text-xs">trending_up</span>
+</span>
+</div>
+<div>
+<p class="text-[#8c8b5f] dark:text-[#a3a272] text-sm font-medium mb-1">Active Subscriptions</p>
+<p class="text-3xl font-bold text-neutral-dark dark:text-white tracking-tight">850</p>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="flex flex-col gap-4 rounded-xl p-6 bg-white dark:bg-[#1a190b] shadow-sm border border-[#f0f0eb] dark:border-[#2e2d1a] hover:border-primary/50 transition-colors group">
+<div class="flex justify-between items-start">
+<div class="p-3 rounded-full bg-neutral-light dark:bg-[#2e2d1a] group-hover:bg-primary/20 transition-colors">
+<span class="material-symbols-outlined text-neutral-dark dark:text-white">running_with_errors</span>
+</div>
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-[#ffebeb] text-accent-red dark:bg-[#3d0f0f] dark:text-[#f87171]">
+                            -2%
+                            <span class="material-symbols-outlined text-xs">trending_down</span>
+</span>
+</div>
+<div>
+<p class="text-[#8c8b5f] dark:text-[#a3a272] text-sm font-medium mb-1">Expired Subscriptions</p>
+<p class="text-3xl font-bold text-neutral-dark dark:text-white tracking-tight">42</p>
+</div>
+</div>
+<!-- Card 4 (Revenue) -->
+<div class="flex flex-col gap-4 rounded-xl p-6 bg-neutral-dark dark:bg-[#f9f506] shadow-sm border border-neutral-dark dark:border-primary hover:shadow-lg transition-all group">
+<div class="flex justify-between items-start">
+<div class="p-3 rounded-full bg-[#3a3928] dark:bg-[#d6d311] group-hover:bg-[#4a4933] dark:group-hover:bg-[#bfbd0f] transition-colors">
+<span class="material-symbols-outlined text-primary dark:text-neutral-dark">attach_money</span>
+</div>
+<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-primary/20 text-primary dark:bg-black/10 dark:text-neutral-dark">
+                            +15%
+                            <span class="material-symbols-outlined text-xs">trending_up</span>
+</span>
+</div>
+<div>
+<p class="text-[#a3a272] dark:text-[#6b6a07] text-sm font-medium mb-1">Monthly Revenue</p>
+<p class="text-3xl font-bold text-white dark:text-neutral-dark tracking-tight">$12,500</p>
+</div>
+</div>
+</div>
+<!-- Content Split -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<!-- Main Activity Feed (Left) -->
+<div class="lg:col-span-2 flex flex-col gap-4">
+<div class="flex items-center justify-between">
+<h3 class="text-lg font-bold text-neutral-dark dark:text-white">Recent Transactions</h3>
+<a class="text-sm font-medium text-[#8c8b5f] dark:text-[#a3a272] hover:text-neutral-dark dark:hover:text-white" href="#">View All</a>
+</div>
+<div class="bg-white dark:bg-[#1a190b] rounded-xl border border-[#f0f0eb] dark:border-[#2e2d1a] overflow-hidden">
+<div class="overflow-x-auto">
+<table class="w-full text-sm text-left">
+<thead class="bg-neutral-light dark:bg-[#2e2d1a] text-xs uppercase text-[#8c8b5f] dark:text-[#a3a272]">
+<tr>
+<th class="px-6 py-4 font-semibold">Client</th>
+<th class="px-6 py-4 font-semibold">Service</th>
+<th class="px-6 py-4 font-semibold">Date</th>
+<th class="px-6 py-4 font-semibold">Status</th>
+<th class="px-6 py-4 font-semibold text-right">Amount</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-[#f0f0eb] dark:divide-[#2e2d1a]">
+<tr class="hover:bg-neutral-light/50 dark:hover:bg-[#2e2d1a]/50 transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-8 rounded-full bg-cover bg-center" data-alt="Portrait of James Carter" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDut8l_Js1Iz1Yf3LWZ8n45Z3pl3r8uZmOKNA9hymA-8cmvC3amG_bSEljI_5SU7wxUZwkWwubS5GRlcq2uygelUXfaBswtnLCj3nefy47a_V3-LhUkxy0PVEHtha-BZDWy_ZjXS1AXoKzJ6QMCVJxO9nWzg5GN3emwefHbrB9v0NXKhktCLM5Xk1epLVVqeCLkeYlB-evluVcPUzXDRJpz8uGBS6q0SdyZfQOnjCyCRXBvESJTZzcwdZXUbjtYtXmpkcVqZ-tfhow");'></div>
+<span class="font-medium text-neutral-dark dark:text-white">James Carter</span>
+</div>
+</td>
+<td class="px-6 py-4 text-[#5e5d40] dark:text-[#d1d0c5]">Haircut &amp; Beard</td>
+<td class="px-6 py-4 text-[#8c8b5f] dark:text-[#a3a272]">Today, 10:30 AM</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-[#e6f6e8] text-accent-green dark:bg-[#0f2e14] dark:text-[#4ade80]">
+<span class="size-1.5 rounded-full bg-current"></span>
+                                                Completed
+                                            </span>
+</td>
+<td class="px-6 py-4 text-right font-bold text-neutral-dark dark:text-white">$45.00</td>
+</tr>
+<tr class="hover:bg-neutral-light/50 dark:hover:bg-[#2e2d1a]/50 transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-8 rounded-full bg-cover bg-center" data-alt="Portrait of Michael Brown" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBt4dAavQmBFZCTLvjRXVCgildE4Pi6BGA2imrCeBt03XI-bnCIivIl01DDfMeuDo0n0L-rUWK6lhZYTr4G72xVN9QvzgV8wxwTKUVN9i9W4CCrfDJoB4ICNGeBalthFjoS6hSh_MPFNuIxb69yWhXlJrQKOvAsOCMr9jUxRoMsQCvMqaG5Eh2oiw1EzH0hGa7KNvyy-lC0-QlsLgkRNMoyJujdgxN686a30Lmd0klcP7ofWe-G50DEzwYl4K149PGM8YdcUX-6Qno");'></div>
+<span class="font-medium text-neutral-dark dark:text-white">Michael Brown</span>
+</div>
+</td>
+<td class="px-6 py-4 text-[#5e5d40] dark:text-[#d1d0c5]">Subscription Renewal</td>
+<td class="px-6 py-4 text-[#8c8b5f] dark:text-[#a3a272]">Yesterday, 4:15 PM</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-[#e6f6e8] text-accent-green dark:bg-[#0f2e14] dark:text-[#4ade80]">
+<span class="size-1.5 rounded-full bg-current"></span>
+                                                Paid
+                                            </span>
+</td>
+<td class="px-6 py-4 text-right font-bold text-neutral-dark dark:text-white">$120.00</td>
+</tr>
+<tr class="hover:bg-neutral-light/50 dark:hover:bg-[#2e2d1a]/50 transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-8 rounded-full bg-cover bg-center" data-alt="Portrait of David Wilson" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBkgZyZDQtlPkERTwDE_l33gyzRwrq4d6SVcXI-yNa8QSA37el5Cc6TMdBOnDB8kFtvDC69weqdHOJHdlm2MP9VJI-_MmxCXUPuXt2bcj1x90HU7RwEI2qFOW5TffWZe0H8EeIticdL7uHOTb8FLrb7XLsRKUgRbJh5IHzw95t_z6RfS-EBETjDZVbs89327cohQZ3W6nduYJ5lqpxr1tu69_5v64Ct7jMNnub1sunYEwlQrpG1vF_SaRl-fJDxhQSIOl-_lxguS2M");'></div>
+<span class="font-medium text-neutral-dark dark:text-white">David Wilson</span>
+</div>
+</td>
+<td class="px-6 py-4 text-[#5e5d40] dark:text-[#d1d0c5]">Hair Product</td>
+<td class="px-6 py-4 text-[#8c8b5f] dark:text-[#a3a272]">Yesterday, 2:00 PM</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-neutral-light text-[#5e5d40] dark:bg-[#2e2d1a] dark:text-[#d1d0c5]">
+<span class="size-1.5 rounded-full bg-current"></span>
+                                                Pending
+                                            </span>
+</td>
+<td class="px-6 py-4 text-right font-bold text-neutral-dark dark:text-white">$25.00</td>
+</tr>
+<tr class="hover:bg-neutral-light/50 dark:hover:bg-[#2e2d1a]/50 transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-8 rounded-full bg-primary flex items-center justify-center text-neutral-dark font-bold text-xs" data-alt="Initials for Sarah Jenkins">SJ</div>
+<span class="font-medium text-neutral-dark dark:text-white">Sarah Jenkins</span>
+</div>
+</td>
+<td class="px-6 py-4 text-[#5e5d40] dark:text-[#d1d0c5]">Gift Card</td>
+<td class="px-6 py-4 text-[#8c8b5f] dark:text-[#a3a272]">Oct 24, 11:00 AM</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-[#e6f6e8] text-accent-green dark:bg-[#0f2e14] dark:text-[#4ade80]">
+<span class="size-1.5 rounded-full bg-current"></span>
+                                                Completed
+                                            </span>
+</td>
+<td class="px-6 py-4 text-right font-bold text-neutral-dark dark:text-white">$50.00</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<!-- Right Column Widgets -->
+<div class="flex flex-col gap-6">
+<!-- Expiring Subs Widget -->
+<div class="bg-white dark:bg-[#1a190b] rounded-xl border border-[#f0f0eb] dark:border-[#2e2d1a] p-6 flex flex-col gap-4">
+<div class="flex items-center justify-between">
+<h3 class="text-lg font-bold text-neutral-dark dark:text-white">Expiring Soon</h3>
+<button class="size-8 rounded-full bg-neutral-light dark:bg-[#2e2d1a] flex items-center justify-center hover:bg-neutral-light/70 transition-colors">
+<span class="material-symbols-outlined text-sm">more_horiz</span>
+</button>
+</div>
+<div class="flex flex-col gap-3">
+<div class="flex items-center justify-between p-3 rounded-xl bg-[#fffcfc] dark:bg-[#2e1d1d] border border-[#ffebeb] dark:border-[#3d0f0f]">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-full bg-cover bg-center" data-alt="Portrait of Emily Chen" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAi-X45IEyiAJ3jnUKncaMMgzSxICr4HTESPirJurUYYu06_kM-Ca6owF8quBaLsGZkr_LcT4SLCkt-r1AUJLXdGSntVShH2ey0SuJiWn3EkguHSuq3pWSi3VizJBPzghORvldAHBhIb4gviWadsmDF78jNlnxtr4p9hQXhc0i48-eWigHLdh4jk2mTL-qc6Afnn2-JSy6k-9Q9FYVT0b66Mrpj4QG8icD41nquZwMZrw1Z_HPDuGnBVZLKhqop6BGtu9lS3cSKQMU");'></div>
+<div>
+<p class="text-sm font-bold text-neutral-dark dark:text-white">Emily Chen</p>
+<p class="text-xs text-accent-red font-medium">Expires in 2 days</p>
+</div>
+</div>
+<button class="text-xs font-bold px-3 py-1.5 bg-white dark:bg-[#1a190b] border border-neutral-light dark:border-[#3a3928] rounded-full hover:border-primary transition-colors">Renew</button>
+</div>
+<div class="flex items-center justify-between p-3 rounded-xl bg-[#fffcfc] dark:bg-[#2e1d1d] border border-[#ffebeb] dark:border-[#3d0f0f]">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-full bg-cover bg-center" data-alt="Portrait of Marcus Johnson" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDE1v6hWsIux2Q-dFPvW62SQqjQ1NerQZKUge7TqZr0srFRJYkB1fw_FE7qpDPMCF4Gb1KERf3EhxGfobDfmYYY5agwTaRtT0FxQAq5-z7lPHA4F-DZgiyuClQ5BTt1GnHqCUazuTTlpEwuoQKLzyA6S_GBm6_zGKMhcUcohyly6IFri3lH7Vrxe2j8eArY1zgsnJz44YRL9R_MfghGya61kFkUT0HHqvaferKzB0LR5lllZrREcx0VLAa4dNsWsjz7TRPTm3UK7F0");'></div>
+<div>
+<p class="text-sm font-bold text-neutral-dark dark:text-white">Marcus Johnson</p>
+<p class="text-xs text-accent-red font-medium">Expires in 5 days</p>
+</div>
+</div>
+<button class="text-xs font-bold px-3 py-1.5 bg-white dark:bg-[#1a190b] border border-neutral-light dark:border-[#3a3928] rounded-full hover:border-primary transition-colors">Renew</button>
+</div>
+<div class="flex items-center justify-between p-3 rounded-xl bg-neutral-light dark:bg-[#2e2d1a]">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-full bg-cover bg-center" data-alt="Portrait of Lucas Gray" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDynEqkMvTRoZFbiff0ARorT4C3I6YWCATVjrYFsRaVblzw8yvg9QaUW_9zt1LI5vrFkAHxw6jb3IB0ZUc_YWmTf1rQ-yaKDA_RO9DrIyQOnMjAUjL6PGn9hYQp4fFaa6s_iPB5HUKNG66hQ7BiS3YtinQ6aja5LRZ8iwazjU4xg4tsCNnByUS2PKPHCyT84ZwfHaCKVdZqkRW4xNeUes7xspTeETskq4bfhAeMdjNQYIW6jAkiGCxHYAqh-8NtdhCkp7vygYFNod0");'></div>
+<div>
+<p class="text-sm font-bold text-neutral-dark dark:text-white">Lucas Gray</p>
+<p class="text-xs text-[#8c8b5f] dark:text-[#a3a272]">Expires in 12 days</p>
+</div>
+</div>
+<button class="text-xs font-bold px-3 py-1.5 bg-white dark:bg-[#1a190b] border border-neutral-light dark:border-[#3a3928] rounded-full hover:border-primary transition-colors">Renew</button>
+</div>
+</div>
+</div>
+<!-- Marketing Promo / Upsell Spot -->
+<div class="bg-primary rounded-xl p-6 relative overflow-hidden flex flex-col justify-between min-h-[160px]">
+<div class="absolute -right-10 -bottom-10 size-40 rounded-full bg-white/20 blur-2xl"></div>
+<div class="absolute -left-10 -top-10 size-32 rounded-full bg-white/10 blur-xl"></div>
+<div class="relative z-10">
+<h3 class="text-xl font-black text-neutral-dark mb-2">Boost Revenue</h3>
+<p class="text-sm text-neutral-dark/80 font-medium leading-relaxed">Send promotional SMS to inactive clients this weekend.</p>
+</div>
+<button class="relative z-10 w-fit mt-4 bg-neutral-dark text-white text-xs font-bold px-4 py-2.5 rounded-full hover:bg-black transition-colors">
+                            Create Campaign
+                        </button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+
+<html class="light" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Detalhes da Assinatura - Barber Admin</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f9f506",
+                        "background-light": "#f8f8f5",
+                        "background-dark": "#23220f",
+                        "text-main": "#181811",
+                        "text-secondary": "#8c8b5f",
+                    },
+                    fontFamily: {
+                        "display": ["Spline Sans", "sans-serif"]
+                    },
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-text-main dark:text-white overflow-x-hidden">
+<div class="relative flex min-h-screen w-full flex-row">
+<!-- Sidebar -->
+<aside class="hidden lg:flex w-72 flex-col border-r border-[#e6e6db] dark:border-[#3a392a] bg-white dark:bg-[#1a190b] fixed h-full z-10">
+<div class="flex flex-col h-full p-6 justify-between">
+<div class="flex flex-col gap-8">
+<!-- Brand -->
+<div class="flex gap-4 items-center">
+<div class="bg-center bg-no-repeat bg-cover rounded-full size-12 shadow-sm" data-alt="Barbershop logo abstract design" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDPszMytUkIuEMBPXukYrcPlAspN-qVrv3gc64MrbcvPxNJ-8_A6U20t_2pE_h8gYM9UN8rMUcY1G_Ij75etDp-ReIaonogdmnzAIvTEzJNxwPW04glCyUPCYTDjl3oeA1PF10eY8sgFgrWeSN_N2Gd9gizwHwuHZsHxzPK7UvFMMWWNM8joeWTdnONwtSgL7j1_nKHeHxqy6aACybYu9c810qZGOQxSI-MStGDT5-2hiEeevLmg-ZIxQgmeuojbwC2exULfE-GKUM");'></div>
+<div class="flex flex-col">
+<h1 class="text-text-main dark:text-white text-lg font-bold leading-tight">Barber Admin</h1>
+<p class="text-text-secondary dark:text-gray-400 text-sm font-medium">Painel de Controle</p>
+</div>
+</div>
+<!-- Navigation -->
+<nav class="flex flex-col gap-2">
+<a class="flex items-center gap-3 px-4 py-3 rounded-full hover:bg-gray-100 dark:hover:bg-white/5 transition-colors group" href="#">
+<span class="material-symbols-outlined text-text-secondary dark:text-gray-400 group-hover:text-text-main dark:group-hover:text-white">dashboard</span>
+<p class="text-text-secondary dark:text-gray-400 group-hover:text-text-main dark:group-hover:text-white text-sm font-medium">Dashboard</p>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-full hover:bg-gray-100 dark:hover:bg-white/5 transition-colors group" href="#">
+<span class="material-symbols-outlined text-text-secondary dark:text-gray-400 group-hover:text-text-main dark:group-hover:text-white">group</span>
+<p class="text-text-secondary dark:text-gray-400 group-hover:text-text-main dark:group-hover:text-white text-sm font-medium">Clientes</p>
+</a>
+<!-- Active State -->
+<a class="flex items-center gap-3 px-4 py-3 rounded-full bg-primary/20 dark:bg-primary/10" href="#">
+<span class="material-symbols-outlined text-text-main dark:text-primary fill-1">calendar_month</span>
+<p class="text-text-main dark:text-primary text-sm font-bold">Assinaturas</p>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-full hover:bg-gray-100 dark:hover:bg-white/5 transition-colors group" href="#">
+<span class="material-symbols-outlined text-text-secondary dark:text-gray-400 group-hover:text-text-main dark:group-hover:text-white">payments</span>
+<p class="text-text-secondary dark:text-gray-400 group-hover:text-text-main dark:group-hover:text-white text-sm font-medium">Financeiro</p>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-full hover:bg-gray-100 dark:hover:bg-white/5 transition-colors group" href="#">
+<span class="material-symbols-outlined text-text-secondary dark:text-gray-400 group-hover:text-text-main dark:group-hover:text-white">settings</span>
+<p class="text-text-secondary dark:text-gray-400 group-hover:text-text-main dark:group-hover:text-white text-sm font-medium">Configurações</p>
+</a>
+</nav>
+</div>
+<!-- Footer Profile -->
+<div class="flex items-center gap-3 px-2">
+<div class="size-10 rounded-full bg-gray-200 dark:bg-white/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-text-secondary dark:text-gray-300">person</span>
+</div>
+<div class="flex flex-col">
+<p class="text-text-main dark:text-white text-sm font-semibold">Admin User</p>
+<p class="text-text-secondary dark:text-gray-400 text-xs">Sair</p>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 lg:ml-72 flex flex-col min-h-screen">
+<!-- Header -->
+<header class="w-full px-6 py-4 lg:px-10 lg:py-6 border-b border-[#e6e6db] dark:border-[#3a392a] bg-white dark:bg-[#1a190b] sticky top-0 z-20">
+<div class="flex items-center justify-between max-w-[1200px] mx-auto w-full">
+<div class="flex items-center gap-4">
+<button class="lg:hidden p-2 -ml-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/5">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<div class="flex flex-col">
+<div class="flex items-center gap-2 text-text-secondary dark:text-gray-400 text-sm mb-1">
+<a class="hover:underline" href="#">Assinaturas</a>
+<span class="material-symbols-outlined text-[12px]">chevron_right</span>
+<span>Detalhes</span>
+</div>
+<h2 class="text-xl lg:text-2xl font-bold text-text-main dark:text-white">Detalhes da Assinatura #1023</h2>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<button class="hidden sm:flex items-center justify-center h-10 px-6 rounded-full border border-[#e6e6db] dark:border-gray-700 bg-white dark:bg-white/5 text-text-main dark:text-white text-sm font-medium hover:bg-gray-50 dark:hover:bg-white/10 transition-colors">
+                            Voltar
+                        </button>
+<button class="flex items-center justify-center size-10 sm:h-10 sm:w-auto sm:px-4 rounded-full bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors">
+<span class="material-symbols-outlined sm:mr-2">cancel</span>
+<span class="hidden sm:inline text-sm font-medium">Cancelar Assinatura</span>
+</button>
+</div>
+</div>
+</header>
+<!-- Scrollable Content -->
+<div class="flex-1 p-6 lg:p-10 overflow-y-auto">
+<div class="max-w-[1200px] mx-auto flex flex-col gap-8 w-full">
+<!-- Alert / Status Banner -->
+<div class="w-full rounded-2xl bg-primary/10 border border-primary/20 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-full bg-primary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-black">check_circle</span>
+</div>
+<div>
+<h3 class="font-bold text-text-main dark:text-white text-base">Assinatura Ativa</h3>
+<p class="text-text-secondary dark:text-gray-300 text-sm">Próxima renovação em 15 de Novembro de 2023</p>
+</div>
+</div>
+<button class="text-sm font-semibold text-text-main underline decoration-primary decoration-2 underline-offset-2 hover:opacity-80">
+                            Gerenciar Pagamento
+                        </button>
+</div>
+<!-- Main Grid -->
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+<!-- Left Column: Client & Plan Details -->
+<div class="xl:col-span-1 flex flex-col gap-8">
+<!-- Client Card -->
+<div class="bg-white dark:bg-[#1a190b] rounded-3xl p-6 shadow-sm border border-[#e6e6db] dark:border-[#3a392a]">
+<div class="flex items-start justify-between mb-6">
+<h3 class="text-lg font-bold text-text-main dark:text-white">Cliente</h3>
+<button class="text-text-secondary dark:text-gray-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">edit</span>
+</button>
+</div>
+<div class="flex flex-col items-center text-center mb-6">
+<div class="size-24 rounded-full bg-cover bg-center mb-4 border-4 border-[#f8f8f5] dark:border-[#23220f]" data-alt="Portrait of client Joao Silva" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAKDOafOSi6zoHG9g-pFIVc6gWH0Ta9zxq4bQCc2MC_YurVJHSKK5pGs3tE89uQxw3r6cS3tq7skQ79_8eTxY1mTylwHZ5xMU6LAP_AvGUXoF9GzDDrkhhz2eDNyl34523Y2NxfSCqsB3OrLqab8M0VvsGCctVmgnVYsbx7LvERDGR1pWyK_zJvOU-A4qLo7s8erP2j8zjwzngMmBzEwGNvbChOKkkmuAwb7CHzwluFifEdixm5JjTp7vhaOyLD1qgJuMW8uxILDOw");'></div>
+<h4 class="text-xl font-bold text-text-main dark:text-white">João Silva</h4>
+<p class="text-text-secondary dark:text-gray-400 text-sm mt-1">Membro desde Out 2023</p>
+</div>
+<div class="space-y-4">
+<div class="flex items-center gap-3 p-3 rounded-xl bg-[#f8f8f5] dark:bg-[#23220f]">
+<span class="material-symbols-outlined text-text-secondary dark:text-gray-500">mail</span>
+<div class="flex flex-col overflow-hidden">
+<span class="text-xs text-text-secondary dark:text-gray-500 font-medium">Email</span>
+<span class="text-sm font-semibold text-text-main dark:text-white truncate">joao.silva@email.com</span>
+</div>
+</div>
+<div class="flex items-center gap-3 p-3 rounded-xl bg-[#f8f8f5] dark:bg-[#23220f]">
+<span class="material-symbols-outlined text-text-secondary dark:text-gray-500">call</span>
+<div class="flex flex-col">
+<span class="text-xs text-text-secondary dark:text-gray-500 font-medium">Telefone</span>
+<span class="text-sm font-semibold text-text-main dark:text-white">(11) 99999-9999</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Current Plan Details -->
+<div class="bg-white dark:bg-[#1a190b] rounded-3xl p-6 shadow-sm border border-[#e6e6db] dark:border-[#3a392a]">
+<h3 class="text-lg font-bold text-text-main dark:text-white mb-6">Plano Atual</h3>
+<div class="flex flex-col gap-6">
+<div>
+<p class="text-sm text-text-secondary dark:text-gray-400 mb-1">Nome do Plano</p>
+<p class="text-base font-bold text-text-main dark:text-white">Corte + Barba (VIP)</p>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div>
+<p class="text-sm text-text-secondary dark:text-gray-400 mb-1">Valor</p>
+<p class="text-base font-bold text-text-main dark:text-white">R$ 120,00<span class="text-xs font-normal text-text-secondary dark:text-gray-500 ml-1">/mês</span></p>
+</div>
+<div>
+<p class="text-sm text-text-secondary dark:text-gray-400 mb-1">Ciclo</p>
+<p class="text-base font-bold text-text-main dark:text-white">Mensal</p>
+</div>
+</div>
+<div class="pt-4 border-t border-[#e6e6db] dark:border-[#3a392a]">
+<div class="flex justify-between items-center">
+<p class="text-sm font-medium text-text-main dark:text-white">Método de Pagamento</p>
+<span class="text-xs font-bold bg-gray-100 dark:bg-white/10 px-2 py-1 rounded-md text-text-secondary dark:text-gray-300">MASTERCARD •••• 4242</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column: History -->
+<div class="xl:col-span-2 flex flex-col h-full">
+<div class="bg-white dark:bg-[#1a190b] rounded-3xl p-6 shadow-sm border border-[#e6e6db] dark:border-[#3a392a] flex-1">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+<h3 class="text-lg font-bold text-text-main dark:text-white">Histórico de Pagamentos</h3>
+<div class="flex gap-2">
+<button class="px-4 py-2 rounded-full bg-[#f8f8f5] dark:bg-[#23220f] text-xs font-bold text-text-secondary dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/10 transition-colors">Exportar PDF</button>
+<button class="px-4 py-2 rounded-full bg-[#f8f8f5] dark:bg-[#23220f] text-xs font-bold text-text-secondary dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/10 transition-colors">Filtrar</button>
+</div>
+</div>
+<div class="w-full overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="border-b border-[#e6e6db] dark:border-[#3a392a]">
+<th class="py-4 pl-4 pr-3 text-xs font-bold uppercase tracking-wider text-text-secondary dark:text-gray-500">Status</th>
+<th class="py-4 px-3 text-xs font-bold uppercase tracking-wider text-text-secondary dark:text-gray-500">Data</th>
+<th class="py-4 px-3 text-xs font-bold uppercase tracking-wider text-text-secondary dark:text-gray-500">Descrição</th>
+<th class="py-4 px-3 text-xs font-bold uppercase tracking-wider text-text-secondary dark:text-gray-500">Método</th>
+<th class="py-4 pl-3 pr-4 text-xs font-bold uppercase tracking-wider text-text-secondary dark:text-gray-500 text-right">Valor</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-[#e6e6db] dark:divide-[#3a392a]">
+<!-- Row 1 -->
+<tr class="group hover:bg-[#f8f8f5] dark:hover:bg-[#23220f] transition-colors">
+<td class="py-4 pl-4 pr-3 whitespace-nowrap">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+<span class="size-1.5 rounded-full bg-green-600 dark:bg-green-400"></span>
+                                                        Pago
+                                                    </span>
+</td>
+<td class="py-4 px-3 text-sm font-medium text-text-main dark:text-white whitespace-nowrap">15 Out, 2023</td>
+<td class="py-4 px-3 text-sm text-text-secondary dark:text-gray-400">Renovação Mensal - Outubro</td>
+<td class="py-4 px-3 text-sm text-text-secondary dark:text-gray-400">Cartão de Crédito</td>
+<td class="py-4 pl-3 pr-4 text-sm font-bold text-text-main dark:text-white text-right">R$ 120,00</td>
+</tr>
+<!-- Row 2 -->
+<tr class="group hover:bg-[#f8f8f5] dark:hover:bg-[#23220f] transition-colors">
+<td class="py-4 pl-4 pr-3 whitespace-nowrap">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+<span class="size-1.5 rounded-full bg-green-600 dark:bg-green-400"></span>
+                                                        Pago
+                                                    </span>
+</td>
+<td class="py-4 px-3 text-sm font-medium text-text-main dark:text-white whitespace-nowrap">15 Set, 2023</td>
+<td class="py-4 px-3 text-sm text-text-secondary dark:text-gray-400">Renovação Mensal - Setembro</td>
+<td class="py-4 px-3 text-sm text-text-secondary dark:text-gray-400">Cartão de Crédito</td>
+<td class="py-4 pl-3 pr-4 text-sm font-bold text-text-main dark:text-white text-right">R$ 120,00</td>
+</tr>
+<!-- Row 3 -->
+<tr class="group hover:bg-[#f8f8f5] dark:hover:bg-[#23220f] transition-colors">
+<td class="py-4 pl-4 pr-3 whitespace-nowrap">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+<span class="size-1.5 rounded-full bg-green-600 dark:bg-green-400"></span>
+                                                        Pago
+                                                    </span>
+</td>
+<td class="py-4 px-3 text-sm font-medium text-text-main dark:text-white whitespace-nowrap">15 Ago, 2023</td>
+<td class="py-4 px-3 text-sm text-text-secondary dark:text-gray-400">Renovação Mensal - Agosto</td>
+<td class="py-4 px-3 text-sm text-text-secondary dark:text-gray-400">Cartão de Crédito</td>
+<td class="py-4 pl-3 pr-4 text-sm font-bold text-text-main dark:text-white text-right">R$ 120,00</td>
+</tr>
+<!-- Row 4 (Example of issue/pending) -->
+<tr class="group hover:bg-[#f8f8f5] dark:hover:bg-[#23220f] transition-colors">
+<td class="py-4 pl-4 pr-3 whitespace-nowrap">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400">
+<span class="size-1.5 rounded-full bg-yellow-600 dark:bg-yellow-400"></span>
+                                                        Pendente
+                                                    </span>
+</td>
+<td class="py-4 px-3 text-sm font-medium text-text-main dark:text-white whitespace-nowrap">15 Jul, 2023</td>
+<td class="py-4 px-3 text-sm text-text-secondary dark:text-gray-400">Renovação Mensal - Julho</td>
+<td class="py-4 px-3 text-sm text-text-secondary dark:text-gray-400">PIX</td>
+<td class="py-4 pl-3 pr-4 text-sm font-bold text-text-main dark:text-white text-right">R$ 120,00</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="mt-6 flex justify-center">
+<button class="text-sm font-semibold text-text-main dark:text-white flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-white/5 px-4 py-2 rounded-full transition-colors">
+                                        Carregar mais histórico
+                                        <span class="material-symbols-outlined text-lg">expand_more</span>
+</button>
+</div>
+</div>
+<!-- Notes Section (Optional but good for details) -->
+<div class="mt-8 bg-white dark:bg-[#1a190b] rounded-3xl p-6 shadow-sm border border-[#e6e6db] dark:border-[#3a392a]">
+<h3 class="text-lg font-bold text-text-main dark:text-white mb-4">Notas Internas</h3>
+<div class="flex gap-4">
+<textarea class="w-full bg-[#f8f8f5] dark:bg-[#23220f] border-none rounded-xl p-4 text-sm text-text-main dark:text-white placeholder-text-secondary dark:placeholder-gray-500 focus:ring-2 focus:ring-primary h-24 resize-none" placeholder="Adicione notas sobre este cliente ou assinatura..."></textarea>
+<button class="self-end bg-primary text-black font-bold h-10 px-6 rounded-full text-sm hover:opacity-90 transition-opacity">Salvar</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

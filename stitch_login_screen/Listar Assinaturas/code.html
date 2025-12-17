@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>BarberAdmin - Listar Assinaturas</title>
+<link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f9f506",
+                        "background-light": "#f8f8f5",
+                        "background-dark": "#23220f",
+                        "neutral-dark": "#181811",
+                        "neutral-light": "#f5f5f0",
+                        "accent-green": "#078816",
+                        "accent-red": "#e71708",
+                        "accent-gray": "#8c8b5f",
+                    },
+                    fontFamily: {
+                        "display": ["Spline Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "1.5rem", "xl": "2rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-neutral-dark dark:text-white font-display antialiased overflow-x-hidden">
+<div class="relative flex min-h-screen w-full flex-col md:flex-row">
+<aside class="w-full md:w-64 flex-shrink-0 border-b md:border-b-0 md:border-r border-[#e5e5dc] dark:border-[#3a3928] bg-white dark:bg-[#1a190b] z-20">
+<div class="flex h-full flex-col justify-between p-4 md:p-6 sticky top-0">
+<div class="flex flex-col gap-8">
+<div class="flex flex-col px-2">
+<h1 class="text-neutral-dark dark:text-white text-xl font-bold leading-normal tracking-tight">BarberAdmin</h1>
+<p class="text-[#8c8b5f] dark:text-[#a3a272] text-xs font-normal leading-normal">Management Panel</p>
+</div>
+<nav class="flex flex-col gap-2">
+<a class="flex items-center gap-3 px-4 py-3 rounded-full hover:bg-neutral-light dark:hover:bg-[#2e2d1a] text-neutral-dark dark:text-[#d1d0c5] transition-colors" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-sm font-medium">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-full hover:bg-neutral-light dark:hover:bg-[#2e2d1a] text-neutral-dark dark:text-[#d1d0c5] transition-colors" href="#">
+<span class="material-symbols-outlined">groups</span>
+<span class="text-sm font-medium">Clients</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-full bg-primary text-neutral-dark shadow-sm" href="#">
+<span class="material-symbols-outlined filled" style="font-variation-settings: 'FILL' 1;">credit_card</span>
+<span class="text-sm font-semibold">Subscriptions</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-full hover:bg-neutral-light dark:hover:bg-[#2e2d1a] text-neutral-dark dark:text-[#d1d0c5] transition-colors" href="#">
+<span class="material-symbols-outlined">payments</span>
+<span class="text-sm font-medium">Payments</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-full hover:bg-neutral-light dark:hover:bg-[#2e2d1a] text-neutral-dark dark:text-[#d1d0c5] transition-colors" href="#">
+<span class="material-symbols-outlined">event</span>
+<span class="text-sm font-medium">Bookings</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-full hover:bg-neutral-light dark:hover:bg-[#2e2d1a] text-neutral-dark dark:text-[#d1d0c5] transition-colors" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-sm font-medium">Settings</span>
+</a>
+</nav>
+</div>
+<div class="px-2 pb-2">
+<div class="flex items-center gap-3 p-3 rounded-xl bg-neutral-light dark:bg-[#2e2d1a]">
+<div class="bg-center bg-no-repeat bg-cover rounded-full size-10 flex-shrink-0" data-alt="Admin user profile picture" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBQow72plqKxtt5pG_szu0Zhzta2t3a5o7GAFSvLLP4c3euyyO3X-XXDCqahxbeXFh8RiIT1R33a6Ai_FTfIQqggLizGLybcNjSvNKiiGPEselfWR8kjl9s973z0Svgk0WPphn0BIxDL8lf2ylF-L5eVwjjZXSwmQVBX7wJohM0aNvl6-oXe0_f3qlFq8LKNWUFDEW_OBIouYq4AqE9DVFr-PFNuTmVpsCwaWHvBzFj0uI1HmN9lTNHtevrg9YmG9pmYyl4foOmbXc");'></div>
+<div class="overflow-hidden">
+<p class="text-sm font-bold truncate dark:text-white">Alex Barber</p>
+<p class="text-xs text-[#8c8b5f] dark:text-[#a3a272] truncate">Admin</p>
+</div>
+</div>
+</div>
+</div>
+</aside>
+<main class="flex-1 flex flex-col h-full min-h-screen relative overflow-hidden">
+<header class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#e5e5dc] dark:border-[#3a3928] bg-white/80 dark:bg-[#1a190b]/80 backdrop-blur-sm px-6 py-4 md:px-10 sticky top-0 z-10">
+<div class="flex items-center gap-4">
+<button class="md:hidden p-2 -ml-2 text-neutral-dark dark:text-white">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<h2 class="text-neutral-dark dark:text-white text-xl md:text-2xl font-bold leading-tight tracking-tight">Listar Assinaturas</h2>
+</div>
+<div class="flex items-center gap-4 w-full sm:w-auto justify-end">
+<div class="relative hidden sm:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#8c8b5f] text-xl">search</span>
+<input class="h-10 pl-10 pr-4 rounded-full bg-neutral-light dark:bg-[#2e2d1a] border-none text-sm w-64 focus:ring-2 focus:ring-primary placeholder-[#8c8b5f]" placeholder="Search..." type="text"/>
+</div>
+<button class="relative p-2 rounded-full bg-neutral-light dark:bg-[#2e2d1a] text-neutral-dark dark:text-white hover:bg-neutral-light/80 transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-2 right-2 size-2 rounded-full bg-accent-red border border-white dark:border-[#2e2d1a]"></span>
+</button>
+</div>
+</header>
+<div class="p-6 md:p-10 flex flex-col gap-6 max-w-[1400px] mx-auto w-full">
+<div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+<div class="flex flex-wrap items-center gap-2">
+<span class="text-sm font-semibold text-neutral-dark dark:text-white mr-2">Filter by Status:</span>
+<button class="px-4 py-2 rounded-full text-xs font-bold bg-neutral-dark text-white dark:bg-white dark:text-neutral-dark transition-colors">
+                            All
+                        </button>
+<button class="px-4 py-2 rounded-full text-xs font-bold bg-white dark:bg-[#2e2d1a] text-neutral-dark dark:text-[#d1d0c5] border border-[#e5e5dc] dark:border-[#3a3928] hover:border-primary hover:text-primary transition-colors">
+                            Active
+                        </button>
+<button class="px-4 py-2 rounded-full text-xs font-bold bg-white dark:bg-[#2e2d1a] text-neutral-dark dark:text-[#d1d0c5] border border-[#e5e5dc] dark:border-[#3a3928] hover:border-primary hover:text-primary transition-colors">
+                            Canceled
+                        </button>
+<button class="px-4 py-2 rounded-full text-xs font-bold bg-white dark:bg-[#2e2d1a] text-neutral-dark dark:text-[#d1d0c5] border border-[#e5e5dc] dark:border-[#3a3928] hover:border-primary hover:text-primary transition-colors">
+                            Expired
+                        </button>
+</div>
+<div class="flex items-center gap-3 w-full lg:w-auto">
+<div class="relative w-full lg:w-64">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#8c8b5f] text-lg">filter_list</span>
+<select class="h-10 pl-10 pr-8 w-full rounded-full bg-white dark:bg-[#2e2d1a] border border-[#e5e5dc] dark:border-[#3a3928] text-sm text-neutral-dark dark:text-white focus:ring-2 focus:ring-primary appearance-none cursor-pointer">
+<option>Sort by Date (Newest)</option>
+<option>Sort by Date (Oldest)</option>
+<option>Sort by Name</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-[#8c8b5f] text-lg pointer-events-none">arrow_drop_down</span>
+</div>
+<button class="flex items-center justify-center gap-2 h-10 px-4 bg-primary text-neutral-dark rounded-full font-bold shadow-md hover:shadow-lg transition-all">
+<span class="material-symbols-outlined text-lg">add</span>
+<span class="hidden sm:inline">New Subscription</span>
+</button>
+</div>
+</div>
+<div class="bg-white dark:bg-[#1a190b] rounded-xl border border-[#f0f0eb] dark:border-[#2e2d1a] overflow-hidden shadow-sm">
+<div class="overflow-x-auto">
+<table class="w-full text-sm text-left">
+<thead class="bg-neutral-light dark:bg-[#2e2d1a] text-xs uppercase text-[#8c8b5f] dark:text-[#a3a272]">
+<tr>
+<th class="px-6 py-4 font-semibold whitespace-nowrap">Cliente (Nome + CPF)</th>
+<th class="px-6 py-4 font-semibold whitespace-nowrap">Plano</th>
+<th class="px-6 py-4 font-semibold whitespace-nowrap">Status</th>
+<th class="px-6 py-4 font-semibold whitespace-nowrap">Data de Início</th>
+<th class="px-6 py-4 font-semibold whitespace-nowrap">Data de Vencimento</th>
+<th class="px-6 py-4 font-semibold whitespace-nowrap text-right">Ações</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-[#f0f0eb] dark:divide-[#2e2d1a]">
+<tr class="group hover:bg-neutral-light/30 dark:hover:bg-[#2e2d1a]/30 odd:bg-white even:bg-[#fafaf9] dark:odd:bg-[#1a190b] dark:even:bg-[#1f1e14] transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-full bg-cover bg-center shrink-0" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDut8l_Js1Iz1Yf3LWZ8n45Z3pl3r8uZmOKNA9hymA-8cmvC3amG_bSEljI_5SU7wxUZwkWwubS5GRlcq2uygelUXfaBswtnLCj3nefy47a_V3-LhUkxy0PVEHtha-BZDWy_ZjXS1AXoKzJ6QMCVJxO9nWzg5GN3emwefHbrB9v0NXKhktCLM5Xk1epLVVqeCLkeYlB-evluVcPUzXDRJpz8uGBS6q0SdyZfQOnjCyCRXBvESJTZzcwdZXUbjtYtXmpkcVqZ-tfhow");'></div>
+<div class="flex flex-col">
+<span class="font-bold text-neutral-dark dark:text-white">James Carter</span>
+<span class="text-xs text-[#8c8b5f] dark:text-[#a3a272] font-mono">123.456.789-00</span>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="font-medium text-neutral-dark dark:text-white">VIP Mensal</span>
+<span class="block text-xs text-[#8c8b5f]">Hair &amp; Beard</span>
+</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-[#e6f6e8] text-accent-green dark:bg-[#0f2e14] dark:text-[#4ade80]">
+<span class="size-1.5 rounded-full bg-current"></span>
+                                            Ativo
+                                        </span>
+</td>
+<td class="px-6 py-4 text-[#5e5d40] dark:text-[#d1d0c5]">01/10/2023</td>
+<td class="px-6 py-4 text-[#5e5d40] dark:text-[#d1d0c5]">01/11/2023</td>
+<td class="px-6 py-4 text-right">
+<div class="flex items-center justify-end gap-2">
+<button class="p-2 rounded-full hover:bg-neutral-light dark:hover:bg-[#2e2d1a] text-[#8c8b5f] dark:text-[#a3a272] transition-colors" title="View Details">
+<span class="material-symbols-outlined text-lg">visibility</span>
+</button>
+<button class="p-2 rounded-full hover:bg-[#ffebeb] dark:hover:bg-[#3d0f0f] text-accent-red transition-colors" title="Cancel Subscription">
+<span class="material-symbols-outlined text-lg">cancel</span>
+</button>
+</div>
+</td>
+</tr>
+<tr class="group hover:bg-neutral-light/30 dark:hover:bg-[#2e2d1a]/30 odd:bg-white even:bg-[#fafaf9] dark:odd:bg-[#1a190b] dark:even:bg-[#1f1e14] transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-full bg-cover bg-center shrink-0" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAi-X45IEyiAJ3jnUKncaMMgzSxICr4HTESPirJurUYYu06_kM-Ca6owF8quBaLsGZkr_LcT4SLCkt-r1AUJLXdGSntVShH2ey0SuJiWn3EkguHSuq3pWSi3VizJBPzghORvldAHBhIb4gviWadsmDF78jNlnxtr4p9hQXhc0i48-eWigHLdh4jk2mTL-qc6Afnn2-JSy6k-9Q9FYVT0b66Mrpj4QG8icD41nquZwMZrw1Z_HPDuGnBVZLKhqop6BGtu9lS3cSKQMU");'></div>
+<div class="flex flex-col">
+<span class="font-bold text-neutral-dark dark:text-white">Emily Chen</span>
+<span class="text-xs text-[#8c8b5f] dark:text-[#a3a272] font-mono">987.654.321-11</span>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="font-medium text-neutral-dark dark:text-white">Básico</span>
+<span class="block text-xs text-[#8c8b5f]">Haircut Only</span>
+</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-[#ffebeb] text-accent-red dark:bg-[#3d0f0f] dark:text-[#f87171]">
+<span class="size-1.5 rounded-full bg-current"></span>
+                                            Expirado
+                                        </span>
+</td>
+<td class="px-6 py-4 text-[#5e5d40] dark:text-[#d1d0c5]">15/09/2023</td>
+<td class="px-6 py-4 text-[#5e5d40] dark:text-[#d1d0c5]">15/10/2023</td>
+<td class="px-6 py-4 text-right">
+<div class="flex items-center justify-end gap-2">
+<button class="p-2 rounded-full hover:bg-neutral-light dark:hover:bg-[#2e2d1a] text-[#8c8b5f] dark:text-[#a3a272] transition-colors" title="View Details">
+<span class="material-symbols-outlined text-lg">visibility</span>
+</button>
+<button class="p-2 rounded-full hover:bg-[#ffebeb] dark:hover:bg-[#3d0f0f] text-accent-red transition-colors" title="Cancel Subscription">
+<span class="material-symbols-outlined text-lg">cancel</span>
+</button>
+</div>
+</td>
+</tr>
+<tr class="group hover:bg-neutral-light/30 dark:hover:bg-[#2e2d1a]/30 odd:bg-white even:bg-[#fafaf9] dark:odd:bg-[#1a190b] dark:even:bg-[#1f1e14] transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-full bg-cover bg-center shrink-0" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDE1v6hWsIux2Q-dFPvW62SQqjQ1NerQZKUge7TqZr0srFRJYkB1fw_FE7qpDPMCF4Gb1KERf3EhxGfobDfmYYY5agwTaRtT0FxQAq5-z7lPHA4F-DZgiyuClQ5BTt1GnHqCUazuTTlpEwuoQKLzyA6S_GBm6_zGKMhcUcohyly6IFri3lH7Vrxe2j8eArY1zgsnJz44YRL9R_MfghGya61kFkUT0HHqvaferKzB0LR5lllZrREcx0VLAa4dNsWsjz7TRPTm3UK7F0");'></div>
+<div class="flex flex-col">
+<span class="font-bold text-neutral-dark dark:text-white">Marcus Johnson</span>
+<span class="text-xs text-[#8c8b5f] dark:text-[#a3a272] font-mono">456.789.123-22</span>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="font-medium text-neutral-dark dark:text-white">Premium Anual</span>
+<span class="block text-xs text-[#8c8b5f]">Full Service</span>
+</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-neutral-light text-[#5e5d40] dark:bg-[#2e2d1a] dark:text-[#d1d0c5]">
+<span class="size-1.5 rounded-full bg-current"></span>
+                                            Cancelado
+                                        </span>
+</td>
+<td class="px-6 py-4 text-[#5e5d40] dark:text-[#d1d0c5]">01/01/2023</td>
+<td class="px-6 py-4 text-[#5e5d40] dark:text-[#d1d0c5]">01/01/2024</td>
+<td class="px-6 py-4 text-right">
+<div class="flex items-center justify-end gap-2">
+<button class="p-2 rounded-full hover:bg-neutral-light dark:hover:bg-[#2e2d1a] text-[#8c8b5f] dark:text-[#a3a272] transition-colors" title="View Details">
+<span class="material-symbols-outlined text-lg">visibility</span>
+</button>
+<button class="p-2 rounded-full hover:bg-[#ffebeb] dark:hover:bg-[#3d0f0f] text-accent-red transition-colors" title="Cancel Subscription">
+<span class="material-symbols-outlined text-lg">cancel</span>
+</button>
+</div>
+</td>
+</tr>
+<tr class="group hover:bg-neutral-light/30 dark:hover:bg-[#2e2d1a]/30 odd:bg-white even:bg-[#fafaf9] dark:odd:bg-[#1a190b] dark:even:bg-[#1f1e14] transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-full bg-primary flex items-center justify-center text-neutral-dark font-bold text-xs shrink-0">SJ</div>
+<div class="flex flex-col">
+<span class="font-bold text-neutral-dark dark:text-white">Sarah Jenkins</span>
+<span class="text-xs text-[#8c8b5f] dark:text-[#a3a272] font-mono">321.654.987-33</span>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="font-medium text-neutral-dark dark:text-white">VIP Mensal</span>
+<span class="block text-xs text-[#8c8b5f]">Hair &amp; Spa</span>
+</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-[#e6f6e8] text-accent-green dark:bg-[#0f2e14] dark:text-[#4ade80]">
+<span class="size-1.5 rounded-full bg-current"></span>
+                                            Ativo
+                                        </span>
+</td>
+<td class="px-6 py-4 text-[#5e5d40] dark:text-[#d1d0c5]">20/10/2023</td>
+<td class="px-6 py-4 text-[#5e5d40] dark:text-[#d1d0c5]">20/11/2023</td>
+<td class="px-6 py-4 text-right">
+<div class="flex items-center justify-end gap-2">
+<button class="p-2 rounded-full hover:bg-neutral-light dark:hover:bg-[#2e2d1a] text-[#8c8b5f] dark:text-[#a3a272] transition-colors" title="View Details">
+<span class="material-symbols-outlined text-lg">visibility</span>
+</button>
+<button class="p-2 rounded-full hover:bg-[#ffebeb] dark:hover:bg-[#3d0f0f] text-accent-red transition-colors" title="Cancel Subscription">
+<span class="material-symbols-outlined text-lg">cancel</span>
+</button>
+</div>
+</td>
+</tr>
+<tr class="group hover:bg-neutral-light/30 dark:hover:bg-[#2e2d1a]/30 odd:bg-white even:bg-[#fafaf9] dark:odd:bg-[#1a190b] dark:even:bg-[#1f1e14] transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-full bg-cover bg-center shrink-0" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDynEqkMvTRoZFbiff0ARorT4C3I6YWCATVjrYFsRaVblzw8yvg9QaUW_9zt1LI5vrFkAHxw6jb3IB0ZUc_YWmTf1rQ-yaKDA_RO9DrIyQOnMjAUjL6PGn9hYQp4fFaa6s_iPB5HUKNG66hQ7BiS3YtinQ6aja5LRZ8iwazjU4xg4tsCNnByUS2PKPHCyT84ZwfHaCKVdZqkRW4xNeUes7xspTeETskq4bfhAeMdjNQYIW6jAkiGCxHYAqh-8NtdhCkp7vygYFNod0");'></div>
+<div class="flex flex-col">
+<span class="font-bold text-neutral-dark dark:text-white">Lucas Gray</span>
+<span class="text-xs text-[#8c8b5f] dark:text-[#a3a272] font-mono">741.852.963-44</span>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="font-medium text-neutral-dark dark:text-white">Trimestral</span>
+<span class="block text-xs text-[#8c8b5f]">Hair &amp; Shave</span>
+</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-[#e6f6e8] text-accent-green dark:bg-[#0f2e14] dark:text-[#4ade80]">
+<span class="size-1.5 rounded-full bg-current"></span>
+                                            Ativo
+                                        </span>
+</td>
+<td class="px-6 py-4 text-[#5e5d40] dark:text-[#d1d0c5]">05/10/2023</td>
+<td class="px-6 py-4 text-[#5e5d40] dark:text-[#d1d0c5]">05/01/2024</td>
+<td class="px-6 py-4 text-right">
+<div class="flex items-center justify-end gap-2">
+<button class="p-2 rounded-full hover:bg-neutral-light dark:hover:bg-[#2e2d1a] text-[#8c8b5f] dark:text-[#a3a272] transition-colors" title="View Details">
+<span class="material-symbols-outlined text-lg">visibility</span>
+</button>
+<button class="p-2 rounded-full hover:bg-[#ffebeb] dark:hover:bg-[#3d0f0f] text-accent-red transition-colors" title="Cancel Subscription">
+<span class="material-symbols-outlined text-lg">cancel</span>
+</button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="flex items-center justify-between px-6 py-4 border-t border-[#f0f0eb] dark:border-[#2e2d1a]">
+<div class="text-sm text-[#8c8b5f] dark:text-[#a3a272]">
+                        Showing <span class="font-semibold text-neutral-dark dark:text-white">1-5</span> of <span class="font-semibold text-neutral-dark dark:text-white">85</span>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 rounded-lg border border-[#e5e5dc] dark:border-[#3a3928] hover:bg-neutral-light dark:hover:bg-[#2e2d1a] text-neutral-dark dark:text-white disabled:opacity-50 transition-colors">
+<span class="material-symbols-outlined text-sm">chevron_left</span>
+</button>
+<button class="p-2 rounded-lg border border-[#e5e5dc] dark:border-[#3a3928] hover:bg-neutral-light dark:hover:bg-[#2e2d1a] text-neutral-dark dark:text-white transition-colors">
+<span class="material-symbols-outlined text-sm">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+
+</body></html>

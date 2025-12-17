@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>BarberAdmin - Registrar Pagamento Manual</title>
+<link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f9f506",
+                        "background-light": "#f8f8f5",
+                        "background-dark": "#23220f",
+                        "neutral-dark": "#181811",
+                        "neutral-light": "#f5f5f0",
+                        "accent-green": "#078816",
+                        "accent-red": "#e71708",
+                    },
+                    fontFamily: {
+                        "display": ["Spline Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "1.5rem", "xl": "2rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-neutral-dark dark:text-white font-display antialiased overflow-x-hidden">
+<div class="relative flex min-h-screen w-full flex-col md:flex-row">
+<aside class="w-full md:w-64 flex-shrink-0 border-b md:border-b-0 md:border-r border-[#e5e5dc] dark:border-[#3a3928] bg-white dark:bg-[#1a190b] z-20">
+<div class="flex h-full flex-col justify-between p-4 md:p-6 sticky top-0">
+<div class="flex flex-col gap-8">
+<div class="flex flex-col px-2">
+<h1 class="text-neutral-dark dark:text-white text-xl font-bold leading-normal tracking-tight">BarberAdmin</h1>
+<p class="text-[#8c8b5f] dark:text-[#a3a272] text-xs font-normal leading-normal">Management Panel</p>
+</div>
+<nav class="flex flex-col gap-2">
+<a class="flex items-center gap-3 px-4 py-3 rounded-full hover:bg-neutral-light dark:hover:bg-[#2e2d1a] text-neutral-dark dark:text-[#d1d0c5] transition-colors" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-sm font-medium">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-full hover:bg-neutral-light dark:hover:bg-[#2e2d1a] text-neutral-dark dark:text-[#d1d0c5] transition-colors" href="#">
+<span class="material-symbols-outlined">groups</span>
+<span class="text-sm font-medium">Clients</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-full hover:bg-neutral-light dark:hover:bg-[#2e2d1a] text-neutral-dark dark:text-[#d1d0c5] transition-colors" href="#">
+<span class="material-symbols-outlined">credit_card</span>
+<span class="text-sm font-medium">Subscriptions</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-full bg-primary text-neutral-dark shadow-sm" href="#">
+<span class="material-symbols-outlined filled" style="font-variation-settings: 'FILL' 1;">payments</span>
+<span class="text-sm font-semibold">Payments</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-full hover:bg-neutral-light dark:hover:bg-[#2e2d1a] text-neutral-dark dark:text-[#d1d0c5] transition-colors" href="#">
+<span class="material-symbols-outlined">event</span>
+<span class="text-sm font-medium">Bookings</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-full hover:bg-neutral-light dark:hover:bg-[#2e2d1a] text-neutral-dark dark:text-[#d1d0c5] transition-colors" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-sm font-medium">Settings</span>
+</a>
+</nav>
+</div>
+<div class="px-2 pb-2">
+<div class="flex items-center gap-3 p-3 rounded-xl bg-neutral-light dark:bg-[#2e2d1a]">
+<div class="bg-center bg-no-repeat bg-cover rounded-full size-10 flex-shrink-0" data-alt="Admin user profile picture" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBQow72plqKxtt5pG_szu0Zhzta2t3a5o7GAFSvLLP4c3euyyO3X-XXDCqahxbeXFh8RiIT1R33a6Ai_FTfIQqggLizGLybcNjSvNKiiGPEselfWR8kjl9s973z0Svgk0WPphn0BIxDL8lf2ylF-L5eVwjjZXSwmQVBX7wJohM0aNvl6-oXe0_f3qlFq8LKNWUFDEW_OBIouYq4AqE9DVFr-PFNuTmVpsCwaWHvBzFj0uI1HmN9lTNHtevrg9YmG9pmYyl4foOmbXc");'></div>
+<div class="overflow-hidden">
+<p class="text-sm font-bold truncate dark:text-white">Alex Barber</p>
+<p class="text-xs text-[#8c8b5f] dark:text-[#a3a272] truncate">Admin</p>
+</div>
+</div>
+</div>
+</div>
+</aside>
+<main class="flex-1 flex flex-col h-full min-h-screen relative overflow-hidden">
+<header class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#e5e5dc] dark:border-[#3a3928] bg-white/80 dark:bg-[#1a190b]/80 backdrop-blur-sm px-6 py-4 md:px-10 sticky top-0 z-10">
+<div class="flex items-center gap-4">
+<button class="md:hidden p-2 -ml-2 text-neutral-dark dark:text-white">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<div class="flex flex-col">
+<h2 class="text-neutral-dark dark:text-white text-xl md:text-2xl font-bold leading-tight tracking-tight">Registrar Pagamento</h2>
+<p class="hidden sm:block text-[#8c8b5f] dark:text-[#a3a272] text-xs font-medium">Manual entry for service or product sales</p>
+</div>
+</div>
+<div class="flex items-center gap-4 w-full sm:w-auto justify-end">
+<div class="relative hidden sm:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#8c8b5f] text-xl">search</span>
+<input class="h-10 pl-10 pr-4 rounded-full bg-neutral-light dark:bg-[#2e2d1a] border-none text-sm w-64 focus:ring-2 focus:ring-primary placeholder-[#8c8b5f]" placeholder="Find transaction..." type="text"/>
+</div>
+<button class="relative p-2 rounded-full bg-neutral-light dark:bg-[#2e2d1a] text-neutral-dark dark:text-white hover:bg-neutral-light/80 transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-2 right-2 size-2 rounded-full bg-accent-red border border-white dark:border-[#2e2d1a]"></span>
+</button>
+</div>
+</header>
+<div class="p-6 md:p-10 flex flex-col gap-6 max-w-[1400px] mx-auto w-full">
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<div class="lg:col-span-2 flex flex-col gap-6">
+<div class="bg-white dark:bg-[#1a190b] rounded-xl border border-[#f0f0eb] dark:border-[#2e2d1a] shadow-sm p-6 md:p-8">
+<div class="flex items-center justify-between mb-8">
+<h3 class="text-lg font-bold text-neutral-dark dark:text-white">New Transaction Details</h3>
+<span class="text-xs font-bold px-3 py-1 bg-neutral-light dark:bg-[#2e2d1a] text-[#8c8b5f] rounded-full">ID: #TRX-8920</span>
+</div>
+<form class="flex flex-col gap-6">
+<div class="flex flex-col gap-2">
+<label class="text-sm font-bold text-neutral-dark dark:text-white ml-2">Client</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-[#8c8b5f]">person_search</span>
+<input class="w-full h-12 pl-12 pr-4 rounded-full bg-neutral-light dark:bg-[#2e2d1a] border-transparent focus:border-primary focus:ring-2 focus:ring-primary/50 text-neutral-dark dark:text-white placeholder-[#8c8b5f] transition-all" placeholder="Search for existing client..." type="text"/>
+</div>
+<div class="flex gap-2 ml-2 mt-1">
+<button class="text-xs font-bold text-primary hover:underline" type="button">+ New Client</button>
+<span class="text-xs text-[#8c8b5f]">•</span>
+<button class="text-xs font-bold text-[#8c8b5f] hover:text-neutral-dark dark:hover:text-white transition-colors" type="button">Anonymous Guest</button>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="flex flex-col gap-2">
+<label class="text-sm font-bold text-neutral-dark dark:text-white ml-2">Service / Product</label>
+<div class="relative">
+<select class="w-full h-12 pl-4 pr-10 rounded-full bg-neutral-light dark:bg-[#2e2d1a] border-transparent focus:border-primary focus:ring-2 focus:ring-primary/50 text-neutral-dark dark:text-white appearance-none cursor-pointer">
+<option>Haircut &amp; Beard Trim</option>
+<option>Full Shave</option>
+<option>Hair Product (Pomade)</option>
+<option>Gift Card</option>
+<option>Subscription Renewal</option>
+</select>
+<span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-[#8c8b5f] pointer-events-none">expand_more</span>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<label class="text-sm font-bold text-neutral-dark dark:text-white ml-2">Assigned Staff</label>
+<div class="relative">
+<select class="w-full h-12 pl-4 pr-10 rounded-full bg-neutral-light dark:bg-[#2e2d1a] border-transparent focus:border-primary focus:ring-2 focus:ring-primary/50 text-neutral-dark dark:text-white appearance-none cursor-pointer">
+<option>Alex Barber (You)</option>
+<option>Sarah Jenkins</option>
+<option>Mike Ross</option>
+</select>
+<span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-[#8c8b5f] pointer-events-none">expand_more</span>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="flex flex-col gap-2">
+<label class="text-sm font-bold text-neutral-dark dark:text-white ml-2">Amount ($)</label>
+<div class="relative">
+<span class="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-dark dark:text-white font-bold">$</span>
+<input class="w-full h-12 pl-8 pr-4 rounded-full bg-neutral-light dark:bg-[#2e2d1a] border-transparent focus:border-primary focus:ring-2 focus:ring-primary/50 text-neutral-dark dark:text-white font-bold" placeholder="0.00" type="number"/>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<label class="text-sm font-bold text-neutral-dark dark:text-white ml-2">Date</label>
+<input class="w-full h-12 px-4 rounded-full bg-neutral-light dark:bg-[#2e2d1a] border-transparent focus:border-primary focus:ring-2 focus:ring-primary/50 text-neutral-dark dark:text-white [color-scheme:light] dark:[color-scheme:dark]" type="date"/>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<label class="text-sm font-bold text-neutral-dark dark:text-white ml-2">Payment Method</label>
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+<label class="cursor-pointer group">
+<input checked="" class="peer sr-only" name="payment_method" type="radio"/>
+<div class="flex flex-col items-center justify-center p-3 rounded-xl bg-neutral-light dark:bg-[#2e2d1a] border-2 border-transparent peer-checked:border-primary peer-checked:bg-white dark:peer-checked:bg-[#2e2d1a] transition-all hover:bg-white dark:hover:bg-[#3a3928]">
+<span class="material-symbols-outlined mb-1 text-[#8c8b5f] peer-checked:text-neutral-dark dark:peer-checked:text-white">payments</span>
+<span class="text-xs font-bold text-[#8c8b5f] peer-checked:text-neutral-dark dark:peer-checked:text-white">Cash</span>
+</div>
+</label>
+<label class="cursor-pointer group">
+<input class="peer sr-only" name="payment_method" type="radio"/>
+<div class="flex flex-col items-center justify-center p-3 rounded-xl bg-neutral-light dark:bg-[#2e2d1a] border-2 border-transparent peer-checked:border-primary peer-checked:bg-white dark:peer-checked:bg-[#2e2d1a] transition-all hover:bg-white dark:hover:bg-[#3a3928]">
+<span class="material-symbols-outlined mb-1 text-[#8c8b5f] peer-checked:text-neutral-dark dark:peer-checked:text-white">credit_card</span>
+<span class="text-xs font-bold text-[#8c8b5f] peer-checked:text-neutral-dark dark:peer-checked:text-white">Card</span>
+</div>
+</label>
+<label class="cursor-pointer group">
+<input class="peer sr-only" name="payment_method" type="radio"/>
+<div class="flex flex-col items-center justify-center p-3 rounded-xl bg-neutral-light dark:bg-[#2e2d1a] border-2 border-transparent peer-checked:border-primary peer-checked:bg-white dark:peer-checked:bg-[#2e2d1a] transition-all hover:bg-white dark:hover:bg-[#3a3928]">
+<span class="material-symbols-outlined mb-1 text-[#8c8b5f] peer-checked:text-neutral-dark dark:peer-checked:text-white">smartphone</span>
+<span class="text-xs font-bold text-[#8c8b5f] peer-checked:text-neutral-dark dark:peer-checked:text-white">Digital</span>
+</div>
+</label>
+<label class="cursor-pointer group">
+<input class="peer sr-only" name="payment_method" type="radio"/>
+<div class="flex flex-col items-center justify-center p-3 rounded-xl bg-neutral-light dark:bg-[#2e2d1a] border-2 border-transparent peer-checked:border-primary peer-checked:bg-white dark:peer-checked:bg-[#2e2d1a] transition-all hover:bg-white dark:hover:bg-[#3a3928]">
+<span class="material-symbols-outlined mb-1 text-[#8c8b5f] peer-checked:text-neutral-dark dark:peer-checked:text-white">card_membership</span>
+<span class="text-xs font-bold text-[#8c8b5f] peer-checked:text-neutral-dark dark:peer-checked:text-white">Credits</span>
+</div>
+</label>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<label class="text-sm font-bold text-neutral-dark dark:text-white ml-2">Notes</label>
+<textarea class="w-full px-4 py-3 rounded-2xl bg-neutral-light dark:bg-[#2e2d1a] border-transparent focus:border-primary focus:ring-2 focus:ring-primary/50 text-neutral-dark dark:text-white placeholder-[#8c8b5f] resize-none" placeholder="Add any specific details about this transaction..." rows="3"></textarea>
+</div>
+<div class="h-px bg-[#f0f0eb] dark:bg-[#2e2d1a] my-2"></div>
+<div class="flex flex-col sm:flex-row gap-4 pt-2">
+<button class="flex-1 h-12 bg-primary text-neutral-dark rounded-full font-bold shadow-lg shadow-primary/20 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200" type="button">
+                                    Confirm Payment
+                                </button>
+<button class="sm:w-32 h-12 bg-white dark:bg-[#2e2d1a] border border-[#e5e5dc] dark:border-[#3a3928] text-neutral-dark dark:text-white rounded-full font-semibold hover:bg-neutral-light dark:hover:bg-[#3a3928] transition-colors" type="button">
+                                    Cancel
+                                </button>
+</div>
+</form>
+</div>
+</div>
+<div class="flex flex-col gap-6">
+<div class="bg-white dark:bg-[#1a190b] rounded-xl border border-[#f0f0eb] dark:border-[#2e2d1a] p-6 flex flex-col gap-4">
+<div class="flex items-center justify-between">
+<h3 class="text-lg font-bold text-neutral-dark dark:text-white">Recent Manual</h3>
+<a class="text-xs font-bold text-primary hover:underline" href="#">View All</a>
+</div>
+<div class="flex flex-col gap-3">
+<div class="flex items-center justify-between p-3 rounded-xl bg-neutral-light/50 dark:bg-[#2e2d1a]/50 border border-transparent hover:border-primary/20 transition-colors">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-full bg-cover bg-center" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDut8l_Js1Iz1Yf3LWZ8n45Z3pl3r8uZmOKNA9hymA-8cmvC3amG_bSEljI_5SU7wxUZwkWwubS5GRlcq2uygelUXfaBswtnLCj3nefy47a_V3-LhUkxy0PVEHtha-BZDWy_ZjXS1AXoKzJ6QMCVJxO9nWzg5GN3emwefHbrB9v0NXKhktCLM5Xk1epLVVqeCLkeYlB-evluVcPUzXDRJpz8uGBS6q0SdyZfQOnjCyCRXBvESJTZzcwdZXUbjtYtXmpkcVqZ-tfhow");'></div>
+<div>
+<p class="text-sm font-bold text-neutral-dark dark:text-white">James C.</p>
+<p class="text-xs text-[#8c8b5f]">Today, 10:30 AM</p>
+</div>
+</div>
+<span class="text-sm font-bold text-neutral-dark dark:text-white">$45</span>
+</div>
+<div class="flex items-center justify-between p-3 rounded-xl bg-neutral-light/50 dark:bg-[#2e2d1a]/50 border border-transparent hover:border-primary/20 transition-colors">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-full bg-cover bg-center" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBt4dAavQmBFZCTLvjRXVCgildE4Pi6BGA2imrCeBt03XI-bnCIivIl01DDfMeuDo0n0L-rUWK6lhZYTr4G72xVN9QvzgV8wxwTKUVN9i9W4CCrfDJoB4ICNGeBalthFjoS6hSh_MPFNuIxb69yWhXlJrQKOvAsOCMr9jUxRoMsQCvMqaG5Eh2oiw1EzH0hGa7KNvyy-lC0-QlsLgkRNMoyJujdgxN686a30Lmd0klcP7ofWe-G50DEzwYl4K149PGM8YdcUX-6Qno");'></div>
+<div>
+<p class="text-sm font-bold text-neutral-dark dark:text-white">Michael B.</p>
+<p class="text-xs text-[#8c8b5f]">Yesterday</p>
+</div>
+</div>
+<span class="text-sm font-bold text-neutral-dark dark:text-white">$120</span>
+</div>
+<div class="flex items-center justify-between p-3 rounded-xl bg-neutral-light/50 dark:bg-[#2e2d1a]/50 border border-transparent hover:border-primary/20 transition-colors">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-full bg-cover bg-center" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBkgZyZDQtlPkERTwDE_l33gyzRwrq4d6SVcXI-yNa8QSA37el5Cc6TMdBOnDB8kFtvDC69weqdHOJHdlm2MP9VJI-_MmxCXUPuXt2bcj1x90HU7RwEI2qFOW5TffWZe0H8EeIticdL7uHOTb8FLrb7XLsRKUgRbJh5IHzw95t_z6RfS-EBETjDZVbs89327cohQZ3W6nduYJ5lqpxr1tu69_5v64Ct7jMNnub1sunYEwlQrpG1vF_SaRl-fJDxhQSIOl-_lxguS2M");'></div>
+<div>
+<p class="text-sm font-bold text-neutral-dark dark:text-white">David W.</p>
+<p class="text-xs text-[#8c8b5f]">Oct 24</p>
+</div>
+</div>
+<span class="text-sm font-bold text-neutral-dark dark:text-white">$25</span>
+</div>
+</div>
+</div>
+<div class="bg-neutral-dark dark:bg-[#f9f506] rounded-xl p-6 relative overflow-hidden flex flex-col justify-between">
+<div class="relative z-10">
+<div class="flex items-center gap-2 mb-2">
+<span class="material-symbols-outlined text-primary dark:text-neutral-dark">today</span>
+<h3 class="text-sm font-bold text-white dark:text-neutral-dark uppercase tracking-wide opacity-80">Today's Total</h3>
+</div>
+<p class="text-3xl font-black text-white dark:text-neutral-dark tracking-tight">$465.00</p>
+<div class="mt-4 flex items-center gap-2 text-xs font-medium text-white/60 dark:text-neutral-dark/60">
+<span>8 Transactions</span>
+<span class="size-1 rounded-full bg-current"></span>
+<span>2 Pending</span>
+</div>
+</div>
+<div class="absolute -right-6 -bottom-10 size-32 rounded-full bg-white/10 dark:bg-black/5 blur-xl pointer-events-none"></div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+
+</body></html>
