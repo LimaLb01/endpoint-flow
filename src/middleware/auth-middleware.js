@@ -1,6 +1,6 @@
 /**
  * Middleware de Autenticação JWT
- * Verifica token JWT nas requisições
+ * Verifica token JWT nas requisições administrativas
  */
 
 const { verifyToken } = require('../services/auth-service');
@@ -8,15 +8,18 @@ const { createRequestLogger, globalLogger } = require('../utils/logger');
 
 /**
  * Middleware para verificar autenticação JWT
+ * @param {object} req - Request object
+ * @param {object} res - Response object
+ * @param {function} next - Next middleware
  */
 function requireAuth(req, res, next) {
   const logger = req.requestId ? createRequestLogger(req.requestId) : globalLogger;
   
-  // Obter token do header Authorization
+  // Extrair token do header Authorization
   const authHeader = req.headers.authorization;
   
   if (!authHeader) {
-    logger.warn('Tentativa de acesso sem token', {
+    logger.warn('Tentativa de acesso sem token de autenticação', {
       path: req.path,
       ip: req.ip
     });
@@ -25,9 +28,10 @@ function requireAuth(req, res, next) {
       message: 'Token de autenticação necessário'
     });
   }
-
-  // Extrair token (formato: "Bearer {token}")
+  
+  // Formato esperado: "Bearer {token}"
   const parts = authHeader.split(' ');
+  
   if (parts.length !== 2 || parts[0] !== 'Bearer') {
     logger.warn('Formato de token inválido', {
       path: req.path
@@ -37,56 +41,33 @@ function requireAuth(req, res, next) {
       message: 'Formato de token inválido. Use: Bearer {token}'
     });
   }
-
+  
   const token = parts[1];
-
+  
   // Verificar token
   const decoded = verifyToken(token);
   
   if (!decoded) {
     logger.warn('Token inválido ou expirado', {
-      path: req.path,
-      ip: req.ip
+      path: req.path
     });
     return res.status(401).json({
       error: 'Não autorizado',
       message: 'Token inválido ou expirado'
     });
   }
-
-  // Adicionar dados do usuário à requisição
+  
+  // Adicionar dados do usuário ao request
   req.user = decoded;
   
-  logger.debug('Usuário autenticado', {
+  logger.debug('Autenticação válida', {
     userId: decoded.id,
-    email: decoded.email,
-    path: req.path
+    email: decoded.email?.replace(/(.{2})(.*)(@.*)/, '$1***$3')
   });
-
-  next();
-}
-
-/**
- * Middleware opcional de autenticação (não bloqueia se não tiver token)
- */
-function optionalAuth(req, res, next) {
-  const authHeader = req.headers.authorization;
-  
-  if (authHeader) {
-    const parts = authHeader.split(' ');
-    if (parts.length === 2 && parts[0] === 'Bearer') {
-      const decoded = verifyToken(parts[1]);
-      if (decoded) {
-        req.user = decoded;
-      }
-    }
-  }
   
   next();
 }
 
 module.exports = {
-  requireAuth,
-  optionalAuth
+  requireAuth
 };
-

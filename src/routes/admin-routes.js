@@ -10,21 +10,7 @@ const { getActiveSubscriptionByCpf, createSubscription, cancelSubscription } = r
 const { getOrCreateCustomer } = require('../services/customer-service');
 const { createRequestLogger, globalLogger } = require('../utils/logger');
 const { supabaseAdmin, isAdminConfigured } = require('../config/supabase');
-
-// Middleware básico de autenticação (TODO: implementar JWT)
-// Por enquanto, apenas verifica se há um header de autenticação
-function requireAuth(req, res, next) {
-  // TODO: Implementar autenticação JWT
-  // Por enquanto, apenas loga que foi chamado
-  const authHeader = req.headers.authorization;
-  if (!authHeader) {
-    return res.status(401).json({
-      error: 'Não autorizado',
-      message: 'Token de autenticação necessário'
-    });
-  }
-  next();
-}
+const { requireAuth } = require('../middleware/auth-middleware');
 
 /**
  * GET /api/admin/customers/:cpf

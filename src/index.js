@@ -14,6 +14,7 @@ const cors = require('cors');
 const webhookRoutes = require('./routes/webhook-routes');
 const stripeRoutes = require('./routes/stripe-routes');
 const adminRoutes = require('./routes/admin-routes');
+const authRoutes = require('./routes/auth-routes');
 const { encryptionMiddleware } = require('./middleware/encryption-middleware');
 const { signatureValidationMiddleware } = require('./middleware/signature-middleware');
 const { requestIdMiddleware } = require('./middleware/request-id-middleware');
@@ -247,6 +248,11 @@ app.use('/webhook', webhookRoutes);
 // ============================================
 // Webhook do Stripe precisa receber raw body para verificar assinatura
 app.use('/api/webhooks', stripeRoutes);
+
+// ============================================
+// Rotas de Autenticação
+// ============================================
+app.use('/api/auth', authRoutes);
 
 // ============================================
 // Rotas Administrativas

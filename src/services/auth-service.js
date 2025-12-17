@@ -1,220 +1,135 @@
 /**
  * Serviço de Autenticação
- * Gerencia login, geração de tokens JWT e validação
+ * Gerencia login e geração de tokens JWT
  */
 
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
 const { globalLogger } = require('../utils/logger');
 const { supabaseAdmin, isAdminConfigured } = require('../config/supabase');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'sua-chave-secreta-super-segura-mude-em-producao';
+// Secret para assinar tokens JWT (usar variável de ambiente em produção)
+const JWT_SECRET = process.env.JWT_SECRET || 'seu-secret-super-seguro-mude-em-producao';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h';
 
 /**
- * Hash de senha usando bcrypt
- * @param {string} password - Senha em texto plano
- * @returns {Promise<string>} Senha hasheada
+ * Usuários admin (temporário - substituir por tabela no banco depois)
+ * TODO: Criar tabela `admin_users` no Supabase
  */
-async function hashPassword(password) {
-  const saltRounds = 10;
-  return await bcrypt.hash(password, saltRounds);
+const ADMIN_USERS = [
+  {
+    id: '1',
+    email: 'admin@barbearia.com',
+    password: 'admin123', // Em produção, usar hash bcrypt
+    name: 'Administrador',
+    role: 'admin'
+  }
+];
+
+/**
+ * Valida credenciais de login
+ * @param {string} email - Email do usuário
+ * @param {string} password - Senha do usuário
+ * @returns {Promise<object|null>} Dados do usuário ou null se inválido
+ */
+async function validateCredentials(email, password) {
+  // Buscar usuário
+  const user = ADMIN_USERS.find(u => u.email === email);
+  
+  if (!user) {
+    globalLogger.warn('Tentativa de login com email inválido', {
+      email: email.replace(/(.{2})(.*)(@.*)/, '$1***$3') // Mascarar email
+    });
+    return null;
+  }
+  
+  // Validar senha (em produção, usar bcrypt.compare)
+  if (user.password !== password) {
+    globalLogger.warn('Tentativa de login com senha inválida', {
+      email: email.replace(/(.{2})(.*)(@.*)/, '$1***$3')
+    });
+    return null;
+  }
+  
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    role: user.role
+  };
 }
 
 /**
- * Compara senha com hash
- * @param {string} password - Senha em texto plano
- * @param {string} hash - Hash da senha
- * @returns {Promise<boolean>} true se senha corresponde
- */
-async function comparePassword(password, hash) {
-  return await bcrypt.compare(password, hash);
-}
-
-/**
- * Gera token JWT
- * @param {object} payload - Dados para incluir no token
+ * Gera token JWT para um usuário
+ * @param {object} user - Dados do usuário
  * @returns {string} Token JWT
  */
-function generateToken(payload) {
+function generateToken(user) {
+  const payload = {
+    id: user.id,
+    email: user.email,
+    role: user.role
+  };
+  
   return jwt.sign(payload, JWT_SECRET, {
     expiresIn: JWT_EXPIRES_IN
   });
 }
 
 /**
- * Verifica e decodifica token JWT
+ * Verifica e decodifica um token JWT
  * @param {string} token - Token JWT
- * @returns {object|null} Payload decodificado ou null se inválido
+ * @returns {object|null} Dados decodificados ou null se inválido
  */
 function verifyToken(token) {
   try {
     return jwt.verify(token, JWT_SECRET);
   } catch (error) {
-    return null;
-  }
-}
-
-/**
- * Autentica usuário
- * @param {string} email - Email do usuário
- * @param {string} password - Senha do usuário
- * @returns {Promise<object|null>} Dados do usuário e token ou null
- */
-async function authenticateUser(email, password) {
-  if (!isAdminConfigured()) {
-    globalLogger.error('Supabase Admin não configurado');
-    return null;
-  }
-
-  try {
-    // Buscar usuário no banco (tabela de admins)
-    // Por enquanto, usar usuário mock. Depois criar tabela de admins
-    const { data: users, error } = await supabaseAdmin
-      .from('admins')
-      .select('*')
-      .eq('email', email)
-      .single();
-
-    if (error || !users) {
-      // Se tabela não existir, usar autenticação mock temporária
-      return authenticateMockUser(email, password);
-    }
-
-    // Verificar senha
-    const passwordMatch = await comparePassword(password, users.password_hash);
-    if (!passwordMatch) {
+    if (error.name === 'TokenExpiredError') {
+      globalLogger.warn('Token JWT expirado');
       return null;
     }
-
-    // Gerar token
-    const token = generateToken({
-      id: users.id,
-      email: users.email,
-      name: users.name,
-      role: users.role || 'admin'
-    });
-
-    return {
-      user: {
-        id: users.id,
-        email: users.email,
-        name: users.name,
-        role: users.role || 'admin'
-      },
-      token
-    };
-  } catch (error) {
-    globalLogger.error('Erro ao autenticar usuário', {
-      error: error.message,
-      email
-    });
-    return null;
+    if (error.name === 'JsonWebTokenError') {
+      globalLogger.warn('Token JWT inválido');
+      return null;
+    }
+    throw error;
   }
 }
 
 /**
- * Autenticação mock temporária (para desenvolvimento)
- * Remove quando tiver tabela de admins configurada
+ * Processa login
+ * @param {string} email - Email do usuário
+ * @param {string} password - Senha do usuário
+ * @returns {Promise<object|null>} Objeto com token e dados do usuário ou null
  */
-async function authenticateMockUser(email, password) {
-  // Credenciais mock (REMOVER EM PRODUÇÃO!)
-  const mockUsers = [
-    {
-      email: 'admin@barbearia.com',
-      password: 'admin123',
-      name: 'Administrador',
-      role: 'admin'
-    }
-  ];
-
-  const user = mockUsers.find(u => u.email === email);
-  if (!user || user.password !== password) {
+async function login(email, password) {
+  const user = await validateCredentials(email, password);
+  
+  if (!user) {
     return null;
   }
-
-  const token = generateToken({
-    id: 'mock-admin-id',
-    email: user.email,
-    name: user.name,
-    role: user.role
+  
+  const token = generateToken(user);
+  
+  globalLogger.info('Login realizado com sucesso', {
+    userId: user.id,
+    email: user.email.replace(/(.{2})(.*)(@.*)/, '$1***$3')
   });
-
+  
   return {
+    token,
     user: {
-      id: 'mock-admin-id',
+      id: user.id,
       email: user.email,
       name: user.name,
       role: user.role
-    },
-    token
+    }
   };
 }
 
-/**
- * Cria usuário admin (para setup inicial)
- * @param {object} userData - Dados do usuário
- * @returns {Promise<object|null>} Usuário criado ou null
- */
-async function createAdminUser(userData) {
-  if (!isAdminConfigured()) {
-    return null;
-  }
-
-  try {
-    const { email, password, name, role = 'admin' } = userData;
-
-    // Verificar se já existe
-    const { data: existing } = await supabaseAdmin
-      .from('admins')
-      .select('id')
-      .eq('email', email)
-      .single();
-
-    if (existing) {
-      return { error: 'Usuário já existe' };
-    }
-
-    // Hash da senha
-    const passwordHash = await hashPassword(password);
-
-    // Criar usuário
-    const { data, error } = await supabaseAdmin
-      .from('admins')
-      .insert({
-        email,
-        password_hash: passwordHash,
-        name,
-        role,
-        active: true
-      })
-      .select()
-      .single();
-
-    if (error) {
-      throw error;
-    }
-
-    globalLogger.info('Usuário admin criado', {
-      email,
-      userId: data.id
-    });
-
-    return data;
-  } catch (error) {
-    globalLogger.error('Erro ao criar usuário admin', {
-      error: error.message
-    });
-    return null;
-  }
-}
-
 module.exports = {
-  hashPassword,
-  comparePassword,
-  generateToken,
+  login,
   verifyToken,
-  authenticateUser,
-  createAdminUser
+  generateToken,
+  validateCredentials
 };
-
