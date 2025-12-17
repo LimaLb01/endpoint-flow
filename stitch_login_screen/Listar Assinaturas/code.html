@@ -328,5 +328,121 @@
 </div>
 </main>
 </div>
+<!-- API Script -->
+<script src="../api.js"></script>
+<script>
+// Verificar autenticação
+if (!localStorage.getItem('token')) {
+  window.location.href = '../login_screen/code.html';
+}
 
+// Elementos
+const filterSelect = document.querySelector('select');
+const tbody = document.querySelector('tbody');
+const countSpan = document.querySelector('span.font-semibold:last-of-type');
+
+let assinaturas = [];
+let statusFiltro = 'active';
+
+// Carregar assinaturas
+async function carregarAssinaturas(status = 'active') {
+  try {
+    const data = await api.listarAssinaturas(status);
+    assinaturas = data.subscriptions || [];
+    preencherTabela(assinaturas);
+    if (countSpan) {
+      countSpan.textContent = data.count || assinaturas.length;
+    }
+  } catch (error) {
+    console.error('Erro ao carregar assinaturas:', error);
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-[#8c8b5f]">Erro ao carregar assinaturas</td></tr>';
+  }
+}
+
+// Preencher tabela
+function preencherTabela(subscriptions) {
+  if (subscriptions.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-[#8c8b5f]">Nenhuma assinatura encontrada</td></tr>';
+    return;
+  }
+  
+  tbody.innerHTML = subscriptions.map(sub => {
+    const customer = sub.customer || {};
+    const plan = sub.plan || {};
+    const endDate = new Date(sub.current_period_end);
+    const statusClass = sub.status === 'active' ? 'bg-[#e6f6e8] text-accent-green' : 
+                       sub.status === 'canceled' ? 'bg-[#ffebeb] text-accent-red' : 
+                       'bg-neutral-light text-[#5e5d40]';
+    const statusText = sub.status === 'active' ? 'Ativa' : 
+                      sub.status === 'canceled' ? 'Cancelada' : 'Vencida';
+    
+    return `
+      <tr class="hover:bg-neutral-light/50 dark:hover:bg-[#2e2d1a]/50 transition-colors">
+        <td class="px-6 py-4">
+          <div class="flex items-center gap-3">
+            <div class="size-8 rounded-full bg-primary flex items-center justify-center text-neutral-dark font-bold text-xs">
+              ${(customer.name || 'C').substring(0, 1).toUpperCase()}
+            </div>
+            <div>
+              <p class="font-medium text-neutral-dark dark:text-white">${customer.name || 'Cliente'}</p>
+              <p class="text-xs text-[#8c8b5f] dark:text-[#a3a272]">${utils.aplicarMascaraCPF(customer.cpf || '')}</p>
+            </div>
+          </div>
+        </td>
+        <td class="px-6 py-4 text-[#5e5d40] dark:text-[#d1d0c5]">${plan.name || 'N/A'}</td>
+        <td class="px-6 py-4 text-[#8c8b5f] dark:text-[#a3a272]">${utils.formatarData(sub.current_period_end)}</td>
+        <td class="px-6 py-4">
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${statusClass}">
+            <span class="size-1.5 rounded-full bg-current"></span>
+            ${statusText}
+          </span>
+        </td>
+        <td class="px-6 py-4 text-right">
+          <div class="flex items-center justify-end gap-2">
+            <button onclick="verDetalhes('${sub.id}')" class="p-2 rounded-full hover:bg-neutral-light dark:hover:bg-[#2e2d1a] text-[#8c8b5f] dark:text-[#a3a272] transition-colors" title="View Details">
+              <span class="material-symbols-outlined text-lg">visibility</span>
+            </button>
+            ${sub.status === 'active' ? `
+            <button onclick="cancelarAssinatura('${sub.id}')" class="p-2 rounded-full hover:bg-[#ffebeb] dark:hover:bg-[#3d0f0f] text-accent-red transition-colors" title="Cancel Subscription">
+              <span class="material-symbols-outlined text-lg">cancel</span>
+            </button>
+            ` : ''}
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+// Ver detalhes
+function verDetalhes(subscriptionId) {
+  window.location.href = `../detalhes_da_assinatura/code.html?id=${subscriptionId}`;
+}
+
+// Cancelar assinatura
+async function cancelarAssinatura(subscriptionId) {
+  if (!confirm('Tem certeza que deseja cancelar esta assinatura?')) {
+    return;
+  }
+  
+  try {
+    await api.cancelarAssinatura(subscriptionId, false);
+    alert('Assinatura cancelada com sucesso!');
+    carregarAssinaturas(statusFiltro);
+  } catch (error) {
+    alert('Erro ao cancelar assinatura: ' + error.message);
+  }
+}
+
+// Filtro
+if (filterSelect) {
+  filterSelect.addEventListener('change', (e) => {
+    statusFiltro = e.target.value;
+    carregarAssinaturas(statusFiltro);
+  });
+}
+
+// Carregar ao abrir
+carregarAssinaturas();
+</script>
 </body></html>

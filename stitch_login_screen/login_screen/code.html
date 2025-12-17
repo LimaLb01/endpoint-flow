@@ -154,4 +154,81 @@
 </div>
 </div>
 </div>
+<!-- API Script -->
+<script src="../api.js"></script>
+<script>
+// Verificar se já está logado
+if (localStorage.getItem('token')) {
+  window.location.href = '../dashboard/code.html';
+}
+
+// Elementos do formulário
+const form = document.querySelector('form');
+const emailInput = form.querySelector('input[type="text"]');
+const passwordInput = form.querySelector('input[type="password"]');
+const submitButton = form.querySelector('button[type="button"]');
+const loadingButton = form.querySelector('.hidden');
+const errorDiv = form.querySelector('.hidden');
+
+// Toggle de visibilidade da senha
+const togglePassword = form.querySelector('[data-icon="visibility"]');
+togglePassword.addEventListener('click', () => {
+  const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+  passwordInput.setAttribute('type', type);
+  togglePassword.textContent = type === 'password' ? 'visibility' : 'visibility_off';
+});
+
+// Submissão do formulário
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  
+  const email = emailInput.value.trim();
+  const password = passwordInput.value;
+  
+  // Validação básica
+  if (!email || !password) {
+    mostrarErro('Por favor, preencha todos os campos');
+    return;
+  }
+  
+  // Mostrar loading
+  mostrarLoading();
+  
+  try {
+    const resultado = await api.login(email, password);
+    
+    // Salvar token e dados do usuário
+    localStorage.setItem('token', resultado.token);
+    localStorage.setItem('user', JSON.stringify(resultado.user));
+    
+    // Redirecionar para dashboard
+    window.location.href = '../dashboard/code.html';
+    
+  } catch (error) {
+    mostrarErro(error.message || 'Erro ao fazer login. Verifique suas credenciais.');
+    esconderLoading();
+  }
+});
+
+// Funções auxiliares
+function mostrarLoading() {
+  submitButton.classList.add('hidden');
+  loadingButton.classList.remove('hidden');
+  submitButton.disabled = true;
+}
+
+function esconderLoading() {
+  submitButton.classList.remove('hidden');
+  loadingButton.classList.add('hidden');
+  submitButton.disabled = false;
+}
+
+function mostrarErro(mensagem) {
+  errorDiv.querySelector('p').textContent = mensagem;
+  errorDiv.classList.remove('hidden');
+  setTimeout(() => {
+    errorDiv.classList.add('hidden');
+  }, 5000);
+}
+</script>
 </body></html>

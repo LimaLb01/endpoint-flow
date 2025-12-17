@@ -341,4 +341,48 @@
 </div>
 </main>
 </div>
+<!-- API Script -->
+<script src="../api.js"></script>
+<script>
+// Verificar autenticação
+if (!localStorage.getItem('token')) {
+  window.location.href = '../login_screen/code.html';
+}
+
+// Botões de ação rápida
+document.querySelector('button:has(.material-symbols-outlined:contains("person_search"))')?.addEventListener('click', () => {
+  window.location.href = '../buscar_cliente/code.html';
+});
+
+document.querySelector('button:has(.material-symbols-outlined:contains("add_card"))')?.addEventListener('click', () => {
+  window.location.href = '../registrar pagamento/code.html';
+});
+
+document.querySelector('button:has(.material-symbols-outlined:contains("visibility"))')?.addEventListener('click', () => {
+  window.location.href = '../Listar Assinaturas/code.html';
+});
+
+// Carregar estatísticas (opcional - pode ser implementado depois)
+async function carregarEstatisticas() {
+  try {
+    const [assinaturas, planos] = await Promise.all([
+      api.listarAssinaturas('active'),
+      api.listarPlanos()
+    ]);
+    
+    // Atualizar cards com dados reais
+    const totalClientes = document.querySelector('p.text-3xl:contains("1,245")');
+    const assinaturasAtivas = document.querySelector('p.text-3xl:contains("850")');
+    
+    if (assinaturasAtivas) {
+      assinaturasAtivas.textContent = assinaturas.count || assinaturas.subscriptions?.length || 0;
+    }
+  } catch (error) {
+    console.error('Erro ao carregar estatísticas:', error);
+  }
+}
+
+// Carregar ao abrir
+carregarEstatisticas();
+</script>
 </body></html>

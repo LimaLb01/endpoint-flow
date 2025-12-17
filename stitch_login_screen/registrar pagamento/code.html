@@ -266,5 +266,126 @@
 </div>
 </main>
 </div>
+<!-- API Script -->
+<script src="../api.js"></script>
+<script>
+// Verificar autenticação
+if (!localStorage.getItem('token')) {
+  window.location.href = '../login_screen/code.html';
+}
 
+// Elementos do formulário
+const form = document.querySelector('form');
+const clientInput = form.querySelector('input[placeholder*="Search for existing client"]');
+const serviceSelect = form.querySelector('select');
+const amountInput = form.querySelector('input[type="number"]');
+const dateInput = form.querySelector('input[type="date"]');
+const confirmedByInput = form.querySelector('input[placeholder*="Your name"]') || document.createElement('input');
+const notesTextarea = form.querySelector('textarea');
+const submitButton = form.querySelector('button[type="button"]:contains("Confirm Payment")') || form.querySelector('button:last-of-type');
+
+// Verificar se há CPF na URL
+const urlParams = new URLSearchParams(window.location.search);
+const cpfFromUrl = urlParams.get('cpf');
+if (cpfFromUrl) {
+  clientInput.value = utils.aplicarMascaraCPF(cpfFromUrl);
+}
+
+// Carregar planos ao abrir
+let planos = [];
+async function carregarPlanos() {
+  try {
+    planos = await api.listarPlanos();
+    
+    // Limpar select
+    serviceSelect.innerHTML = '<option value="">Selecione um plano</option>';
+    
+    // Preencher com planos
+    planos.forEach(plano => {
+      const option = document.createElement('option');
+      option.value = plano.id;
+      option.textContent = `${plano.name} - ${utils.formatarMoeda(parseFloat(plano.price))}`;
+      serviceSelect.appendChild(option);
+    });
+  } catch (error) {
+    console.error('Erro ao carregar planos:', error);
+  }
+}
+
+// Quando selecionar plano, preencher valor automaticamente
+serviceSelect.addEventListener('change', (e) => {
+  const planoId = e.target.value;
+  const plano = planos.find(p => p.id === planoId);
+  if (plano) {
+    amountInput.value = parseFloat(plano.price).toFixed(2);
+  }
+});
+
+// Máscara de CPF no input de cliente
+clientInput.addEventListener('input', (e) => {
+  e.target.value = utils.aplicarMascaraCPF(e.target.value);
+});
+
+// Data padrão: hoje
+dateInput.value = new Date().toISOString().split('T')[0];
+
+// Submissão do formulário
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  
+  const cpf = clientInput.value.replace(/\D/g, '');
+  const planId = serviceSelect.value;
+  const amount = amountInput.value;
+  const paymentDate = dateInput.value;
+  const confirmedBy = confirmedByInput.value || 'Admin';
+  const notes = notesTextarea.value;
+  
+  // Validações
+  if (cpf.length !== 11) {
+    alert('Por favor, digite um CPF válido');
+    return;
+  }
+  
+  if (!planId) {
+    alert('Por favor, selecione um plano');
+    return;
+  }
+  
+  if (!amount || parseFloat(amount) <= 0) {
+    alert('Por favor, digite um valor válido');
+    return;
+  }
+  
+  if (!paymentDate) {
+    alert('Por favor, selecione uma data');
+    return;
+  }
+  
+  // Mostrar loading
+  submitButton.disabled = true;
+  submitButton.textContent = 'Registrando...';
+  
+  try {
+    const resultado = await api.registrarPagamento({
+      cpf,
+      plan_id: planId,
+      amount: parseFloat(amount),
+      payment_date: paymentDate,
+      confirmed_by: confirmedBy,
+      notes
+    });
+    
+    alert('Pagamento registrado com sucesso!');
+    window.location.href = '../dashboard/code.html';
+    
+  } catch (error) {
+    alert('Erro ao registrar pagamento: ' + error.message);
+    submitButton.disabled = false;
+    submitButton.textContent = 'Confirm Payment';
+  }
+});
+
+// Carregar planos ao abrir
+window.addEventListener('DOMContentLoaded', carregarPlanos);
+</script>
 </body></html>

@@ -285,4 +285,96 @@
 </div>
 </main>
 </div>
+<!-- API Script -->
+<script src="../api.js"></script>
+<script>
+// Verificar autenticação
+if (!localStorage.getItem('token')) {
+  window.location.href = '../login_screen/code.html';
+}
+
+// Obter ID da assinatura da URL
+const urlParams = new URLSearchParams(window.location.search);
+const subscriptionId = urlParams.get('id');
+
+let assinatura = null;
+
+// Carregar detalhes da assinatura
+async function carregarDetalhes() {
+  if (!subscriptionId) {
+    alert('ID da assinatura não fornecido');
+    window.location.href = '../Listar Assinaturas/code.html';
+    return;
+  }
+  
+  try {
+    assinatura = await api.obterAssinatura(subscriptionId);
+    preencherDetalhes(assinatura);
+  } catch (error) {
+    alert('Erro ao carregar detalhes: ' + error.message);
+    window.location.href = '../Listar Assinaturas/code.html';
+  }
+}
+
+// Preencher detalhes na tela
+function preencherDetalhes(data) {
+  const customer = data.customer || {};
+  const plan = data.plan || {};
+  
+  // Atualizar título
+  document.querySelector('h2.text-xl').textContent = `Detalhes da Assinatura #${data.id.substring(0, 8)}`;
+  
+  // Preencher dados do cliente
+  if (customer.name) {
+    document.querySelector('p.text-lg.font-bold')?.textContent = customer.name;
+  }
+  if (customer.email) {
+    document.querySelector('span:contains("@")')?.textContent = customer.email;
+  }
+  if (customer.cpf) {
+    document.querySelector('span:contains("CPF")')?.textContent = `CPF: ${utils.aplicarMascaraCPF(customer.cpf)}`;
+  }
+  
+  // Preencher dados da assinatura
+  if (plan.name) {
+    document.querySelector('p.text-2xl.font-bold')?.textContent = plan.name;
+  }
+  
+  // Status
+  const statusBadge = document.querySelector('.bg-green-100') || document.querySelector('.bg-red-100');
+  if (statusBadge) {
+    statusBadge.textContent = data.status === 'active' ? 'Ativa' : data.status === 'canceled' ? 'Cancelada' : 'Vencida';
+    statusBadge.className = data.status === 'active' ? 
+      'px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-bold' :
+      'px-3 py-1 rounded-full bg-red-100 text-red-700 text-xs font-bold';
+  }
+  
+  // Datas
+  if (data.current_period_start) {
+    document.querySelector('span:contains("Início")')?.textContent = `Início: ${utils.formatarData(data.current_period_start)}`;
+  }
+  if (data.current_period_end) {
+    document.querySelector('span:contains("Vencimento")')?.textContent = `Vencimento: ${utils.formatarData(data.current_period_end)}`;
+  }
+  
+  // Botão cancelar
+  const cancelarBtn = document.querySelector('button:contains("Cancelar")');
+  if (cancelarBtn && data.status === 'active') {
+    cancelarBtn.addEventListener('click', async () => {
+      if (confirm('Tem certeza que deseja cancelar esta assinatura?')) {
+        try {
+          await api.cancelarAssinatura(subscriptionId, false);
+          alert('Assinatura cancelada com sucesso!');
+          carregarDetalhes();
+        } catch (error) {
+          alert('Erro ao cancelar: ' + error.message);
+        }
+      }
+    });
+  }
+}
+
+// Carregar ao abrir
+carregarDetalhes();
+</script>
 </body></html>

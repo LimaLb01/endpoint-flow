@@ -317,5 +317,74 @@
 </div>
 </main>
 </div>
+<!-- API Script -->
+<script src="../api.js"></script>
+<script>
+// Verificar autenticação
+if (!localStorage.getItem('token')) {
+  window.location.href = '../login_screen/code.html';
+}
 
+// Elementos
+const tbody = document.querySelector('tbody');
+const countSpan = document.querySelector('span.font-bold:last-of-type');
+
+// Carregar planos
+async function carregarPlanos() {
+  try {
+    const planos = await api.listarPlanos();
+    preencherTabela(planos);
+    if (countSpan) {
+      countSpan.textContent = planos.length;
+    }
+  } catch (error) {
+    console.error('Erro ao carregar planos:', error);
+    tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-[#8c8b5f]">Erro ao carregar planos</td></tr>';
+  }
+}
+
+// Preencher tabela
+function preencherTabela(planos) {
+  if (planos.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" class="text-center py-8 text-[#8c8b5f]">Nenhum plano encontrado</td></tr>';
+    return;
+  }
+  
+  tbody.innerHTML = planos.map(plano => {
+    const statusBadge = plano.active ? 
+      '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-[#e6f6e8] text-accent-green"><span class="size-1.5 rounded-full bg-current"></span>Ativo</span>' :
+      '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-neutral-light text-[#5e5d40]"><span class="size-1.5 rounded-full bg-current"></span>Inativo</span>';
+    
+    const tipoTexto = plano.type === 'monthly' ? 'Mensal' :
+                     plano.type === 'yearly' ? 'Anual' :
+                     plano.type === 'one_time' ? 'Único' : plano.type;
+    
+    return `
+      <tr class="hover:bg-neutral-light/50 dark:hover:bg-[#2e2d1a]/50 transition-colors">
+        <td class="px-6 py-4">
+          <div class="flex items-center gap-3">
+            <div class="size-10 rounded-full bg-primary/20 flex items-center justify-center">
+              <span class="material-symbols-outlined text-primary">card_membership</span>
+            </div>
+            <div>
+              <p class="font-bold text-neutral-dark dark:text-white">${plano.name || 'Plano'}</p>
+              <p class="text-xs text-[#8c8b5f] dark:text-[#a3a272]">${plano.description || ''}</p>
+            </div>
+          </div>
+        </td>
+        <td class="px-6 py-4 text-[#5e5d40] dark:text-[#d1d0c5]">${tipoTexto}</td>
+        <td class="px-6 py-4">
+          <p class="font-bold text-neutral-dark dark:text-white">${utils.formatarMoeda(parseFloat(plano.price || 0))}</p>
+        </td>
+        <td class="px-6 py-4">
+          ${statusBadge}
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+// Carregar ao abrir
+carregarPlanos();
+</script>
 </body></html>

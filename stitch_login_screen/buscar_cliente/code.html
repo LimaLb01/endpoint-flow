@@ -123,8 +123,8 @@
 </div>
 </div>
 </div>
-<!-- Results Section (Visible when client found) -->
-<div class="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+<!-- Results Section (Hidden by default) -->
+<div id="resultados" class="hidden flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
 <!-- Client Profile Header Card -->
 <div class="bg-white rounded-lg p-6 border border-[#e6e6db] shadow-sm flex flex-col md:flex-row gap-6 items-start md:items-center justify-between">
 <div class="flex items-center gap-5">
@@ -239,21 +239,149 @@
 </div>
 </div>
 </div>
-<!-- Empty State (Hidden by default, shown here for structure completeness if needed via JS logic) -->
-<!-- 
-                <div class="hidden flex flex-col items-center justify-center py-20 bg-white rounded-lg border border-[#e6e6db] border-dashed">
-                    <div class="size-20 bg-[#f8f8f5] rounded-full flex items-center justify-center mb-4">
-                        <span class="material-symbols-outlined text-4xl text-[#8c8b5f]">person_off</span>
-                    </div>
-                    <h3 class="text-xl font-bold text-[#181811] mb-2">Cliente não encontrado</h3>
-                    <p class="text-[#8c8b5f] mb-6">Não encontramos nenhum registro com o CPF informado.</p>
-                    <button class="h-12 px-6 rounded-full bg-[#181811] text-white font-bold shadow-sm hover:opacity-90 transition-all flex items-center justify-center gap-2">
-                        <span class="material-symbols-outlined text-[20px]">person_add</span>
-                        Cadastrar Novo Cliente
-                    </button>
-                </div> 
-                -->
+<!-- Empty State (Hidden by default) -->
+<div id="emptyState" class="hidden flex flex-col items-center justify-center py-20 bg-white rounded-lg border border-[#e6e6db] border-dashed">
+    <div class="size-20 bg-[#f8f8f5] rounded-full flex items-center justify-center mb-4">
+        <span class="material-symbols-outlined text-4xl text-[#8c8b5f]">person_off</span>
+    </div>
+    <h3 class="text-xl font-bold text-[#181811] mb-2">Cliente não encontrado</h3>
+    <p class="text-[#8c8b5f] mb-6">Não encontramos nenhum registro com o CPF informado.</p>
+    <button class="h-12 px-6 rounded-full bg-[#181811] text-white font-bold shadow-sm hover:opacity-90 transition-all flex items-center justify-center gap-2">
+        <span class="material-symbols-outlined text-[20px]">person_add</span>
+        Cadastrar Novo Cliente
+    </button>
+</div>
 </div>
 </main>
 </div>
+<!-- API Script -->
+<script src="../api.js"></script>
+<script>
+// Verificar autenticação
+if (!localStorage.getItem('token')) {
+  window.location.href = '../login_screen/code.html';
+}
+
+// Elementos
+const cpfInput = document.querySelector('input[placeholder="000.000.000-00"]');
+const buscarBtn = document.querySelector('button:has(.material-symbols-outlined:contains("search"))');
+const resultadosDiv = document.getElementById('resultados');
+const emptyStateDiv = document.getElementById('emptyState');
+
+// Máscara de CPF
+cpfInput.addEventListener('input', (e) => {
+  e.target.value = utils.aplicarMascaraCPF(e.target.value);
+});
+
+// Buscar cliente
+buscarBtn.addEventListener('click', async () => {
+  const cpf = cpfInput.value;
+  const cpfLimpo = cpf.replace(/\D/g, '');
+  
+  if (cpfLimpo.length !== 11) {
+    alert('Por favor, digite um CPF válido');
+    return;
+  }
+  
+  // Mostrar loading
+  buscarBtn.disabled = true;
+  buscarBtn.innerHTML = '<span class="material-symbols-outlined animate-spin">refresh</span> Buscando...';
+  
+  try {
+    const data = await api.buscarCliente(cpf);
+    
+    if (data && data.customer) {
+      preencherDadosCliente(data);
+      resultadosDiv.classList.remove('hidden');
+      emptyStateDiv.classList.add('hidden');
+    } else {
+      resultadosDiv.classList.add('hidden');
+      emptyStateDiv.classList.remove('hidden');
+    }
+  } catch (error) {
+    if (error.message.includes('404') || error.message.includes('não encontrado')) {
+      resultadosDiv.classList.add('hidden');
+      emptyStateDiv.classList.remove('hidden');
+    } else {
+      alert('Erro ao buscar cliente: ' + error.message);
+    }
+  } finally {
+    buscarBtn.disabled = false;
+    buscarBtn.innerHTML = '<span class="material-symbols-outlined">search</span> Buscar';
+  }
+});
+
+// Permitir buscar com Enter
+cpfInput.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') {
+    buscarBtn.click();
+  }
+});
+
+// Preencher dados do cliente
+function preencherDadosCliente(data) {
+  const customer = data.customer;
+  const subscriptions = data.subscriptions || [];
+  
+  // Nome e iniciais
+  const nome = customer.name || 'Cliente';
+  const iniciais = nome.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+  document.querySelector('.size-20').textContent = iniciais;
+  document.querySelector('h2.text-2xl').textContent = nome;
+  
+  // Email e telefone
+  const emailSpan = document.querySelector('span:has(.material-symbols-outlined:contains("mail"))');
+  const phoneSpan = document.querySelector('span:has(.material-symbols-outlined:contains("call"))');
+  if (emailSpan) emailSpan.innerHTML = `<span class="material-symbols-outlined text-[16px]">mail</span> ${customer.email || 'N/A'}`;
+  if (phoneSpan) phoneSpan.innerHTML = `<span class="material-symbols-outlined text-[16px]">call</span> ${customer.phone || 'N/A'}`;
+  
+  // Status da assinatura
+  const statusBadge = document.querySelector('.bg-red-100');
+  const activeSubscription = subscriptions.find(s => s.status === 'active');
+  
+  if (activeSubscription) {
+    statusBadge.className = 'px-3 py-1 rounded-full bg-green-100 text-green-700 text-xs font-bold uppercase tracking-wider border border-green-200';
+    statusBadge.textContent = 'Ativo';
+    
+    // Preencher dados da assinatura
+    const planName = activeSubscription.plan?.name || 'Plano Ativo';
+    const endDate = new Date(activeSubscription.current_period_end);
+    const daysLeft = Math.ceil((endDate - new Date()) / (1000 * 60 * 60 * 24));
+    
+    document.querySelector('p.text-xl.font-bold').textContent = planName;
+    document.querySelector('p.text-base.font-medium').innerHTML = `
+      <span class="material-symbols-outlined text-[18px]">${daysLeft > 0 ? 'event' : 'event_busy'}</span>
+      ${utils.formatarData(activeSubscription.current_period_end)} ${daysLeft <= 0 ? '(Vencido)' : ''}
+    `;
+    
+    // Barra de progresso
+    const progressBar = document.querySelector('.bg-red-500');
+    if (daysLeft > 0) {
+      progressBar.className = 'bg-green-500 h-full';
+      progressBar.style.width = `${Math.min(100, (daysLeft / 30) * 100)}%`;
+      document.querySelector('p.text-xs.text-right').textContent = `${daysLeft} dias restantes`;
+      document.querySelector('p.text-xs.text-right').className = 'text-xs text-right mt-1 text-green-500 font-medium';
+    }
+  } else {
+    statusBadge.className = 'px-3 py-1 rounded-full bg-red-100 text-red-700 text-xs font-bold uppercase tracking-wider border border-red-200';
+    statusBadge.textContent = 'Inativo';
+  }
+  
+  // Botão registrar pagamento
+  const registrarBtn = document.querySelector('button:has(.material-symbols-outlined:contains("point_of_sale"))');
+  if (registrarBtn) {
+    registrarBtn.addEventListener('click', () => {
+      window.location.href = `../registrar pagamento/code.html?cpf=${customer.cpf}`;
+    });
+  }
+}
+
+// Verificar se há CPF na URL (vindo de outra página)
+const urlParams = new URLSearchParams(window.location.search);
+const cpfFromUrl = urlParams.get('cpf');
+if (cpfFromUrl) {
+  cpfInput.value = utils.aplicarMascaraCPF(cpfFromUrl);
+  buscarBtn.click();
+}
+</script>
 </body></html>
