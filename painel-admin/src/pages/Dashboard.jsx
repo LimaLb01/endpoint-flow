@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { api } from '../utils/api';
+import { api, utils } from '../utils/api';
 import Layout from '../components/Layout';
 
 export default function Dashboard() {
@@ -14,22 +14,26 @@ export default function Dashboard() {
     carregarEstatisticas();
   }, []);
 
+  const [loading, setLoading] = useState(true);
+
   const carregarEstatisticas = async () => {
+    setLoading(true);
     try {
-      const assinaturas = await api.listarAssinaturas('active').catch((err) => {
-        console.warn('Erro ao buscar assinaturas:', err);
-        return null;
-      });
+      const estatisticas = await api.obterEstatisticas();
       
-      if (assinaturas) {
-        setStats(prev => ({
-          ...prev,
-          assinaturasAtivas: assinaturas.count || assinaturas.subscriptions?.length || 0
-        }));
+      if (estatisticas) {
+        setStats({
+          totalClientes: estatisticas.totalClientes || 0,
+          assinaturasAtivas: estatisticas.assinaturasAtivas || 0,
+          assinaturasVencidas: estatisticas.assinaturasVencidas || 0,
+          receitaMes: estatisticas.receitaMes || 0
+        });
       }
     } catch (error) {
       console.error('Erro ao carregar estatísticas:', error);
       // Manter valores padrão em caso de erro
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -43,7 +47,16 @@ export default function Dashboard() {
       </header>
       
       <div className="p-6 md:p-10 flex flex-col gap-8 max-w-[1400px] mx-auto w-full">
-        {/* Stats Grid */}
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="flex flex-col items-center gap-4">
+              <span className="material-symbols-outlined animate-spin text-4xl text-primary">refresh</span>
+              <p className="text-[#8c8b5f] dark:text-[#a3a272]">Carregando estatísticas...</p>
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Stats Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
               {/* Card 1 - Total Clients */}
               <div className="flex flex-col gap-4 rounded-xl p-6 bg-white dark:bg-[#1a190b] shadow-sm border border-[#f0f0eb] dark:border-[#2e2d1a] hover:border-primary/50 transition-colors group">
@@ -93,10 +106,14 @@ export default function Dashboard() {
                 </div>
                 <div>
                   <p className="text-[#a3a272] dark:text-[#6b6a07] text-sm font-medium mb-1">Monthly Revenue</p>
-                  <p className="text-3xl font-bold text-white dark:text-neutral-dark tracking-tight">R$ {(stats.receitaMes || 0).toFixed(2)}</p>
+                  <p className="text-3xl font-bold text-white dark:text-neutral-dark tracking-tight">
+                    {utils.formatarMoeda(stats.receitaMes || 0)}
+                  </p>
                 </div>
               </div>
-        </div>
+            </div>
+          </>
+        )}
       </div>
     </Layout>
   );

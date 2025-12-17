@@ -180,6 +180,19 @@ export const api = {
         phone: dados.phone ? dados.phone.replace(/\D/g, '') : null
       })
     });
+  },
+
+  /**
+   * Obter estatísticas do dashboard
+   */
+  obterEstatisticas: async () => {
+    const data = await apiRequest('/admin/stats');
+    return data?.stats || {
+      totalClientes: 0,
+      assinaturasAtivas: 0,
+      assinaturasVencidas: 0,
+      receitaMes: 0
+    };
   }
 };
 

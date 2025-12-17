@@ -447,5 +447,94 @@ router.get('/plans', requireAuth, async (req, res) => {
   }
 });
 
+/**
+ * GET /api/admin/stats
+ * Retorna estatísticas para o dashboard
+ */
+router.get('/stats', requireAuth, async (req, res) => {
+  const logger = req.requestId ? createRequestLogger(req.requestId) : globalLogger;
+  
+  try {
+    // Total de clientes
+    const { count: totalClientes, error: clientesError } = await supabaseAdmin
+      .from('customers')
+      .select('*', { count: 'exact', head: true });
+    
+    if (clientesError) {
+      throw clientesError;
+    }
+    
+    // Assinaturas ativas
+    const { count: assinaturasAtivas, error: ativasError } = await supabaseAdmin
+      .from('subscriptions')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'active');
+    
+    if (ativasError) {
+      throw ativasError;
+    }
+    
+    // Assinaturas vencidas (canceled, past_due, unpaid)
+    const { count: assinaturasVencidas, error: vencidasError } = await supabaseAdmin
+      .from('subscriptions')
+      .select('*', { count: 'exact', head: true })
+      .in('status', ['canceled', 'past_due', 'unpaid']);
+    
+    if (vencidasError) {
+      throw vencidasError;
+    }
+    
+    // Receita do mês atual (pagamentos confirmados)
+    const inicioMes = new Date();
+    inicioMes.setDate(1);
+    inicioMes.setHours(0, 0, 0, 0);
+    
+    const fimMes = new Date();
+    fimMes.setMonth(fimMes.getMonth() + 1);
+    fimMes.setDate(0);
+    fimMes.setHours(23, 59, 59, 999);
+    
+    const { data: pagamentos, error: pagamentosError } = await supabaseAdmin
+      .from('manual_payments')
+      .select('amount')
+      .eq('status', 'confirmed')
+      .gte('payment_date', inicioMes.toISOString())
+      .lte('payment_date', fimMes.toISOString());
+    
+    if (pagamentosError) {
+      throw pagamentosError;
+    }
+    
+    const receitaMes = pagamentos?.reduce((total, p) => {
+      return total + (parseFloat(p.amount) || 0);
+    }, 0) || 0;
+    
+    const stats = {
+      totalClientes: totalClientes || 0,
+      assinaturasAtivas: assinaturasAtivas || 0,
+      assinaturasVencidas: assinaturasVencidas || 0,
+      receitaMes: receitaMes
+    };
+    
+    logger.info('Estatísticas do dashboard carregadas', {
+      totalClientes: stats.totalClientes,
+      assinaturasAtivas: stats.assinaturasAtivas
+    });
+    
+    return res.json({
+      success: true,
+      stats
+    });
+  } catch (error) {
+    logger.error('Erro ao carregar estatísticas', {
+      error: error.message
+    });
+    return res.status(500).json({
+      error: 'Erro ao carregar estatísticas',
+      message: error.message
+    });
+  }
+});
+
 module.exports = router;
 
