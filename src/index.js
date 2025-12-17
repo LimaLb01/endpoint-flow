@@ -12,6 +12,8 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const webhookRoutes = require('./routes/webhook-routes');
+const stripeRoutes = require('./routes/stripe-routes');
+const adminRoutes = require('./routes/admin-routes');
 const { encryptionMiddleware } = require('./middleware/encryption-middleware');
 const { signatureValidationMiddleware } = require('./middleware/signature-middleware');
 const { requestIdMiddleware } = require('./middleware/request-id-middleware');
@@ -239,6 +241,17 @@ app.get('/metrics', (req, res) => {
 app.use('/webhook', signatureValidationMiddleware);
 app.use('/webhook', encryptionMiddleware);
 app.use('/webhook', webhookRoutes);
+
+// ============================================
+// Rotas do Stripe (Webhook)
+// ============================================
+// Webhook do Stripe precisa receber raw body para verificar assinatura
+app.use('/api/webhooks', stripeRoutes);
+
+// ============================================
+// Rotas Administrativas
+// ============================================
+app.use('/api/admin', adminRoutes);
 
 // ============================================
 // Tratamento de Erros
