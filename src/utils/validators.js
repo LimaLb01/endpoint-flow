@@ -116,8 +116,10 @@ function validateSelectService(payload) {
     };
   }
 
-  // Validar se o serviço é válido (IDs conhecidos)
-  const validServices = ['corte_masculino', 'barba', 'corte_barba', 'corte_infantil', 'pigmentacao'];
+  // Importar serviços reais para validação
+  const { SERVICES } = require('../config/services');
+  const validServices = SERVICES.map(s => s.id);
+  
   if (!validServices.includes(selected_service)) {
     return {
       valid: false,

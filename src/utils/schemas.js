@@ -28,15 +28,7 @@ const flowRequestSchema = z.object({
  * Schema para SELECT_SERVICE
  */
 const selectServiceSchema = z.object({
-  selected_service: z.enum([
-    'corte_masculino',
-    'barba',
-    'corte_barba',
-    'corte_infantil',
-    'pigmentacao'
-  ], {
-    errorMap: () => ({ message: 'Serviço selecionado não é válido' })
-  }),
+  selected_service: z.string().min(1, 'Serviço é obrigatório'),
   action_type: z.literal('SELECT_SERVICE').optional()
 });
 
