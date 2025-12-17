@@ -4,6 +4,7 @@
  */
 
 const rateLimit = require('express-rate-limit');
+const { ipKeyGenerator } = require('express-rate-limit');
 const { RateLimitError } = require('../utils/errors');
 const { createRequestLogger, globalLogger } = require('../utils/logger');
 
@@ -38,22 +39,9 @@ const generalRateLimiter = rateLimit({
   message: 'Muitas requisições deste IP. Tente novamente mais tarde.',
   standardHeaders: true, // Retorna informações de rate limit nos headers `RateLimit-*`
   legacyHeaders: false, // Desabilita headers `X-RateLimit-*`
-  // Configurar trust proxy de forma segura
-  // Railway usa X-Forwarded-For, mas precisamos validar
-  trustProxy: true,
-  // Usar função customizada para obter IP de forma segura
-  keyGenerator: (req) => {
-    // Tentar obter IP real do header X-Forwarded-For (quando confiável)
-    // Em Railway, o primeiro IP é o do cliente
-    const forwarded = req.headers['x-forwarded-for'];
-    if (forwarded) {
-      const ips = forwarded.split(',').map(ip => ip.trim());
-      // Pegar o primeiro IP (cliente real)
-      return ips[0] || req.ip;
-    }
-    // Fallback para req.ip (já considera trust proxy)
-    return req.ip;
-  },
+  // Usar ipKeyGenerator do express-rate-limit para suporte IPv6 seguro
+  // O Express já está configurado com trust proxy, então req.ip já retorna o IP correto
+  keyGenerator: ipKeyGenerator,
   handler: (req, res) => {
     const logger = req.requestId ? createRequestLogger(req.requestId) : globalLogger;
     logger.warn('Rate limit excedido por IP', {
