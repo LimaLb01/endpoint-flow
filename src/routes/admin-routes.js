@@ -448,6 +448,63 @@ router.get('/plans', requireAuth, async (req, res) => {
 });
 
 /**
+ * GET /api/admin/payments
+ * Lista pagamentos (com filtros opcionais)
+ */
+router.get('/payments', requireAuth, async (req, res) => {
+  const logger = req.requestId ? createRequestLogger(req.requestId) : globalLogger;
+  
+  try {
+    const { customer_id, subscription_id, limit = 50 } = req.query;
+    
+    let query = supabaseAdmin
+      .from('manual_payments')
+      .select('*', { count: 'exact' })
+      .eq('status', 'confirmed')
+      .order('payment_date', { ascending: false })
+      .limit(parseInt(limit));
+    
+    if (customer_id) {
+      query = query.eq('customer_id', customer_id);
+    }
+    
+    if (subscription_id) {
+      // Buscar assinatura primeiro para obter customer_id e plan_id
+      const { data: subscription } = await supabaseAdmin
+        .from('subscriptions')
+        .select('customer_id, plan_id')
+        .eq('id', subscription_id)
+        .single();
+      
+      if (subscription) {
+        query = query
+          .eq('customer_id', subscription.customer_id)
+          .eq('plan_id', subscription.plan_id);
+      }
+    }
+    
+    const { data, error, count } = await query;
+    
+    if (error) {
+      throw error;
+    }
+    
+    return res.json({
+      payments: data || [],
+      count: count || 0
+    });
+  } catch (error) {
+    logger.error('Erro ao listar pagamentos', {
+      error: error.message
+    });
+    return res.status(500).json({
+      error: 'Erro ao listar pagamentos',
+      message: error.message
+    });
+  }
+});
+
+/**
  * GET /api/admin/stats
  * Retorna estatísticas para o dashboard
  */

@@ -193,6 +193,19 @@ export const api = {
       assinaturasVencidas: 0,
       receitaMes: 0
     };
+  },
+
+  /**
+   * Listar pagamentos
+   */
+  listarPagamentos: async (filtros = {}) => {
+    const params = new URLSearchParams();
+    if (filtros.customer_id) params.append('customer_id', filtros.customer_id);
+    if (filtros.subscription_id) params.append('subscription_id', filtros.subscription_id);
+    if (filtros.limit) params.append('limit', filtros.limit);
+    
+    const data = await apiRequest(`/admin/payments?${params.toString()}`);
+    return data?.payments || [];
   }
 };
 
