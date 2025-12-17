@@ -17,15 +17,20 @@ export default function Dashboard() {
 
   const carregarEstatisticas = async () => {
     try {
-      const [assinaturas] = await Promise.all([
-        api.listarAssinaturas('active')
-      ]);
-      
-      setStats({
-        assinaturasAtivas: assinaturas.count || assinaturas.subscriptions?.length || 0
+      const assinaturas = await api.listarAssinaturas('active').catch((err) => {
+        console.warn('Erro ao buscar assinaturas:', err);
+        return null;
       });
+      
+      if (assinaturas) {
+        setStats(prev => ({
+          ...prev,
+          assinaturasAtivas: assinaturas.count || assinaturas.subscriptions?.length || 0
+        }));
+      }
     } catch (error) {
       console.error('Erro ao carregar estatísticas:', error);
+      // Manter valores padrão em caso de erro
     }
   };
 
@@ -175,7 +180,7 @@ export default function Dashboard() {
                 </div>
                 <div>
                   <p className="text-[#a3a272] dark:text-[#6b6a07] text-sm font-medium mb-1">Monthly Revenue</p>
-                  <p className="text-3xl font-bold text-white dark:text-neutral-dark tracking-tight">R$ {stats.receitaMes.toFixed(2)}</p>
+                  <p className="text-3xl font-bold text-white dark:text-neutral-dark tracking-tight">R$ {(stats.receitaMes || 0).toFixed(2)}</p>
                 </div>
               </div>
             </div>

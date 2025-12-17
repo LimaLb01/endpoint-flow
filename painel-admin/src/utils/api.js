@@ -45,6 +45,7 @@ async function apiRequest(endpoint, options = {}) {
     if (response.status === 401) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+      window.location.href = '/login';
       return null;
     }
     
@@ -57,6 +58,11 @@ async function apiRequest(endpoint, options = {}) {
     return await response.json();
   } catch (error) {
     console.error('Erro na requisição:', error);
+    // Se for erro de rede, retornar null em vez de lançar exceção
+    if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+      console.warn('Erro de rede, retornando null');
+      return null;
+    }
     throw error;
   }
 }
