@@ -22,3 +22,12 @@
   background-color: #cbd5e1;
   border-radius: 20px;
 }
+
+/* Form input styles to match HTML */
+.form-input {
+  outline: none;
+}
+
+.form-input:focus {
+  outline: none;
+}
