@@ -190,11 +190,38 @@ async function handleCheckoutCompleted(session) {
 
     // Se foi pagamento único, criar assinatura manual
     if (session.mode === 'payment' && session.payment_status === 'paid') {
+      // Buscar dados do plano
+      const { data: plan } = await supabaseAdmin
+        .from('plans')
+        .select('*')
+        .eq('id', planId)
+        .single();
+      
+      // Criar pagamento manual
+      const { data: payment } = await supabaseAdmin
+        .from('manual_payments')
+        .insert({
+          customer_id: customer.id,
+          plan_id: planId,
+          amount: session.amount_total ? session.amount_total / 100 : 0,
+          payment_date: new Date(),
+          confirmed_by: 'Stripe',
+          status: 'confirmed',
+          stripe_payment_intent_id: session.payment_intent
+        })
+        .select()
+        .single();
+      
       // Criar assinatura para plano único
       const subscription = await createSubscription(customer.id, planId, {
         stripe_customer_id: session.customer,
         status: 'active'
       });
+
+      // Enviar notificações
+      if (payment && plan) {
+        await notifyPaymentConfirmed(customer, payment, plan);
+      }
 
       return {
         success: true,
@@ -295,12 +322,50 @@ async function handleSubscriptionDeleted(stripeSubscription) {
  */
 async function handlePaymentSucceeded(invoice) {
   try {
-    // Registrar pagamento no banco
-    // TODO: Implementar registro de pagamento
     globalLogger.info('Pagamento bem-sucedido', {
       invoiceId: invoice.id,
       subscriptionId: invoice.subscription
     });
+
+    // Se tem assinatura, buscar dados para notificação
+    if (invoice.subscription) {
+      const subscription = await getSubscriptionByStripeId(invoice.subscription);
+      
+      if (subscription) {
+        // Buscar dados do cliente e plano
+        const { data: customer } = await supabaseAdmin
+          .from('customers')
+          .select('*')
+          .eq('id', subscription.customer_id)
+          .single();
+        
+        const { data: plan } = await supabaseAdmin
+          .from('plans')
+          .select('*')
+          .eq('id', subscription.plan_id)
+          .single();
+        
+        // Criar registro de pagamento
+        const { data: payment } = await supabaseAdmin
+          .from('manual_payments')
+          .insert({
+            customer_id: customer?.id,
+            plan_id: subscription.plan_id,
+            amount: invoice.amount_paid ? invoice.amount_paid / 100 : 0,
+            payment_date: new Date(invoice.created * 1000),
+            confirmed_by: 'Stripe',
+            status: 'confirmed',
+            stripe_invoice_id: invoice.id
+          })
+          .select()
+          .single();
+        
+        // Enviar notificações
+        if (customer && plan && payment) {
+          await notifyPaymentConfirmed(customer, payment, plan);
+        }
+      }
+    }
 
     return { success: true };
   } catch (error) {
