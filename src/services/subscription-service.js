@@ -96,10 +96,44 @@ async function createSubscription(customerId, planId, stripeData = {}) {
   }
 
   try {
+    // Buscar dados do plano para calcular período
+    const { data: plan, error: planError } = await supabaseAdmin
+      .from('plans')
+      .select('*')
+      .eq('id', planId)
+      .single();
+
+    if (planError) {
+      throw planError;
+    }
+
+    // Calcular current_period_end se não fornecido e se não for plano único
+    let currentPeriodStart = stripeData.current_period_start || new Date();
+    let currentPeriodEnd = stripeData.current_period_end;
+
+    if (!currentPeriodEnd && plan) {
+      const startDate = new Date(currentPeriodStart);
+      
+      if (plan.type === 'monthly') {
+        // Adiciona 30 dias
+        currentPeriodEnd = new Date(startDate);
+        currentPeriodEnd.setMonth(currentPeriodEnd.getMonth() + 1);
+      } else if (plan.type === 'yearly') {
+        // Adiciona 1 ano
+        currentPeriodEnd = new Date(startDate);
+        currentPeriodEnd.setFullYear(currentPeriodEnd.getFullYear() + 1);
+      } else if (plan.type === 'one_time') {
+        // Plano único: sem data de expiração (null)
+        currentPeriodEnd = null;
+      }
+    }
+
     const subscriptionData = {
       customer_id: customerId,
       plan_id: planId,
       status: 'active',
+      current_period_start: currentPeriodStart,
+      current_period_end: currentPeriodEnd,
       ...stripeData
     };
 
@@ -120,7 +154,8 @@ async function createSubscription(customerId, planId, stripeData = {}) {
     globalLogger.info('Assinatura criada com sucesso', {
       subscriptionId: data.id,
       customerId,
-      planId
+      planId,
+      currentPeriodEnd: currentPeriodEnd?.toISOString()
     });
 
     return data;
