@@ -128,13 +128,21 @@ async function createSubscription(customerId, planId, stripeData = {}) {
       }
     }
 
+    // Preparar dados da assinatura
+    // Se stripeData tiver current_period_start/end, usar esses valores
+    // Caso contrário, usar os valores calculados
     const subscriptionData = {
       customer_id: customerId,
       plan_id: planId,
       status: 'active',
       current_period_start: currentPeriodStart,
       current_period_end: currentPeriodEnd,
-      ...stripeData
+      ...stripeData,
+      // Garantir que os valores calculados sejam usados se não estiverem no stripeData
+      current_period_start: stripeData.current_period_start || currentPeriodStart,
+      current_period_end: (stripeData.current_period_end !== undefined && stripeData.current_period_end !== null) 
+        ? stripeData.current_period_end 
+        : currentPeriodEnd
     };
 
     const { data, error } = await supabaseAdmin

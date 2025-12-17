@@ -641,5 +641,106 @@ router.get('/stats', requireAuth, async (req, res) => {
   }
 });
 
+/**
+ * POST /api/admin/subscriptions/fix-periods
+ * Corrige assinaturas ativas que não têm current_period_end definido
+ */
+router.post('/subscriptions/fix-periods', requireAuth, async (req, res) => {
+  const logger = req.requestId ? createRequestLogger(req.requestId) : globalLogger;
+  
+  try {
+    // Buscar todas as assinaturas ativas sem current_period_end
+    const { data: subscriptions, error: fetchError } = await supabaseAdmin
+      .from('subscriptions')
+      .select(`
+        *,
+        plan:plans(*)
+      `)
+      .eq('status', 'active')
+      .is('current_period_end', null);
+
+    if (fetchError) {
+      throw fetchError;
+    }
+
+    if (!subscriptions || subscriptions.length === 0) {
+      return res.json({
+        success: true,
+        message: 'Nenhuma assinatura precisa ser corrigida',
+        updated: 0
+      });
+    }
+
+    let updated = 0;
+    const errors = [];
+
+    for (const subscription of subscriptions) {
+      try {
+        const plan = subscription.plan;
+        if (!plan) {
+          errors.push(`Assinatura ${subscription.id}: plano não encontrado`);
+          continue;
+        }
+
+        const startDate = subscription.current_period_start 
+          ? new Date(subscription.current_period_start)
+          : new Date(subscription.created_at);
+
+        let periodEnd = null;
+
+        if (plan.type === 'monthly') {
+          periodEnd = new Date(startDate);
+          periodEnd.setMonth(periodEnd.getMonth() + 1);
+        } else if (plan.type === 'yearly') {
+          periodEnd = new Date(startDate);
+          periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+        } else if (plan.type === 'one_time') {
+          // Plano único: sem data de expiração
+          periodEnd = null;
+        }
+
+        const { error: updateError } = await supabaseAdmin
+          .from('subscriptions')
+          .update({
+            current_period_start: startDate,
+            current_period_end: periodEnd,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', subscription.id);
+
+        if (updateError) {
+          errors.push(`Assinatura ${subscription.id}: ${updateError.message}`);
+        } else {
+          updated++;
+        }
+      } catch (error) {
+        errors.push(`Assinatura ${subscription.id}: ${error.message}`);
+      }
+    }
+
+    logger.info('Correção de períodos de assinaturas concluída', {
+      total: subscriptions.length,
+      updated,
+      errors: errors.length
+    });
+
+    return res.json({
+      success: true,
+      message: `${updated} assinatura(s) atualizada(s)`,
+      total: subscriptions.length,
+      updated,
+      errors: errors.length > 0 ? errors : undefined
+    });
+  } catch (error) {
+    logger.error('Erro ao corrigir períodos de assinaturas', {
+      error: error.message
+    });
+    return res.status(500).json({
+      error: 'Erro ao corrigir períodos',
+      message: error.message
+    });
+  }
+});
+
 module.exports = router;
 

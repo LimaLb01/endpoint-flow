@@ -228,7 +228,14 @@ export const utils = {
    * Formatar data para exibição
    */
   formatarData: (dataISO) => {
+    if (!dataISO) {
+      return 'Sem data de vencimento';
+    }
     const data = new Date(dataISO);
+    // Verificar se a data é válida
+    if (isNaN(data.getTime())) {
+      return 'Data inválida';
+    }
     return data.toLocaleDateString('pt-BR', {
       day: '2-digit',
       month: '2-digit',

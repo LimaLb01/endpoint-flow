@@ -716,7 +716,9 @@ export default function BuscarCliente() {
                     <h3 className="text-lg font-bold text-[#181811] mb-4">Plano Atual</h3>
                     <p className="text-xl font-bold text-[#181811]">{assinaturaAtiva.plan?.name || 'Plano Ativo'}</p>
                     <p className="text-sm text-[#8c8b5f] mt-2">
-                      Vencimento: {utils.formatarData(assinaturaAtiva.current_period_end)}
+                      {assinaturaAtiva.current_period_end 
+                        ? `Vencimento: ${utils.formatarData(assinaturaAtiva.current_period_end)}`
+                        : 'Sem data de vencimento'}
                     </p>
                   </div>
                 )}
