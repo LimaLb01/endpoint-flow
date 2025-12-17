@@ -1,8 +1,14 @@
 # 🔑 Como Obter a Service Role Key no Supabase
 
+## ⚠️ ATUALIZAÇÃO: Nova Interface do Supabase
+
+O Supabase atualizou a interface! Agora não é mais "anon" e "service_role", mas sim:
+- **Publishable key** = antiga "anon key" (pode ser usada publicamente)
+- **Secret key** = antiga "service_role key" (mantenha secreta!)
+
 ## 📍 Localização Exata
 
-A **service_role key** está na mesma página onde você viu a **anon key**, mas mais abaixo na página.
+A **Secret key** está na seção **"Secret keys"** na mesma página de API Keys.
 
 ## 🎯 Passo a Passo Detalhado
 
@@ -23,24 +29,27 @@ Você verá várias seções na página:
 #### Seção 1: "Project URL"
 - Mostra: `https://ajqyqogusrmdsyckhtay.supabase.co`
 
-#### Seção 2: "anon" ou "public" key
-- Esta é a chave que você já tem
-- Começa com: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`
+#### Seção 2: "Publishable key"
+- Esta é a chave pública (antiga "anon key")
+- Começa com: `sb_publishable_...`
+- Pode ser usada publicamente (com RLS ativado)
 
-#### Seção 3: "service_role" key ⭐ (AQUI!)
-- **Role a página para BAIXO**
-- Procure por uma seção chamada **"service_role"** ou **"Service Role"**
-- Pode estar em uma seção separada ou em uma aba diferente
-- A chave começa com: `eyJhbGc...` (igual à anon, mas é diferente)
+#### Seção 3: "Secret keys" ⭐ (AQUI ESTÁ!)
+- Procure pela seção **"Secret keys"**
+- Descrição: "These API keys allow privileged access to your project's APIs"
+- Você verá uma chave mascarada: `sb_secret_...` (com asteriscos)
+- Esta é a chave que você precisa!
 
 ### 5. Revele a Chave
-- Ao lado da chave, há um ícone de **👁️ olho** ou botão **"Reveal"** ou **"Show"**
-- Clique para revelar a chave completa
+- Ao lado da chave mascarada (`sb_secret_...`), há um ícone de **👁️ olho**
+- Clique no ícone de **olho** para revelar a chave completa
+- A chave será desmascarada e você verá: `sb_secret_...` (chave completa)
 - **⚠️ ATENÇÃO:** Esta chave é SECRETA! Não compartilhe.
 
 ### 6. Copie a Chave
-- Clique no botão **"Copy"** ou selecione e copie manualmente
-- A chave é bem longa (mais de 200 caracteres)
+- Após revelar, clique no ícone de **📋 copiar** ao lado da chave
+- Ou selecione e copie manualmente (Ctrl+C)
+- A chave começa com `sb_secret_` e é bem longa
 
 ---
 
@@ -85,25 +94,21 @@ A página deve ter esta estrutura:
 
 ```
 ┌─────────────────────────────────────┐
-│ Settings > API                      │
+│ Settings > API Keys                 │
 ├─────────────────────────────────────┤
 │                                     │
-│ Project URL                         │
-│ https://...supabase.co              │
+│ Publishable key                     │
+│ sb_publishable_N64Ud5-l3_...       │
+│ [📋 Copy]                           │
 │                                     │
 │ ─────────────────────────────────   │
 │                                     │
-│ anon / public key                   │
-│ eyJhbGciOiJIUzI1NiIsInR5cCI6...    │
+│ Secret keys ⭐                       │
+│ sb_secret_WNf9D............        │
 │ [👁️ Reveal] [📋 Copy]              │
 │                                     │
-│ ─────────────────────────────────   │
-│                                     │
-│ service_role key ⭐                  │
-│ eyJhbGciOiJIUzI1NiIsInR5cCI6...    │
-│ [👁️ Reveal] [📋 Copy]              │
-│                                     │
-│ ⚠️ Keep this key secret!            │
+│ ⚠️ These API keys allow privileged  │
+│    access to your project's APIs    │
 │                                     │
 └─────────────────────────────────────┘
 ```

@@ -14,14 +14,17 @@
 eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFqcXlxb2d1c3JtZHN5Y2todGF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU5MTUzNTgsImV4cCI6MjA4MTQ5MTM1OH0.4Yhv5zImKhFKi53XhlGIWBUXsDytK4KCxGuxQ0j8wxM
 ```
 
-### Service Role Key (para operações administrativas)
+### Secret Key (para operações administrativas)
 ⚠️ **IMPORTANTE:** Esta chave deve ser mantida em segredo!
 
-Para obter a Service Role Key:
+**NOTA:** O Supabase atualizou a interface. Agora é chamada de **"Secret key"** (não mais "service_role").
+
+Para obter a Secret Key:
 1. Acesse: https://supabase.com/dashboard/project/ajqyqogusrmdsyckhtay/settings/api
-2. Role para baixo até "service_role"
-3. Copie a chave (começa com `eyJhbGc...`)
-4. Adicione ao `.env` como `SUPABASE_SERVICE_ROLE_KEY`
+2. Procure pela seção **"Secret keys"**
+3. Clique no ícone de **👁️ olho** para revelar a chave mascarada
+4. Copie a chave (começa com `sb_secret_...`)
+5. Adicione ao Railway como `SUPABASE_SERVICE_ROLE_KEY`
 
 ## Variáveis de Ambiente
 

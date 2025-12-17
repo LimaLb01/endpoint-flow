@@ -19,11 +19,11 @@ eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFqcXlxb2d
 ### 3. `SUPABASE_SERVICE_ROLE_KEY` ⚠️ CRÍTICA
 **Como obter:**
 1. Acesse: https://supabase.com/dashboard/project/ajqyqogusrmdsyckhtay/settings/api
-2. **Role a página para BAIXO** (a service_role está abaixo da anon key)
-3. Procure pela seção **"service_role"** ou **"Service Role"**
-4. Clique no ícone de **👁️ olho** ou botão **"Reveal"** para revelar a chave
-5. Clique em **"Copy"** para copiar
-6. A chave começa com `eyJhbGc...` e é bem longa (mais de 200 caracteres)
+2. Procure pela seção **"Secret keys"** (não é mais "service_role", mudou o nome!)
+3. Você verá uma chave mascarada: `sb_secret_...` (com asteriscos)
+4. Clique no ícone de **👁️ olho** ao lado da chave para revelar
+5. Clique no ícone de **📋 copiar** para copiar a chave completa
+6. A chave começa com `sb_secret_` e é bem longa
 
 **⚠️ ATENÇÃO:** Esta chave é **SECRETA** e não deve ser compartilhada!
 
