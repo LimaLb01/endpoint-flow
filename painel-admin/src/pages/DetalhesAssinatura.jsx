@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api, utils } from '../utils/api';
+import Layout from '../components/Layout';
 
 export default function DetalhesAssinatura() {
   const { id } = useParams();
@@ -39,41 +40,27 @@ export default function DetalhesAssinatura() {
   };
 
   if (loading) {
-    return <div className="p-8 text-center">Carregando...</div>;
+    return (
+      <Layout>
+        <div className="p-8 text-center">Carregando...</div>
+      </Layout>
+    );
   }
 
   if (!assinatura) {
-    return <div className="p-8 text-center">Assinatura não encontrada</div>;
+    return (
+      <Layout>
+        <div className="p-8 text-center">Assinatura não encontrada</div>
+      </Layout>
+    );
   }
 
   const customer = assinatura.customer || {};
   const plan = assinatura.plan || {};
 
   return (
-    <div className="bg-background-light dark:bg-background-dark font-display text-text-main dark:text-white overflow-x-hidden min-h-screen">
-      <div className="relative flex min-h-screen w-full flex-row">
-        <aside className="hidden lg:flex w-72 flex-col border-r border-[#e6e6db] dark:border-[#3a392a] bg-white dark:bg-[#1a190b] fixed h-full z-10">
-          <div className="flex flex-col h-full p-6 justify-between">
-            <div className="flex flex-col gap-8">
-              <div className="flex gap-4 items-center">
-                <h1 className="text-text-main dark:text-white text-lg font-bold">Barber Admin</h1>
-              </div>
-              <nav className="flex flex-col gap-2">
-                <a onClick={() => navigate('/dashboard')} className="flex items-center gap-3 px-4 py-3 rounded-full hover:bg-gray-100 dark:hover:bg-white/5 cursor-pointer">
-                  <span className="material-symbols-outlined">dashboard</span>
-                  <p className="text-sm font-medium">Dashboard</p>
-                </a>
-                <a onClick={() => navigate('/assinaturas')} className="flex items-center gap-3 px-4 py-3 rounded-full bg-primary/20 dark:bg-primary/10 cursor-pointer">
-                  <span className="material-symbols-outlined">calendar_month</span>
-                  <p className="text-sm font-bold">Assinaturas</p>
-                </a>
-              </nav>
-            </div>
-          </div>
-        </aside>
-
-        <main className="flex-1 lg:ml-72 flex flex-col min-h-screen">
-          <header className="w-full px-6 py-4 lg:px-10 lg:py-6 border-b border-[#e6e6db] dark:border-[#3a392a] bg-white dark:bg-[#1a190b] sticky top-0 z-20">
+    <Layout>
+      <header className="w-full px-6 py-4 lg:px-10 lg:py-6 border-b border-[#e5e5dc] dark:border-[#3a3928] bg-white/80 dark:bg-[#1a190b]/80 backdrop-blur-sm sticky top-0 z-10">
             <div className="flex items-center justify-between">
               <div className="flex flex-col">
                 <div className="flex items-center gap-2 text-text-secondary dark:text-gray-400 text-sm mb-1">
@@ -89,10 +76,10 @@ export default function DetalhesAssinatura() {
               >
                 Voltar
               </button>
-            </div>
-          </header>
+        </div>
+      </header>
 
-          <div className="p-6 lg:p-10 max-w-[1200px] mx-auto w-full">
+      <div className="p-6 lg:p-10 max-w-[1200px] mx-auto w-full">
             <div className="bg-white dark:bg-[#1a190b] rounded-xl border border-[#e6e6db] dark:border-[#3a392a] p-6 mb-6">
               <h3 className="text-lg font-bold mb-4">Informações do Cliente</h3>
               <p className="text-lg font-bold">{customer.name || 'N/A'}</p>
@@ -123,11 +110,9 @@ export default function DetalhesAssinatura() {
               >
                 Cancelar Assinatura
               </button>
-            )}
-          </div>
-        </main>
+        )}
       </div>
-    </div>
+    </Layout>
   );
 }
 

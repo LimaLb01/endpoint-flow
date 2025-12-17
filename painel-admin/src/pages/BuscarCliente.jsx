@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api, utils } from '../utils/api';
+import Layout from '../components/Layout';
 
 export default function BuscarCliente() {
   const [searchParams] = useSearchParams();
@@ -53,34 +54,12 @@ export default function BuscarCliente() {
   const assinaturaAtiva = cliente?.subscriptions?.find(s => s.status === 'active');
 
   return (
-    <div className="bg-background-light dark:bg-background-dark font-display text-[#181811] antialiased min-h-screen">
-      <div className="flex min-h-screen w-full flex-row overflow-x-hidden">
-        {/* SideNavBar */}
-        <aside className="hidden lg:flex w-72 flex-col justify-between border-r border-[#e6e6db] bg-white p-6 sticky top-0 h-screen">
-          <div className="flex flex-col gap-8">
-            <div className="flex items-center gap-3 px-2">
-              <h1 className="text-[#181811] text-xl font-bold leading-normal">BarberAdmin</h1>
-            </div>
-            <nav className="flex flex-col gap-2">
-              <a onClick={() => navigate('/dashboard')} className="flex items-center gap-3 px-4 py-3 rounded-full hover:bg-[#f5f5f0] transition-colors cursor-pointer">
-                <span className="material-symbols-outlined text-[#181811]">dashboard</span>
-                <p className="text-[#181811] text-base font-medium">Dashboard</p>
-              </a>
-              <a onClick={() => navigate('/clientes/buscar')} className="flex items-center gap-3 px-4 py-3 rounded-full bg-primary/20 hover:bg-primary/40 transition-colors cursor-pointer">
-                <span className="material-symbols-outlined text-[#181811]">group</span>
-                <p className="text-[#181811] text-base font-medium">Clientes</p>
-              </a>
-            </nav>
-          </div>
-        </aside>
+    <Layout>
+      <header className="flex items-center justify-between border-b border-[#e5e5dc] dark:border-[#3a3928] bg-white/80 dark:bg-[#1a190b]/80 backdrop-blur-sm px-6 py-4 md:px-10 sticky top-0 z-10">
+        <h2 className="text-neutral-dark dark:text-white text-xl md:text-2xl font-bold leading-tight tracking-tight">Buscar Cliente</h2>
+      </header>
 
-        {/* Main Content */}
-        <main className="flex flex-1 flex-col h-full relative">
-          <header className="flex items-center justify-between border-b border-[#e6e6db] bg-white px-6 py-4 lg:px-10">
-            <h2 className="text-[#181811] text-xl font-bold leading-tight">Buscar Cliente</h2>
-          </header>
-
-          <div className="p-4 md:p-10 flex flex-col gap-8 max-w-[1200px] mx-auto w-full">
+      <div className="p-4 md:p-10 flex flex-col gap-8 max-w-[1200px] mx-auto w-full">
             {/* Search Section */}
             <div className="bg-white rounded-lg shadow-sm border border-[#e6e6db] overflow-hidden">
               <div className="p-6 md:p-10 flex flex-col items-center text-center gap-6">
@@ -184,10 +163,8 @@ export default function BuscarCliente() {
                 )}
               </div>
             )}
-          </div>
-        </main>
       </div>
-    </div>
+    </Layout>
   );
 }
 

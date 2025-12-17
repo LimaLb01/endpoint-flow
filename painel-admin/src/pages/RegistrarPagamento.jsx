@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api, utils } from '../utils/api';
+import Layout from '../components/Layout';
 
 export default function RegistrarPagamento() {
   const [searchParams] = useSearchParams();
@@ -80,30 +81,12 @@ export default function RegistrarPagamento() {
   };
 
   return (
-    <div className="bg-background-light dark:bg-background-dark text-neutral-dark dark:text-white font-display antialiased overflow-x-hidden min-h-screen">
-      <div className="relative flex min-h-screen w-full flex-col md:flex-row">
-        <aside className="w-full md:w-64 flex-shrink-0 border-b md:border-b-0 md:border-r border-[#e5e5dc] dark:border-[#3a3928] bg-white dark:bg-[#1a190b] z-20">
-          <div className="flex h-full flex-col justify-between p-4 md:p-6 sticky top-0">
-            <div className="flex flex-col gap-8">
-              <div className="flex flex-col px-2">
-                <h1 className="text-neutral-dark dark:text-white text-xl font-bold">BarberAdmin</h1>
-              </div>
-              <nav className="flex flex-col gap-2">
-                <a onClick={() => navigate('/dashboard')} className="flex items-center gap-3 px-4 py-3 rounded-full hover:bg-neutral-light dark:hover:bg-[#2e2d1a] cursor-pointer">
-                  <span className="material-symbols-outlined">dashboard</span>
-                  <span className="text-sm font-medium">Dashboard</span>
-                </a>
-              </nav>
-            </div>
-          </div>
-        </aside>
+    <Layout>
+      <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#e5e5dc] dark:border-[#3a3928] bg-white/80 dark:bg-[#1a190b]/80 backdrop-blur-sm px-6 py-4 md:px-10 sticky top-0 z-10">
+        <h2 className="text-neutral-dark dark:text-white text-xl md:text-2xl font-bold leading-tight tracking-tight">Registrar Pagamento</h2>
+      </header>
 
-        <main className="flex-1 flex flex-col h-full min-h-screen relative overflow-hidden">
-          <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#e5e5dc] dark:border-[#3a3928] bg-white/80 dark:bg-[#1a190b]/80 backdrop-blur-sm px-6 py-4 md:px-10 sticky top-0 z-10">
-            <h2 className="text-neutral-dark dark:text-white text-xl md:text-2xl font-bold">Registrar Pagamento</h2>
-          </header>
-
-          <div className="p-6 md:p-10 flex flex-col gap-6 max-w-[1400px] mx-auto w-full">
+      <div className="p-6 md:p-10 flex flex-col gap-6 max-w-[1400px] mx-auto w-full">
             <div className="bg-white dark:bg-[#1a190b] rounded-xl border border-[#f0f0eb] dark:border-[#2e2d1a] shadow-sm p-6 md:p-8">
               <h3 className="text-lg font-bold text-neutral-dark dark:text-white mb-8">New Transaction Details</h3>
               
@@ -223,10 +206,8 @@ export default function RegistrarPagamento() {
                 </div>
               </form>
             </div>
-          </div>
-        </main>
       </div>
-    </div>
+    </Layout>
   );
 }
 
