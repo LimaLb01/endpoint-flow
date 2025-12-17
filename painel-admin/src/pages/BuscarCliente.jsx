@@ -709,6 +709,10 @@ export default function BuscarCliente() {
                     </p>
                   </div>
                 )}
+              </div>
+            )}
+          </>
+        )}
       </div>
     </Layout>
   );
