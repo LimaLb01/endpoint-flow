@@ -227,6 +227,17 @@ export default function BuscarCliente() {
             </div>
           ) : detalhesAssinatura ? (
             <div className="flex flex-col gap-8">
+              {/* Botão Voltar */}
+              <div className="mb-6 flex items-center gap-2">
+                <button
+                  onClick={() => setMostrarDetalhes(false)}
+                  className="flex items-center gap-1 text-sm font-medium text-[#8c8b5f] dark:text-[#a3a272] hover:text-neutral-dark dark:hover:text-white transition-colors"
+                >
+                  <span className="material-symbols-outlined text-lg">arrow_back</span>
+                  Voltar para consultar cliente
+                </button>
+              </div>
+
               {/* Status Banner */}
               <div className="w-full rounded-2xl bg-primary/10 border border-primary/20 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
