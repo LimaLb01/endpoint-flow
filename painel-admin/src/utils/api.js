@@ -116,6 +116,15 @@ export const api = {
     }
     return apiRequest(`/admin/customers?${params.toString()}`);
   },
+
+  /**
+   * Excluir cliente
+   */
+  excluirCliente: async (customerId) => {
+    return apiRequest(`/admin/customers/${customerId}`, {
+      method: 'DELETE'
+    });
+  },
   
   /**
    * Registrar pagamento manual

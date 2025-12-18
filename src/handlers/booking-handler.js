@@ -7,6 +7,8 @@ const { getBarbersByBranch } = require('../config/branches');
 const { createAppointment } = require('../services/calendar-service');
 const { WHATSAPP_CONFIG, MESSAGES } = require('../config/constants');
 const { recordBooking } = require('../utils/metrics');
+const { getCustomerByCpf, updateCustomer } = require('../services/customer-service');
+const { globalLogger } = require('../utils/logger');
 
 /**
  * Processa confirmação de agendamento
@@ -38,6 +40,42 @@ async function handleConfirmBooking(payload, requestId = null) {
     clientPhone: client_phone,
     bookingId: booking_id
   });
+  
+  // Atualizar dados do cliente se CPF estiver disponível
+  if (client_cpf && (client_name || client_phone || client_email)) {
+    try {
+      const cleanCpf = client_cpf.replace(/\D/g, '');
+      const customer = await getCustomerByCpf(cleanCpf);
+      
+      if (customer) {
+        const updates = {};
+        if (client_name && !customer.name) {
+          updates.name = client_name;
+        }
+        if (client_phone && !customer.phone) {
+          updates.phone = client_phone;
+        }
+        if (client_email && !customer.email) {
+          updates.email = client_email;
+        }
+        
+        if (Object.keys(updates).length > 0) {
+          await updateCustomer(customer.id, updates);
+          globalLogger.info('Cliente atualizado com dados do Flow', {
+            customerId: customer.id,
+            cpf: cleanCpf.replace(/\d(?=\d{4})/g, '*'),
+            updatedFields: Object.keys(updates)
+          });
+        }
+      }
+    } catch (error) {
+      globalLogger.warn('Erro ao atualizar cliente com dados do Flow', {
+        error: error.message,
+        cpf: client_cpf?.replace(/\d(?=\d{4})/g, '*')
+      });
+      // Não interrompe o fluxo se falhar a atualização
+    }
+  }
   
   try {
     console.log('='.repeat(60));

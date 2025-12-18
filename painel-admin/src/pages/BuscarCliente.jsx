@@ -720,13 +720,15 @@ export default function BuscarCliente() {
                       return (
                         <div
                           key={clienteItem.id}
-                          onClick={() => {
-                            setCpf(clienteItem.cpf);
-                            buscar(clienteItem.cpf);
-                          }}
-                          className="bg-white dark:bg-[#1a190b] rounded-lg p-4 border border-[#e6e6db] dark:border-[#3a392a] shadow-sm hover:shadow-md transition-all cursor-pointer hover:border-primary"
+                          className="bg-white dark:bg-[#1a190b] rounded-lg p-4 border border-[#e6e6db] dark:border-[#3a392a] shadow-sm hover:shadow-md transition-all"
                         >
-                          <div className="flex items-center gap-4">
+                          <div 
+                            onClick={() => {
+                              setCpf(clienteItem.cpf);
+                              buscar(clienteItem.cpf);
+                            }}
+                            className="flex items-center gap-4 cursor-pointer"
+                          >
                             <div className="size-12 rounded-full bg-[#f8f8f5] dark:bg-[#23220f] border border-[#e6e6db] dark:border-[#3a392a] flex items-center justify-center text-lg font-bold text-[#8c8b5f] dark:text-[#a3a272] flex-shrink-0">
                               {iniciaisCliente}
                             </div>
@@ -746,6 +748,30 @@ export default function BuscarCliente() {
                             <span className="material-symbols-outlined text-[#8c8b5f] dark:text-[#a3a272] flex-shrink-0">
                               chevron_right
                             </span>
+                          </div>
+                          <div className="mt-3 pt-3 border-t border-[#e6e6db] dark:border-[#3a392a] flex justify-end">
+                            <button
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                if (window.confirm(`Tem certeza que deseja excluir o cliente ${clienteItem.name || utils.aplicarMascaraCPF(clienteItem.cpf)}?`)) {
+                                  try {
+                                    await api.excluirCliente(clienteItem.id);
+                                    // Recarregar lista
+                                    const data = await api.listarClientes(50, 0);
+                                    if (data) {
+                                      setListaClientes(data.customers || []);
+                                      setTotalClientes(data.count || 0);
+                                    }
+                                  } catch (err) {
+                                    alert('Erro ao excluir cliente: ' + (err.message || 'Erro desconhecido'));
+                                  }
+                                }
+                              }}
+                              className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors flex items-center gap-1 text-sm font-medium"
+                            >
+                              <span className="material-symbols-outlined text-lg">delete</span>
+                              Excluir
+                            </button>
                           </div>
                         </div>
                       );

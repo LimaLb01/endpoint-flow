@@ -159,10 +159,66 @@ async function getOrCreateCustomer(cpf, additionalData = {}) {
   });
 }
 
+/**
+ * Exclui um cliente
+ * @param {string} customerId - ID do cliente (UUID)
+ * @returns {Promise<boolean>} true se excluído com sucesso
+ */
+async function deleteCustomer(customerId) {
+  if (!isAdminConfigured()) {
+    globalLogger.error('Supabase Admin não configurado');
+    return false;
+  }
+
+  try {
+    // Verificar se o cliente tem assinaturas ativas
+    const { data: subscriptions, error: subError } = await supabaseAdmin
+      .from('subscriptions')
+      .select('id, status')
+      .eq('customer_id', customerId)
+      .eq('status', 'active');
+
+    if (subError) {
+      throw subError;
+    }
+
+    if (subscriptions && subscriptions.length > 0) {
+      globalLogger.warn('Tentativa de excluir cliente com assinaturas ativas', {
+        customerId,
+        activeSubscriptions: subscriptions.length
+      });
+      return false;
+    }
+
+    // Excluir cliente
+    const { error } = await supabaseAdmin
+      .from('customers')
+      .delete()
+      .eq('id', customerId);
+
+    if (error) {
+      throw error;
+    }
+
+    globalLogger.info('Cliente excluído com sucesso', {
+      customerId
+    });
+
+    return true;
+  } catch (error) {
+    globalLogger.error('Erro ao excluir cliente', {
+      customerId,
+      error: error.message
+    });
+    return false;
+  }
+}
+
 module.exports = {
   getCustomerByCpf,
   createCustomer,
   updateCustomer,
-  getOrCreateCustomer
+  getOrCreateCustomer,
+  deleteCustomer
 };
 

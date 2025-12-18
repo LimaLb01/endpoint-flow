@@ -5,7 +5,7 @@
 
 const express = require('express');
 const router = express.Router();
-const { getCustomerByCpf, createCustomer, updateCustomer } = require('../services/customer-service');
+const { getCustomerByCpf, createCustomer, updateCustomer, deleteCustomer } = require('../services/customer-service');
 const { getActiveSubscriptionByCpf, createSubscription, cancelSubscription } = require('../services/subscription-service');
 const { getOrCreateCustomer } = require('../services/customer-service');
 const { createRequestLogger, globalLogger } = require('../utils/logger');
@@ -173,6 +173,49 @@ router.post('/customers', requireAuth, async (req, res) => {
     });
     return res.status(500).json({
       error: 'Erro ao criar cliente',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * DELETE /api/admin/customers/:id
+ * Exclui um cliente (apenas se não tiver assinaturas ativas)
+ */
+router.delete('/customers/:id', requireAuth, async (req, res) => {
+  const logger = req.requestId ? createRequestLogger(req.requestId) : globalLogger;
+  
+  try {
+    const { id } = req.params;
+    
+    if (!id) {
+      return res.status(400).json({
+        error: 'ID do cliente é obrigatório'
+      });
+    }
+    
+    const deleted = await deleteCustomer(id);
+    
+    if (!deleted) {
+      return res.status(400).json({
+        error: 'Não foi possível excluir o cliente',
+        message: 'Cliente pode ter assinaturas ativas ou não foi encontrado'
+      });
+    }
+    
+    logger.info('Cliente excluído com sucesso', { customerId: id });
+    
+    return res.json({
+      success: true,
+      message: 'Cliente excluído com sucesso'
+    });
+  } catch (error) {
+    logger.error('Erro ao excluir cliente', {
+      error: error.message,
+      customerId: req.params.id
+    });
+    return res.status(500).json({
+      error: 'Erro ao excluir cliente',
       message: error.message
     });
   }
