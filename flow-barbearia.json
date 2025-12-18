@@ -812,6 +812,22 @@
             "text": "Preencha seus dados para confirmar o agendamento"
           },
           {
+            "type": "TextCaption",
+            "text": "💡 Dados cadastrados (você pode copiar e colar nos campos abaixo):"
+          },
+          {
+            "type": "TextBody",
+            "text": "Nome: ${data.client_name || 'Não cadastrado'}"
+          },
+          {
+            "type": "TextBody",
+            "text": "Telefone: ${data.client_phone || 'Não cadastrado'}"
+          },
+          {
+            "type": "TextBody",
+            "text": "Email: ${data.client_email || 'Não cadastrado'}"
+          },
+          {
             "type": "Form",
             "name": "details_form",
             "children": [

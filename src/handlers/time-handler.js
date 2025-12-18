@@ -54,47 +54,77 @@ async function handleSelectTime(payload) {
   let clientPhone = '';
   let clientEmail = '';
   
-  if (client_cpf) {
+  // Limpar CPF para busca
+  const cleanCpf = client_cpf ? client_cpf.replace(/\D/g, '') : null;
+  
+  if (cleanCpf && cleanCpf.length === 11) {
     try {
-      const customer = await getCustomerByCpf(client_cpf);
+      const customer = await getCustomerByCpf(cleanCpf);
       if (customer) {
         clientName = customer.name || '';
         clientPhone = customer.phone || '';
         clientEmail = customer.email || '';
+        
+        globalLogger.info('Dados do cliente encontrados para preenchimento', {
+          cpf: cleanCpf.replace(/\d(?=\d{4})/g, '*'),
+          hasName: !!clientName,
+          hasPhone: !!clientPhone,
+          hasEmail: !!clientEmail
+        });
+      } else {
+        globalLogger.info('Cliente não encontrado no banco de dados', {
+          cpf: cleanCpf.replace(/\d(?=\d{4})/g, '*')
+        });
       }
     } catch (error) {
       globalLogger.warn('Erro ao buscar dados do cliente para preenchimento', {
-        cpf: client_cpf?.replace(/\d(?=\d{4})/g, '*'),
+        cpf: cleanCpf?.replace(/\d(?=\d{4})/g, '*'),
         error: error.message
       });
       // Não interrompe o fluxo se falhar
     }
+  } else if (client_cpf) {
+    globalLogger.warn('CPF inválido para busca de dados do cliente', {
+      cpf: client_cpf?.replace(/\d(?=\d{4})/g, '*')
+    });
   }
   
   // Gerar booking_id antecipadamente
   const bookingId = generateBookingId();
   
+  const responseData = {
+    selected_service: selected_service || previousFlowData.selected_service,
+    selected_date: selected_date || previousFlowData.selected_date,
+    selected_barber: selected_barber || previousFlowData.selected_barber,
+    selected_branch: selected_branch || previousFlowData.selected_branch,
+    selected_time: selected_time || previousFlowData.selected_time,
+    client_cpf: client_cpf || previousFlowData.client_cpf,
+    has_plan: has_plan || previousFlowData.has_plan || false,
+    is_club_member: is_club_member || previousFlowData.is_club_member || false,
+    service_name: service.title,
+    service_price: priceText,
+    barber_name: barber ? barber.title : 'Barbeiro',
+    formatted_date: formatDate(dateToFormat),
+    booking_id: bookingId,
+    client_name: clientName || '',
+    client_phone: clientPhone || '',
+    client_email: clientEmail || ''
+  };
+  
+  globalLogger.info('📤 TIME_SELECTION - Dados enviados para tela DETAILS', {
+    hasClientName: !!clientName,
+    hasClientPhone: !!clientPhone,
+    hasClientEmail: !!clientEmail,
+    clientName: clientName || 'vazio',
+    clientPhone: clientPhone || 'vazio',
+    clientEmail: clientEmail || 'vazio',
+    clientCpf: client_cpf ? client_cpf.replace(/\d(?=\d{4})/g, '*') : 'não informado'
+  });
+  
   return {
     version: '3.0',
     screen: 'DETAILS',
-    data: {
-      selected_service: selected_service || previousFlowData.selected_service,
-      selected_date: selected_date || previousFlowData.selected_date,
-      selected_barber: selected_barber || previousFlowData.selected_barber,
-      selected_branch: selected_branch || previousFlowData.selected_branch,
-      selected_time: selected_time || previousFlowData.selected_time,
-      client_cpf: client_cpf || previousFlowData.client_cpf,
-      has_plan: has_plan || previousFlowData.has_plan || false,
-      is_club_member: is_club_member || previousFlowData.is_club_member || false,
-      service_name: service.title,
-      service_price: priceText,
-      barber_name: barber ? barber.title : 'Barbeiro',
-      formatted_date: formatDate(dateToFormat),
-      booking_id: bookingId,
-      client_name: clientName,
-      client_phone: clientPhone,
-      client_email: clientEmail
-    }
+    data: responseData
   };
 }
 
