@@ -812,24 +812,21 @@
                 "name": "client_name",
                 "label": "Seu nome completo",
                 "required": true,
-                "input-type": "text",
-                "default-value": "${data.client_name}"
+                "input-type": "text"
               },
               {
                 "type": "TextInput",
                 "name": "client_phone",
                 "label": "WhatsApp para contato",
                 "required": true,
-                "input-type": "phone",
-                "default-value": "${data.client_phone}"
+                "input-type": "phone"
               },
               {
                 "type": "TextInput",
                 "name": "client_email",
                 "label": "E-mail (opcional)",
                 "required": false,
-                "input-type": "email",
-                "default-value": "${data.client_email}"
+                "input-type": "email"
               },
               {
                 "type": "TextArea",
