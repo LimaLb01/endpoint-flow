@@ -71,6 +71,12 @@ async function handleCpfInput(payload) {
     if (subscriptionInfo.has_plan) {
       // Cliente tem plano ativo, busca dados completos do cliente
       const customerData = await getCustomerByCpf(cleanCpf);
+      const clientName = customerData?.name || '';
+      
+      // Montar mensagem de boas-vindas
+      const welcomeMessage = clientName 
+        ? `👋 Bem-vindo, ${clientName}!`
+        : '📍 Selecione a Filial';
       
       // Cliente tem plano ativo, vai direto para seleção de filial
       return {
@@ -78,9 +84,10 @@ async function handleCpfInput(payload) {
         screen: 'BRANCH_SELECTION',
         data: {
           client_cpf: cleanCpf,
-          client_name: customerData?.name || '',
+          client_name: clientName,
           has_plan: true,
           is_club_member: true,
+          welcome_message: welcomeMessage,
           branches: getBranchesForFlow()
         }
       };

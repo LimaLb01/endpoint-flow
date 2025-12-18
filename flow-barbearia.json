@@ -210,6 +210,10 @@
           "type": "boolean",
           "__example__": false
         },
+        "welcome_message": {
+          "type": "string",
+          "__example__": "📍 Selecione a Filial"
+        },
         "branches": {
           "type": "array",
           "items": {
@@ -240,7 +244,7 @@
         "children": [
           {
             "type": "TextHeading",
-            "text": "${data.has_plan && data.client_name ? '👋 Bem-vindo, ' + data.client_name + '!' : '📍 Selecione a Filial'}"
+            "text": "${data.welcome_message}"
           },
           {
             "type": "TextBody",
@@ -399,6 +403,10 @@
         "client_cpf": {
           "type": "string",
           "__example__": "12345678900"
+        },
+        "client_name": {
+          "type": "string",
+          "__example__": "João Silva"
         },
         "has_plan": {
           "type": "boolean",
@@ -933,6 +941,14 @@
         "notes": {
           "type": "string",
           "__example__": ""
+        },
+        "client_email_display": {
+          "type": "string",
+          "__example__": "cliente@email.com"
+        },
+        "notes_display": {
+          "type": "string",
+          "__example__": "Nenhuma observação"
         }
       },
       "layout": {
@@ -1016,7 +1032,7 @@
               },
               {
                 "type": "TextBody",
-                "text": "${data.client_email || 'Não informado'}"
+                "text": "${data.client_email_display}"
               },
               {
                 "type": "TextCaption",
@@ -1024,7 +1040,7 @@
               },
               {
                 "type": "TextBody",
-                "text": "${data.notes || 'Nenhuma observação'}"
+                "text": "${data.notes_display}"
               },
               {
                 "type": "Footer",

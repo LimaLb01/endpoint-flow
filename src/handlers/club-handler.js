@@ -32,9 +32,11 @@ async function handleClubOption(payload) {
     screen: 'BRANCH_SELECTION',
     data: {
       client_cpf: client_cpf,
+      client_name: '',
       has_plan: false,
       is_club_member: isClubMember,
       wants_club: isClubMember,
+      welcome_message: '📍 Selecione a Filial',
       branches: getBranchesForFlow()
     }
   };

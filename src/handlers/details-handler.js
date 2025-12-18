@@ -71,6 +71,10 @@ async function handleSubmitDetails(payload) {
     formattedDate = formatDate(dateToFormat);
   }
   
+  // Preparar valores para exibição (com fallback)
+  const clientEmailDisplay = cleaned.client_email || previousFlowData.client_email || 'Não informado';
+  const notesDisplay = cleaned.notes || previousFlowData.notes || 'Nenhuma observação';
+  
   // Montar dados de resposta
   const responseData = {
     selected_service: cleaned.selected_service || previousFlowData.selected_service,
@@ -84,8 +88,10 @@ async function handleSubmitDetails(payload) {
     client_name: cleaned.client_name || previousFlowData.client_name || '',
     client_phone: cleaned.client_phone || previousFlowData.client_phone || '',
     client_email: cleaned.client_email || previousFlowData.client_email || '',
+    client_email_display: clientEmailDisplay,
     contact_preference: contact_preference || '',
     notes: cleaned.notes || previousFlowData.notes || '',
+    notes_display: notesDisplay,
     service_name: (payloadServiceName && !payloadServiceName.startsWith('${')) ? payloadServiceName : service.title,
     service_price: (payloadServicePrice && !payloadServicePrice.startsWith('${')) ? payloadServicePrice : priceText,
     barber_name: (payloadBarberName && !payloadBarberName.startsWith('${')) ? payloadBarberName : (barber ? barber.title : 'Barbeiro'),
