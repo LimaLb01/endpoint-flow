@@ -10,7 +10,7 @@ const { getBranchById, getBarbersByBranch } = require('../config/branches');
  * @returns {object} Resposta com lista de barbeiros da filial
  */
 async function handleSelectBranch(payload) {
-  const { selected_branch, client_cpf, has_plan, is_club_member } = payload;
+  const { selected_branch, client_cpf, client_name, has_plan, is_club_member } = payload;
   
   if (!selected_branch) {
     return {
@@ -47,6 +47,7 @@ async function handleSelectBranch(payload) {
       branch_name: branch.title,
       branch_address: branch.address,
       client_cpf: client_cpf,
+      client_name: client_name || '',
       has_plan: has_plan || false,
       is_club_member: is_club_member || false,
       barbers: barbers

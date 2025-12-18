@@ -12,7 +12,7 @@ const { getBarbersByBranch } = require('../config/branches');
  * @returns {object} Resposta com lista de serviços
  */
 async function handleSelectBarber(payload) {
-  const { selected_branch, selected_barber, client_cpf, has_plan, is_club_member } = payload;
+  const { selected_branch, selected_barber, client_cpf, client_name, has_plan, is_club_member } = payload;
   
   if (!selected_branch || !selected_barber) {
     return {
@@ -51,6 +51,7 @@ async function handleSelectBarber(payload) {
       selected_barber: selected_barber,
       barber_name: barber.title,
       client_cpf: client_cpf,
+      client_name: client_name || '',
       has_plan: has_plan || false,
       is_club_member: is_club_member || false,
       services: services

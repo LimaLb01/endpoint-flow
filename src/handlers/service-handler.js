@@ -11,7 +11,7 @@ const { getMinDate, getMaxDate } = require('../utils/date-formatter');
  * @returns {object} Resposta com dados para seleção de data
  */
 async function handleSelectService(payload) {
-  const { selected_service, selected_branch, selected_barber, client_cpf, has_plan, is_club_member } = payload;
+  const { selected_service, selected_branch, selected_barber, client_cpf, client_name, has_plan, is_club_member } = payload;
   
   if (!selected_service) {
     return {
@@ -36,6 +36,7 @@ async function handleSelectService(payload) {
       selected_branch: selected_branch,
       selected_barber: selected_barber,
       client_cpf: client_cpf,
+      client_name: client_name || '',
       has_plan: has_plan || false,
       is_club_member: is_club_member || false,
       service_name: service.title,

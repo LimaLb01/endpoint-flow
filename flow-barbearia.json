@@ -198,6 +198,10 @@
           "type": "string",
           "__example__": "12345678900"
         },
+        "client_name": {
+          "type": "string",
+          "__example__": "João Silva"
+        },
         "has_plan": {
           "type": "boolean",
           "__example__": false
@@ -236,7 +240,7 @@
         "children": [
           {
             "type": "TextHeading",
-            "text": "📍 Selecione a Filial"
+            "text": "${data.has_plan && data.client_name ? '👋 Bem-vindo, ' + data.client_name + '!' : '📍 Selecione a Filial'}"
           },
           {
             "type": "TextBody",
@@ -264,6 +268,7 @@
                 "action_type": "SELECT_BRANCH",
                 "selected_branch": "${form.selected_branch}",
                 "client_cpf": "${data.client_cpf}",
+                "client_name": "${data.client_name}",
                 "has_plan": "${data.has_plan}",
                 "is_club_member": "${data.is_club_member}"
               }
@@ -292,6 +297,10 @@
         "client_cpf": {
           "type": "string",
           "__example__": "12345678900"
+        },
+        "client_name": {
+          "type": "string",
+          "__example__": "João Silva"
         },
         "has_plan": {
           "type": "boolean",
@@ -361,6 +370,7 @@
                 "selected_branch": "${data.selected_branch}",
                 "selected_barber": "${data.selected_barber}",
                 "client_cpf": "${data.client_cpf}",
+                "client_name": "${data.client_name}",
                 "has_plan": "${data.has_plan}",
                 "is_club_member": "${data.is_club_member}"
               }
@@ -466,6 +476,7 @@
                 "selected_branch": "${data.selected_branch}",
                 "selected_barber": "${data.selected_barber}",
                 "client_cpf": "${data.client_cpf}",
+                "client_name": "${data.client_name}",
                 "has_plan": "${data.has_plan}",
                 "is_club_member": "${data.is_club_member}"
               }
@@ -494,6 +505,10 @@
         "client_cpf": {
           "type": "string",
           "__example__": "12345678900"
+        },
+        "client_name": {
+          "type": "string",
+          "__example__": "João Silva"
         },
         "has_plan": {
           "type": "boolean",
@@ -566,6 +581,7 @@
                 "selected_branch": "${data.selected_branch}",
                 "selected_barber": "${form.selected_barber}",
                 "client_cpf": "${data.client_cpf}",
+                "client_name": "${data.client_name}",
                 "has_plan": "${data.has_plan}",
                 "is_club_member": "${data.is_club_member}"
               }
@@ -598,6 +614,10 @@
         "client_cpf": {
           "type": "string",
           "__example__": "12345678900"
+        },
+        "client_name": {
+          "type": "string",
+          "__example__": "João Silva"
         },
         "has_plan": {
           "type": "boolean",
@@ -693,6 +713,7 @@
                 "selected_barber": "${data.selected_barber}",
                 "selected_time": "${form.selected_time}",
                 "client_cpf": "${data.client_cpf}",
+                "client_name": "${data.client_name}",
                 "has_plan": "${data.has_plan}",
                 "is_club_member": "${data.is_club_member}"
               }
@@ -742,6 +763,18 @@
           "type": "string",
           "__example__": "AGD-12345"
         },
+        "client_cpf": {
+          "type": "string",
+          "__example__": "12345678900"
+        },
+        "has_plan": {
+          "type": "boolean",
+          "__example__": false
+        },
+        "is_club_member": {
+          "type": "boolean",
+          "__example__": false
+        },
         "client_name": {
           "type": "string",
           "__example__": "João Cliente"
@@ -779,21 +812,24 @@
                 "name": "client_name",
                 "label": "Seu nome completo",
                 "required": true,
-                "input-type": "text"
+                "input-type": "text",
+                "default-value": "${data.client_name}"
               },
               {
                 "type": "TextInput",
                 "name": "client_phone",
                 "label": "WhatsApp para contato",
                 "required": true,
-                "input-type": "phone"
+                "input-type": "phone",
+                "default-value": "${data.client_phone}"
               },
               {
                 "type": "TextInput",
                 "name": "client_email",
                 "label": "E-mail (opcional)",
                 "required": false,
-                "input-type": "email"
+                "input-type": "email",
+                "default-value": "${data.client_email}"
               },
               {
                 "type": "TextArea",
@@ -814,6 +850,9 @@
                 "selected_date": "${data.selected_date}",
                 "selected_barber": "${data.selected_barber}",
                 "selected_time": "${data.selected_time}",
+                "client_cpf": "${data.client_cpf}",
+                "has_plan": "${data.has_plan}",
+                "is_club_member": "${data.is_club_member}",
                 "client_name": "${form.client_name}",
                 "client_phone": "${form.client_phone}",
                 "client_email": "${form.client_email}",
@@ -973,6 +1012,22 @@
               {
                 "type": "TextBody",
                 "text": "${data.client_phone}"
+              },
+              {
+                "type": "TextCaption",
+                "text": "E-mail"
+              },
+              {
+                "type": "TextBody",
+                "text": "${data.client_email || 'Não informado'}"
+              },
+              {
+                "type": "TextCaption",
+                "text": "Observações"
+              },
+              {
+                "type": "TextBody",
+                "text": "${data.notes || 'Nenhuma observação'}"
               },
               {
                 "type": "Footer",

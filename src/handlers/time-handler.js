@@ -7,6 +7,8 @@ const { getBarbersByBranch } = require('../config/branches');
 const { formatDate } = require('../utils/date-formatter');
 const { cleanMultipleFields } = require('../utils/placeholder-cleaner');
 const { generateBookingId } = require('../utils/booking-id-generator');
+const { getCustomerByCpf } = require('../services/customer-service');
+const { globalLogger } = require('../utils/logger');
 
 // Armazenamento temporário de dados anteriores
 let previousFlowData = {};
@@ -24,7 +26,7 @@ function setPreviousData(data) {
  * @returns {object} Resposta com dados para tela de detalhes
  */
 async function handleSelectTime(payload) {
-  let { selected_service, selected_date, selected_barber, selected_time, selected_branch, client_cpf, has_plan, is_club_member } = payload;
+  let { selected_service, selected_date, selected_barber, selected_time, selected_branch, client_cpf, client_name, has_plan, is_club_member } = payload;
   
   // Limpar placeholders
   const cleaned = cleanMultipleFields(
@@ -47,6 +49,28 @@ async function handleSelectTime(payload) {
   // Formatar data
   const dateToFormat = selected_date || previousFlowData.selected_date || new Date().toISOString().split('T')[0];
   
+  // Buscar dados do cliente se tiver CPF
+  let clientName = '';
+  let clientPhone = '';
+  let clientEmail = '';
+  
+  if (client_cpf) {
+    try {
+      const customer = await getCustomerByCpf(client_cpf);
+      if (customer) {
+        clientName = customer.name || '';
+        clientPhone = customer.phone || '';
+        clientEmail = customer.email || '';
+      }
+    } catch (error) {
+      globalLogger.warn('Erro ao buscar dados do cliente para preenchimento', {
+        cpf: client_cpf?.replace(/\d(?=\d{4})/g, '*'),
+        error: error.message
+      });
+      // Não interrompe o fluxo se falhar
+    }
+  }
+  
   // Gerar booking_id antecipadamente
   const bookingId = generateBookingId();
   
@@ -66,7 +90,10 @@ async function handleSelectTime(payload) {
       service_price: priceText,
       barber_name: barber ? barber.title : 'Barbeiro',
       formatted_date: formatDate(dateToFormat),
-      booking_id: bookingId
+      booking_id: bookingId,
+      client_name: clientName,
+      client_phone: clientPhone,
+      client_email: clientEmail
     }
   };
 }

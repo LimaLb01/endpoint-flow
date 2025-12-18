@@ -24,7 +24,7 @@ function setPreviousData(data) {
  * @returns {object} Resposta com horários disponíveis
  */
 async function handleSelectDate(payload) {
-  let { selected_service, selected_date, selected_branch, selected_barber, client_cpf, has_plan, is_club_member } = payload;
+  let { selected_service, selected_date, selected_branch, selected_barber, client_cpf, client_name, has_plan, is_club_member } = payload;
   
   // Limpar placeholders se necessário
   const cleaned = cleanMultipleFields({ selected_service, selected_date }, previousFlowData);
@@ -51,6 +51,7 @@ async function handleSelectDate(payload) {
       selected_branch,
       selected_barber,
       client_cpf,
+      client_name: client_name || '',
       has_plan: has_plan || false,
       is_club_member: is_club_member || false,
       service_name: service.title,

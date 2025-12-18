@@ -4,7 +4,7 @@
 
 const { getBranchesForFlow } = require('../config/branches');
 const { getActiveSubscriptionByCpf } = require('../services/subscription-service');
-const { getOrCreateCustomer } = require('../services/customer-service');
+const { getOrCreateCustomer, getCustomerByCpf } = require('../services/customer-service');
 const { globalLogger } = require('../utils/logger');
 
 /**
@@ -66,15 +66,19 @@ async function handleCpfInput(payload) {
     const subscriptionInfo = await getActiveSubscriptionByCpf(cleanCpf);
     
     // Garante que o cliente existe no banco (cria se não existir)
-    await getOrCreateCustomer(cleanCpf);
+    const customer = await getOrCreateCustomer(cleanCpf);
     
     if (subscriptionInfo.has_plan) {
+      // Cliente tem plano ativo, busca dados completos do cliente
+      const customerData = await getCustomerByCpf(cleanCpf);
+      
       // Cliente tem plano ativo, vai direto para seleção de filial
       return {
         version: '3.0',
         screen: 'BRANCH_SELECTION',
         data: {
           client_cpf: cleanCpf,
+          client_name: customerData?.name || '',
           has_plan: true,
           is_club_member: true,
           branches: getBranchesForFlow()
