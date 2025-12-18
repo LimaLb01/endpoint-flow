@@ -102,6 +102,20 @@ export const api = {
     const cpfLimpo = cpf.replace(/\D/g, '');
     return apiRequest(`/admin/customers/${cpfLimpo}`);
   },
+
+  /**
+   * Listar todos os clientes
+   */
+  listarClientes: async (limit = 50, offset = 0, search = '') => {
+    const params = new URLSearchParams({
+      limit: limit.toString(),
+      offset: offset.toString()
+    });
+    if (search) {
+      params.append('search', search);
+    }
+    return apiRequest(`/admin/customers?${params.toString()}`);
+  },
   
   /**
    * Registrar pagamento manual

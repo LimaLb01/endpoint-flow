@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api, utils } from '../utils/api';
 import Layout from '../components/Layout';
@@ -25,6 +25,11 @@ export default function BuscarCliente() {
   const [detalhesAssinatura, setDetalhesAssinatura] = useState(null);
   const [carregandoDetalhes, setCarregandoDetalhes] = useState(false);
   const [pagamentos, setPagamentos] = useState([]);
+  
+  // Estados para lista de clientes
+  const [listaClientes, setListaClientes] = useState([]);
+  const [carregandoLista, setCarregandoLista] = useState(false);
+  const [totalClientes, setTotalClientes] = useState(0);
 
   const buscar = async (cpfParaBuscar = null) => {
     const cpfBuscar = cpfParaBuscar || cpf;
@@ -135,7 +140,9 @@ export default function BuscarCliente() {
         // Voltar para modo buscar e buscar o cliente criado
         setModo('buscar');
         setCpf(resultado.customer.cpf);
+        setCliente(null); // Limpar cliente anterior para forçar nova busca
         await buscar(resultado.customer.cpf);
+        // Recarregar lista após criar (será recarregada automaticamente pelo useEffect)
       }
     } catch (err) {
       const errorMessage = err.message || 'Erro ao criar cliente';
@@ -191,6 +198,29 @@ export default function BuscarCliente() {
       setCarregandoDetalhes(false);
     }
   };
+
+  // Carregar lista de clientes ao montar o componente
+  useEffect(() => {
+    const carregarListaClientes = async () => {
+      if (modo !== 'buscar' || cliente || mostrarDetalhes) return;
+      
+      setCarregandoLista(true);
+      try {
+        const data = await api.listarClientes(50, 0);
+        if (data) {
+          setListaClientes(data.customers || []);
+          setTotalClientes(data.count || 0);
+        }
+      } catch (err) {
+        console.error('Erro ao carregar lista de clientes:', err);
+        setListaClientes([]);
+      } finally {
+        setCarregandoLista(false);
+      }
+    };
+
+    carregarListaClientes();
+  }, [modo, cliente, mostrarDetalhes]);
 
   return (
     <Layout>
@@ -647,8 +677,90 @@ export default function BuscarCliente() {
                 {error && (
                   <div className="text-red-600 text-sm mt-2">{error}</div>
                 )}
+                {cliente && (
+                  <button
+                    onClick={() => {
+                      setCliente(null);
+                      setCpf('');
+                      setError('');
+                      setMostrarDetalhes(false);
+                    }}
+                    className="text-sm text-[#8c8b5f] dark:text-[#a3a272] hover:text-[#181811] dark:hover:text-white transition-colors flex items-center gap-1 mt-2"
+                  >
+                    <span className="material-symbols-outlined text-lg">close</span>
+                    Limpar busca e ver todos os clientes
+                  </button>
+                )}
               </div>
             </div>
+
+            {/* Lista de Clientes */}
+            {!cliente && !mostrarDetalhes && (
+              <div className="flex flex-col gap-6">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-bold text-[#181811] dark:text-white">
+                    Todos os Clientes {totalClientes > 0 && `(${totalClientes})`}
+                  </h2>
+                </div>
+                
+                {carregandoLista ? (
+                  <div className="flex items-center justify-center py-20">
+                    <div className="flex flex-col items-center gap-4">
+                      <span className="material-symbols-outlined animate-spin text-4xl text-primary">refresh</span>
+                      <p className="text-[#8c8b5f] dark:text-[#a3a272]">Carregando clientes...</p>
+                    </div>
+                  </div>
+                ) : listaClientes.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {listaClientes.map((clienteItem) => {
+                      const iniciaisCliente = clienteItem.name
+                        ? clienteItem.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
+                        : '??';
+                      
+                      return (
+                        <div
+                          key={clienteItem.id}
+                          onClick={() => {
+                            setCpf(clienteItem.cpf);
+                            buscar(clienteItem.cpf);
+                          }}
+                          className="bg-white dark:bg-[#1a190b] rounded-lg p-4 border border-[#e6e6db] dark:border-[#3a392a] shadow-sm hover:shadow-md transition-all cursor-pointer hover:border-primary"
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className="size-12 rounded-full bg-[#f8f8f5] dark:bg-[#23220f] border border-[#e6e6db] dark:border-[#3a392a] flex items-center justify-center text-lg font-bold text-[#8c8b5f] dark:text-[#a3a272] flex-shrink-0">
+                              {iniciaisCliente}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h3 className="text-base font-bold text-[#181811] dark:text-white truncate">
+                                {clienteItem.name || 'Sem nome'}
+                              </h3>
+                              <p className="text-sm text-[#8c8b5f] dark:text-[#a3a272] truncate">
+                                {utils.aplicarMascaraCPF(clienteItem.cpf)}
+                              </p>
+                              {clienteItem.email && (
+                                <p className="text-xs text-[#8c8b5f] dark:text-[#a3a272] truncate mt-1">
+                                  {clienteItem.email}
+                                </p>
+                              )}
+                            </div>
+                            <span className="material-symbols-outlined text-[#8c8b5f] dark:text-[#a3a272] flex-shrink-0">
+                              chevron_right
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="bg-white dark:bg-[#1a190b] rounded-lg p-8 border border-[#e6e6db] dark:border-[#3a392a] text-center">
+                    <span className="material-symbols-outlined text-4xl text-[#8c8b5f] dark:text-[#a3a272] mb-2">
+                      person_off
+                    </span>
+                    <p className="text-[#8c8b5f] dark:text-[#a3a272]">Nenhum cliente cadastrado ainda</p>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Results */}
             {cliente && cliente.customer && !mostrarDetalhes && (
