@@ -26,6 +26,16 @@ export default function BuscarCliente() {
   const [carregandoDetalhes, setCarregandoDetalhes] = useState(false);
   const [pagamentos, setPagamentos] = useState([]);
   
+  // Estados para edição de cliente
+  const [editandoCliente, setEditandoCliente] = useState(false);
+  const [dadosEdicao, setDadosEdicao] = useState({
+    name: '',
+    email: '',
+    phone: ''
+  });
+  const [errosEdicao, setErrosEdicao] = useState({});
+  const [salvandoEdicao, setSalvandoEdicao] = useState(false);
+  
   // Estados para lista de clientes
   const [listaClientes, setListaClientes] = useState([]);
   const [carregandoLista, setCarregandoLista] = useState(false);
@@ -311,6 +321,26 @@ export default function BuscarCliente() {
                   <div className="bg-white dark:bg-[#1a190b] rounded-3xl p-6 shadow-sm border border-[#e6e6db] dark:border-[#3a392a]">
                     <div className="flex items-start justify-between mb-6">
                       <h3 className="text-lg font-bold text-[#181811] dark:text-white">Cliente</h3>
+                      {!editandoCliente && (
+                        <button
+                          onClick={() => {
+                            const customer = detalhesAssinatura?.customer || cliente?.customer;
+                            if (customer) {
+                              setDadosEdicao({
+                                name: customer.name || '',
+                                email: customer.email || '',
+                                phone: customer.phone || ''
+                              });
+                              setErrosEdicao({});
+                              setEditandoCliente(true);
+                            }
+                          }}
+                          className="flex items-center gap-1 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
+                        >
+                          <span className="material-symbols-outlined text-lg">edit</span>
+                          Editar
+                        </button>
+                      )}
                     </div>
                     <div className="flex flex-col items-center text-center mb-6">
                       <div className="size-24 rounded-full bg-[#f8f8f5] dark:bg-[#23220f] border-4 border-[#f8f8f5] dark:border-[#23220f] mb-4 flex items-center justify-center text-3xl font-bold text-[#8c8b5f]">
@@ -320,35 +350,214 @@ export default function BuscarCliente() {
                             ? cliente.customer.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
                             : '??'}
                       </div>
-                      <h4 className="text-xl font-bold text-[#181811] dark:text-white">
-                        {detalhesAssinatura?.customer?.name || cliente?.customer?.name || 'N/A'}
-                      </h4>
+                      {editandoCliente ? (
+                        <input
+                          type="text"
+                          value={dadosEdicao.name}
+                          onChange={(e) => {
+                            setDadosEdicao({ ...dadosEdicao, name: e.target.value });
+                            if (errosEdicao.name) {
+                              setErrosEdicao({ ...errosEdicao, name: '' });
+                            }
+                          }}
+                          className="text-xl font-bold text-[#181811] dark:text-white bg-transparent border-b-2 border-primary focus:outline-none text-center w-full"
+                          placeholder="Nome completo"
+                        />
+                      ) : (
+                        <h4 className="text-xl font-bold text-[#181811] dark:text-white">
+                          {detalhesAssinatura?.customer?.name || cliente?.customer?.name || 'N/A'}
+                        </h4>
+                      )}
                       <p className="text-[#8c8b5f] dark:text-gray-400 text-sm mt-1">
                         {(detalhesAssinatura?.customer?.created_at || cliente?.customer?.created_at)
                           ? `Membro desde ${new Date((detalhesAssinatura?.customer?.created_at || cliente?.customer?.created_at)).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}`
                           : 'Cliente'}
                       </p>
                     </div>
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-3 p-3 rounded-xl bg-[#f8f8f5] dark:bg-[#23220f]">
-                        <span className="material-symbols-outlined text-[#8c8b5f] dark:text-gray-500">mail</span>
-                        <div className="flex flex-col overflow-hidden">
-                          <span className="text-xs text-[#8c8b5f] dark:text-gray-500 font-medium">Email</span>
-                          <span className="text-sm font-semibold text-[#181811] dark:text-white truncate">
-                            {detalhesAssinatura?.customer?.email || cliente?.customer?.email || 'N/A'}
-                          </span>
+                    {editandoCliente ? (
+                      <form
+                        onSubmit={async (e) => {
+                          e.preventDefault();
+                          const customer = detalhesAssinatura?.customer || cliente?.customer;
+                          if (!customer) return;
+
+                          // Validação
+                          const novosErros = {};
+                          if (!dadosEdicao.name.trim()) {
+                            novosErros.name = 'Nome é obrigatório';
+                          }
+                          if (!dadosEdicao.email.trim()) {
+                            novosErros.email = 'Email é obrigatório';
+                          } else if (!utils.validarEmail(dadosEdicao.email)) {
+                            novosErros.email = 'Formato de e-mail inválido';
+                          }
+                          if (!dadosEdicao.phone.trim()) {
+                            novosErros.phone = 'Telefone é obrigatório';
+                          }
+
+                          if (Object.keys(novosErros).length > 0) {
+                            setErrosEdicao(novosErros);
+                            return;
+                          }
+
+                          setSalvandoEdicao(true);
+                          setError('');
+
+                          try {
+                            await api.atualizarCliente(customer.cpf, dadosEdicao);
+                            
+                            // Atualizar dados locais
+                            if (detalhesAssinatura?.customer) {
+                              setDetalhesAssinatura({
+                                ...detalhesAssinatura,
+                                customer: {
+                                  ...detalhesAssinatura.customer,
+                                  ...dadosEdicao
+                                }
+                              });
+                            }
+                            if (cliente?.customer) {
+                              setCliente({
+                                ...cliente,
+                                customer: {
+                                  ...cliente.customer,
+                                  ...dadosEdicao
+                                }
+                              });
+                            }
+
+                            setEditandoCliente(false);
+                            setErrosEdicao({});
+                          } catch (err) {
+                            setError(err.message || 'Erro ao atualizar cliente');
+                          } finally {
+                            setSalvandoEdicao(false);
+                          }
+                        }}
+                        className="space-y-4"
+                      >
+                        <div className="flex flex-col gap-2">
+                          <label className="text-xs text-[#8c8b5f] dark:text-gray-500 font-medium">Nome</label>
+                          <input
+                            type="text"
+                            value={dadosEdicao.name}
+                            onChange={(e) => {
+                              setDadosEdicao({ ...dadosEdicao, name: e.target.value });
+                              if (errosEdicao.name) {
+                                setErrosEdicao({ ...errosEdicao, name: '' });
+                              }
+                            }}
+                            className={`w-full h-10 px-3 rounded-lg bg-[#f8f8f5] dark:bg-[#23220f] border-2 ${
+                              errosEdicao.name ? 'border-red-500' : 'border-transparent'
+                            } focus:border-primary focus:ring-0 text-[#181811] dark:text-white transition-all`}
+                            placeholder="Nome completo"
+                          />
+                          {errosEdicao.name && (
+                            <p className="text-xs text-red-500">{errosEdicao.name}</p>
+                          )}
+                        </div>
+
+                        <div className="flex flex-col gap-2">
+                          <label className="text-xs text-[#8c8b5f] dark:text-gray-500 font-medium">Email</label>
+                          <input
+                            type="email"
+                            value={dadosEdicao.email}
+                            onChange={(e) => {
+                              setDadosEdicao({ ...dadosEdicao, email: e.target.value });
+                              if (errosEdicao.email) {
+                                setErrosEdicao({ ...errosEdicao, email: '' });
+                              }
+                            }}
+                            className={`w-full h-10 px-3 rounded-lg bg-[#f8f8f5] dark:bg-[#23220f] border-2 ${
+                              errosEdicao.email ? 'border-red-500' : 'border-transparent'
+                            } focus:border-primary focus:ring-0 text-[#181811] dark:text-white transition-all`}
+                            placeholder="email@exemplo.com"
+                          />
+                          {errosEdicao.email && (
+                            <p className="text-xs text-red-500">{errosEdicao.email}</p>
+                          )}
+                        </div>
+
+                        <div className="flex flex-col gap-2">
+                          <label className="text-xs text-[#8c8b5f] dark:text-gray-500 font-medium">Telefone</label>
+                          <input
+                            type="tel"
+                            value={dadosEdicao.phone}
+                            onChange={(e) => {
+                              const formatted = utils.aplicarMascaraTelefone(e.target.value);
+                              setDadosEdicao({ ...dadosEdicao, phone: formatted });
+                              if (errosEdicao.phone) {
+                                setErrosEdicao({ ...errosEdicao, phone: '' });
+                              }
+                            }}
+                            className={`w-full h-10 px-3 rounded-lg bg-[#f8f8f5] dark:bg-[#23220f] border-2 ${
+                              errosEdicao.phone ? 'border-red-500' : 'border-transparent'
+                            } focus:border-primary focus:ring-0 text-[#181811] dark:text-white transition-all`}
+                            placeholder="(00) 00000-0000"
+                            maxLength={15}
+                          />
+                          {errosEdicao.phone && (
+                            <p className="text-xs text-red-500">{errosEdicao.phone}</p>
+                          )}
+                        </div>
+
+                        {error && (
+                          <div className="text-red-500 text-sm">{error}</div>
+                        )}
+
+                        <div className="flex items-center gap-2 pt-2">
+                          <button
+                            type="submit"
+                            disabled={salvandoEdicao}
+                            className="flex-1 h-10 px-4 rounded-lg bg-primary text-[#181811] font-bold hover:brightness-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                          >
+                            {salvandoEdicao ? (
+                              <>
+                                <span className="material-symbols-outlined text-lg animate-spin">refresh</span>
+                                Salvando...
+                              </>
+                            ) : (
+                              <>
+                                <span className="material-symbols-outlined text-lg">save</span>
+                                Salvar
+                              </>
+                            )}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditandoCliente(false);
+                              setErrosEdicao({});
+                              setError('');
+                            }}
+                            className="h-10 px-4 rounded-lg border border-[#e6e6db] dark:border-[#3a392a] text-[#181811] dark:text-white font-medium hover:bg-[#f8f8f5] dark:hover:bg-[#23220f] transition-all"
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                      </form>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-3 p-3 rounded-xl bg-[#f8f8f5] dark:bg-[#23220f]">
+                          <span className="material-symbols-outlined text-[#8c8b5f] dark:text-gray-500">mail</span>
+                          <div className="flex flex-col overflow-hidden">
+                            <span className="text-xs text-[#8c8b5f] dark:text-gray-500 font-medium">Email</span>
+                            <span className="text-sm font-semibold text-[#181811] dark:text-white truncate">
+                              {detalhesAssinatura?.customer?.email || cliente?.customer?.email || 'N/A'}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 p-3 rounded-xl bg-[#f8f8f5] dark:bg-[#23220f]">
+                          <span className="material-symbols-outlined text-[#8c8b5f] dark:text-gray-500">call</span>
+                          <div className="flex flex-col">
+                            <span className="text-xs text-[#8c8b5f] dark:text-gray-500 font-medium">Telefone</span>
+                            <span className="text-sm font-semibold text-[#181811] dark:text-white">
+                              {detalhesAssinatura?.customer?.phone || cliente?.customer?.phone || 'N/A'}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3 p-3 rounded-xl bg-[#f8f8f5] dark:bg-[#23220f]">
-                        <span className="material-symbols-outlined text-[#8c8b5f] dark:text-gray-500">call</span>
-                        <div className="flex flex-col">
-                          <span className="text-xs text-[#8c8b5f] dark:text-gray-500 font-medium">Telefone</span>
-                          <span className="text-sm font-semibold text-[#181811] dark:text-white">
-                            {detalhesAssinatura?.customer?.phone || cliente?.customer?.phone || 'N/A'}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
+                    )}
                   </div>
 
                   {/* Card Plano */}
@@ -710,9 +919,10 @@ export default function BuscarCliente() {
                       <p className="text-[#8c8b5f] dark:text-[#a3a272]">Carregando clientes...</p>
                     </div>
                   </div>
-                ) : listaClientes.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {listaClientes.map((clienteItem) => {
+                ) : (
+                  listaClientes.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {listaClientes.map((clienteItem) => {
                       const iniciaisCliente = clienteItem.name
                         ? clienteItem.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
                         : '??';
@@ -775,15 +985,16 @@ export default function BuscarCliente() {
                           </div>
                         </div>
                       );
-                    })}
-                  </div>
-                ) : (
-                  <div className="bg-white dark:bg-[#1a190b] rounded-lg p-8 border border-[#e6e6db] dark:border-[#3a392a] text-center">
-                    <span className="material-symbols-outlined text-4xl text-[#8c8b5f] dark:text-[#a3a272] mb-2">
-                      person_off
-                    </span>
-                    <p className="text-[#8c8b5f] dark:text-[#a3a272]">Nenhum cliente cadastrado ainda</p>
-                  </div>
+                      })}
+                    </div>
+                  ) : (
+                    <div className="bg-white dark:bg-[#1a190b] rounded-lg p-8 border border-[#e6e6db] dark:border-[#3a392a] text-center">
+                      <span className="material-symbols-outlined text-4xl text-[#8c8b5f] dark:text-[#a3a272] mb-2">
+                        person_off
+                      </span>
+                      <p className="text-[#8c8b5f] dark:text-[#a3a272]">Nenhum cliente cadastrado ainda</p>
+                    </div>
+                  )
                 )}
               </div>
             )}
