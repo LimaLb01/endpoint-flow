@@ -870,6 +870,18 @@
           "type": "string",
           "__example__": "17/12/2025 (Quarta)"
         },
+        "client_cpf": {
+          "type": "string",
+          "__example__": "12345678900"
+        },
+        "has_plan": {
+          "type": "boolean",
+          "__example__": false
+        },
+        "is_club_member": {
+          "type": "boolean",
+          "__example__": false
+        },
         "client_name": {
           "type": "string",
           "__example__": "João Cliente"
@@ -973,9 +985,12 @@
                     "selected_date": "${data.selected_date}",
                     "selected_barber": "${data.selected_barber}",
                     "selected_time": "${data.selected_time}",
+                    "client_cpf": "${data.client_cpf}",
                     "client_name": "${data.client_name}",
                     "client_phone": "${data.client_phone}",
                     "client_email": "${data.client_email}",
+                    "has_plan": "${data.has_plan}",
+                    "is_club_member": "${data.is_club_member}",
                     "notes": "${data.notes}",
                     "service_name": "${data.service_name}",
                     "service_price": "${data.service_price}",
