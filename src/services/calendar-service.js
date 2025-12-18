@@ -217,10 +217,45 @@ async function getAvailableSlots(barberId, date, serviceId, requestId = null) {
       }
     }
     
+    // Verificar se a data selecionada é hoje
+    const today = new Date();
+    const selectedDate = new Date(date + 'T00:00:00-03:00'); // Usar timezone de São Paulo
+    const isToday = today.toDateString() === selectedDate.toDateString();
+    
+    // Se for hoje, calcular o horário atual com buffer de 30 minutos
+    let currentTimeMinutes = null;
+    if (isToday) {
+      // Obter hora atual no timezone de São Paulo
+      const now = new Date();
+      const saoPauloTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+      const currentHour = saoPauloTime.getHours();
+      const currentMinute = saoPauloTime.getMinutes();
+      // Adicionar buffer de 30 minutos
+      currentTimeMinutes = currentHour * 60 + currentMinute + 30;
+      
+      logger.debug('Filtrando horários passados para o dia atual', {
+        currentTime: `${String(currentHour).padStart(2, '0')}:${String(currentMinute).padStart(2, '0')}`,
+        bufferMinutes: 30,
+        filterAfter: `${String(Math.floor(currentTimeMinutes / 60)).padStart(2, '0')}:${String(currentTimeMinutes % 60).padStart(2, '0')}`
+      });
+    }
+    
     // Filtrar slots disponíveis
     const availableSlots = allSlots.filter(slot => {
       const slotStart = slot.minutes;
       const slotEnd = slot.minutes + serviceDuration;
+      
+      // Se for hoje, filtrar horários que já passaram (com buffer)
+      if (isToday && currentTimeMinutes !== null) {
+        if (slotStart < currentTimeMinutes) {
+          logger.debug('Slot filtrado por estar no passado', { 
+            time: slot.time, 
+            currentTimeMinutes,
+            slotStart 
+          });
+          return false;
+        }
+      }
       
       // Verificar se o slot não conflita com nenhum evento existente
       const hasConflict = busySlots.some(busy => {
@@ -298,8 +333,31 @@ function getMockAvailableSlots(date, duration) {
   const allTimes = ['09:00', '09:30', '10:00', '10:30', '11:00', '11:30',
                     '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00', '17:30', '18:00'];
   
+  // Verificar se a data selecionada é hoje
+  const today = new Date();
+  const selectedDate = new Date(date + 'T00:00:00-03:00');
+  const isToday = today.toDateString() === selectedDate.toDateString();
+  
+  // Se for hoje, filtrar horários passados
+  let filteredTimes = allTimes;
+  if (isToday) {
+    // Obter hora atual no timezone de São Paulo
+    const now = new Date();
+    const saoPauloTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+    const currentHour = saoPauloTime.getHours();
+    const currentMinute = saoPauloTime.getMinutes();
+    // Adicionar buffer de 30 minutos
+    const currentTimeMinutes = currentHour * 60 + currentMinute + 30;
+    
+    filteredTimes = allTimes.filter(time => {
+      const [hour, minute] = time.split(':').map(Number);
+      const timeMinutes = hour * 60 + minute;
+      return timeMinutes >= currentTimeMinutes;
+    });
+  }
+  
   // Remover alguns horários aleatoriamente para simular ocupação
-  const availableTimes = allTimes.filter(() => Math.random() > 0.3);
+  const availableTimes = filteredTimes.filter(() => Math.random() > 0.3);
   
   if (isWeekend) {
     // Menos horários no fim de semana
