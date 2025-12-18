@@ -7,8 +7,8 @@ const API_BASE_URL = process.env.API_BASE_URL || 'https://whatsapp-flow-endpoint
 
 // Dados de teste
 const TEST_CREDENTIALS = {
-  email: process.env.TEST_EMAIL || 'admin@barbearia.com',
-  password: process.env.TEST_PASSWORD || 'admin123'
+  email: process.env.TEST_EMAIL || 'admin@admin',
+  password: process.env.TEST_PASSWORD || 'admin@123'
 };
 
 const TEST_CLIENTE = {

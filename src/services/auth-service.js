@@ -18,8 +18,8 @@ const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '24h';
 const ADMIN_USERS = [
   {
     id: '1',
-    email: 'admin@barbearia.com',
-    password: 'admin123', // Em produção, usar hash bcrypt
+    email: 'admin@admin',
+    password: 'admin@123', // Em produção, usar hash bcrypt
     name: 'Administrador',
     role: 'admin'
   }
