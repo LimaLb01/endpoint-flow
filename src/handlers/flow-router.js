@@ -88,11 +88,22 @@ async function handleFlowRequest(data, requestId = null, requestInfo = null) {
     
     // Obter localização geográfica e timestamp de acesso
     const accessTimestamp = new Date().toISOString();
-    const clientIP = requestInfo?.ip || 
-                    requestInfo?.headers?.['x-forwarded-for']?.split(',')[0]?.trim() ||
-                    requestInfo?.headers?.['x-real-ip'] ||
-                    requestInfo?.connection?.remoteAddress ||
-                    null;
+    // Tentar obter IP real do cliente (Railway pode estar fazendo proxy)
+    // x-forwarded-for pode conter múltiplos IPs: cliente,proxy1,proxy2
+    const forwardedFor = requestInfo?.headers?.['x-forwarded-for'];
+    let clientIP = null;
+    
+    if (forwardedFor) {
+      // Pegar o primeiro IP da cadeia (cliente real)
+      const ips = forwardedFor.split(',').map(ip => ip.trim());
+      clientIP = ips[0];
+      logger.debug('IPs em x-forwarded-for', { ips, selected: clientIP });
+    } else {
+      clientIP = requestInfo?.ip || 
+                  requestInfo?.headers?.['x-real-ip'] ||
+                  requestInfo?.connection?.remoteAddress ||
+                  null;
+    }
     
     logger.info('INIT - Capturando localização', {
       flow_token: flow_token,
@@ -256,11 +267,21 @@ async function handleFlowRequest(data, requestId = null, requestInfo = null) {
           
           // Capturar localização geográfica para INIT via data_exchange
           const accessTimestamp = new Date().toISOString();
-          const clientIP = requestInfo?.ip || 
-                          requestInfo?.headers?.['x-forwarded-for']?.split(',')[0]?.trim() ||
-                          requestInfo?.headers?.['x-real-ip'] ||
-                          requestInfo?.connection?.remoteAddress ||
-                          null;
+          // Tentar obter IP real do cliente (Railway pode estar fazendo proxy)
+          const forwardedFor = requestInfo?.headers?.['x-forwarded-for'];
+          let clientIP = null;
+          
+          if (forwardedFor) {
+            // Pegar o primeiro IP da cadeia (cliente real)
+            const ips = forwardedFor.split(',').map(ip => ip.trim());
+            clientIP = ips[0];
+            logger.debug('IPs em x-forwarded-for (data_exchange INIT)', { ips, selected: clientIP });
+          } else {
+            clientIP = requestInfo?.ip || 
+                        requestInfo?.headers?.['x-real-ip'] ||
+                        requestInfo?.connection?.remoteAddress ||
+                        null;
+          }
           
           logger.info('INIT via data_exchange - Capturando localização', {
             flow_token: flow_token,
@@ -286,9 +307,16 @@ async function handleFlowRequest(data, requestId = null, requestInfo = null) {
             }
             
             // Obter localização de forma assíncrona e atualizar
-            // Também atualizar TODAS as interações do mesmo flow_token com a localização
+            // Filtrar IPs conhecidos do Railway/WhatsApp (não são IPs reais do cliente)
+            const isRailwayIP = clientIP && (
+              clientIP.includes('railway') || 
+              clientIP.includes('hillsboro') ||
+              clientIP.startsWith('35.') || // Google Cloud (Railway usa)
+              clientIP.startsWith('34.')
+            );
+            
             if (clientIP && !clientIP.startsWith('192.168.') && !clientIP.startsWith('10.') && 
-                clientIP !== '::1' && clientIP !== '127.0.0.1') {
+                clientIP !== '::1' && clientIP !== '127.0.0.1' && !isRailwayIP) {
               try {
                 logger.info('Buscando localização para IP', { ip: clientIP });
                 const location = await getLocationByIP(clientIP);

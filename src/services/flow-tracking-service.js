@@ -173,7 +173,8 @@ async function getFlowInteractions(filters = {}) {
     const groupedByClient = {};
     (allInteractions || []).forEach(interaction => {
       // Usar APENAS CPF como chave - uma entrada por cliente
-      const clientKey = interaction.client_cpf || `sem_cpf_${interaction.id}`;
+      // Se não tiver CPF, usar flow_token como fallback para agrupar flows únicos
+      const clientKey = interaction.client_cpf || `flow_${interaction.flow_token || interaction.id}`;
       
       const current = groupedByClient[clientKey];
       

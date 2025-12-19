@@ -22,6 +22,28 @@ async function getLocationByIP(ip) {
       isLocal: true
     };
   }
+  
+  // Filtrar IPs conhecidos de infraestrutura (Railway, AWS, Google Cloud, etc.)
+  // Esses IPs não representam a localização real do cliente
+  const infrastructureIPs = [
+    'railway', 'hillsboro', 'oregon', // Railway
+    'aws', 'amazon', // AWS
+    'google', 'gcp', // Google Cloud
+    'azure', 'microsoft' // Azure
+  ];
+  
+  const ipLower = ip.toLowerCase();
+  if (infrastructureIPs.some(infra => ipLower.includes(infra))) {
+    globalLogger.debug('IP de infraestrutura detectado, pulando geolocalização', { ip });
+    return {
+      city: null,
+      region: null,
+      country: null,
+      countryCode: null,
+      isLocal: true,
+      isInfrastructure: true
+    };
+  }
 
   try {
     // Usar serviço gratuito ip-api.com (sem autenticação, limite de 45 req/min)
