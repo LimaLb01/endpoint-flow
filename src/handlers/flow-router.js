@@ -94,42 +94,8 @@ async function handleFlowRequest(data, requestId = null, requestInfo = null) {
                     requestInfo?.connection?.remoteAddress ||
                     null;
     
-    // Obter localização de forma assíncrona (não bloquear resposta)
-    if (clientIP && !clientIP.startsWith('192.168.') && !clientIP.startsWith('10.') && clientIP !== '::1' && clientIP !== '127.0.0.1') {
-      getLocationByIP(clientIP).then(location => {
-        // Atualizar metadata da interação INIT com localização de forma assíncrona
-        if (location && !location.isLocal && flow_token) {
-          const { supabaseAdmin } = require('../config/supabase');
-          if (supabaseAdmin) {
-            supabaseAdmin
-              .from('flow_interactions')
-              .update({
-                metadata: {
-                  access_timestamp: accessTimestamp,
-                  client_ip: clientIP,
-                  location: location
-                }
-              })
-              .eq('flow_token', flow_token)
-              .eq('screen', 'WELCOME')
-              .order('created_at', { ascending: false })
-              .limit(1)
-              .then(() => {
-                logger.debug('Localização atualizada na interação INIT', { location });
-              })
-              .catch(err => {
-                logger.warn('Erro ao atualizar localização (não crítico)', { error: err.message });
-              });
-          }
-        }
-      }).catch(err => {
-        logger.warn('Erro ao obter localização (não crítico)', {
-          error: err.message
-        });
-      });
-    }
-    
-    // Registrar interação INIT (não bloquear se falhar)
+    // Registrar interação INIT primeiro (não bloquear se falhar)
+    let initInteractionId = null;
     trackFlowInteraction({
       flow_token: flow_token,
       action_type: 'INIT',
@@ -139,6 +105,43 @@ async function handleFlowRequest(data, requestId = null, requestInfo = null) {
       metadata: {
         access_timestamp: accessTimestamp,
         client_ip: clientIP
+      }
+    }).then(id => {
+      initInteractionId = id;
+      
+      // Após salvar a interação, obter localização e atualizar
+      if (clientIP && !clientIP.startsWith('192.168.') && !clientIP.startsWith('10.') && clientIP !== '::1' && clientIP !== '127.0.0.1') {
+        getLocationByIP(clientIP).then(location => {
+          // Atualizar metadata da interação INIT com localização
+          if (location && !location.isLocal && initInteractionId) {
+            const { supabaseAdmin } = require('../config/supabase');
+            if (supabaseAdmin) {
+              supabaseAdmin
+                .from('flow_interactions')
+                .update({
+                  metadata: {
+                    access_timestamp: accessTimestamp,
+                    client_ip: clientIP,
+                    location: location
+                  }
+                })
+                .eq('id', initInteractionId)
+                .then(() => {
+                  logger.debug('Localização atualizada na interação INIT', { 
+                    interactionId: initInteractionId,
+                    location: `${location.city}, ${location.region}, ${location.country}` 
+                  });
+                })
+                .catch(err => {
+                  logger.warn('Erro ao atualizar localização (não crítico)', { error: err.message });
+                });
+            }
+          }
+        }).catch(err => {
+          logger.warn('Erro ao obter localização (não crítico)', {
+            error: err.message
+          });
+        });
       }
     }).catch(trackError => {
       logger.warn('Erro ao rastrear INIT (não crítico)', {
