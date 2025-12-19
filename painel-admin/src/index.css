@@ -31,3 +31,21 @@
 .form-input:focus {
   outline: none;
 }
+
+/* Timeline scrollbar styles */
+.timeline-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.timeline-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.timeline-scroll::-webkit-scrollbar-thumb {
+  background-color: #e5e5dc;
+  border-radius: 20px;
+}
+
+.dark .timeline-scroll::-webkit-scrollbar-thumb {
+  background-color: #3a3928;
+}

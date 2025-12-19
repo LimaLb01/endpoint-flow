@@ -7,6 +7,7 @@ import RegistrarPagamento from './pages/RegistrarPagamento';
 import ListarAssinaturas from './pages/ListarAssinaturas';
 import DetalhesAssinatura from './pages/DetalhesAssinatura';
 import Planos from './pages/Planos';
+import AcompanhamentoFlow from './pages/AcompanhamentoFlow';
 
 function App() {
   return (
@@ -58,6 +59,14 @@ function App() {
           element={
             <ProtectedRoute>
               <Planos />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/flow/acompanhamento"
+          element={
+            <ProtectedRoute>
+              <AcompanhamentoFlow />
             </ProtectedRoute>
           }
         />

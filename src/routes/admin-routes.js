@@ -12,6 +12,7 @@ const { createRequestLogger, globalLogger } = require('../utils/logger');
 const { supabaseAdmin, isAdminConfigured } = require('../config/supabase');
 const { requireAuth } = require('../middleware/auth-middleware');
 const { notifyPaymentConfirmed } = require('../services/notification-service');
+const { getFlowInteractions, getFlowTimeline, getAbandonmentStats } = require('../services/flow-tracking-service');
 
 /**
  * GET /api/admin/customers
@@ -780,6 +781,118 @@ router.post('/subscriptions/fix-periods', requireAuth, async (req, res) => {
     });
     return res.status(500).json({
       error: 'Erro ao corrigir períodos',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/admin/flow/interactions
+ * Lista interações do flow com filtros
+ */
+router.get('/flow/interactions', requireAuth, async (req, res) => {
+  const logger = req.requestId ? createRequestLogger(req.requestId) : globalLogger;
+  
+  try {
+    const {
+      status,
+      client_cpf,
+      screen,
+      search,
+      start_date,
+      end_date,
+      limit = 50,
+      offset = 0
+    } = req.query;
+
+    const filters = {};
+    if (status) filters.status = status;
+    if (client_cpf) filters.client_cpf = client_cpf;
+    if (screen) filters.screen = screen;
+    if (search) filters.search = search;
+    if (start_date) filters.start_date = start_date;
+    if (end_date) filters.end_date = end_date;
+    filters.limit = parseInt(limit);
+    filters.offset = parseInt(offset);
+
+    const result = await getFlowInteractions(filters);
+
+    logger.info('Interações do flow buscadas', {
+      total: result.total,
+      returned: result.interactions.length
+    });
+
+    return res.json({
+      interactions: result.interactions,
+      total: result.total,
+      limit: filters.limit,
+      offset: filters.offset
+    });
+  } catch (error) {
+    logger.error('Erro ao buscar interações do flow', {
+      error: error.message
+    });
+    return res.status(500).json({
+      error: 'Erro ao buscar interações do flow',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/admin/flow/timeline/:flowToken
+ * Busca timeline completa de um flow_token específico
+ */
+router.get('/flow/timeline/:flowToken', requireAuth, async (req, res) => {
+  const logger = req.requestId ? createRequestLogger(req.requestId) : globalLogger;
+  
+  try {
+    const { flowToken } = req.params;
+
+    const timeline = await getFlowTimeline(flowToken);
+
+    logger.info('Timeline do flow buscada', {
+      flow_token: flowToken,
+      events: timeline.length
+    });
+
+    return res.json({
+      flow_token: flowToken,
+      timeline: timeline
+    });
+  } catch (error) {
+    logger.error('Erro ao buscar timeline do flow', {
+      error: error.message,
+      flow_token: req.params.flowToken
+    });
+    return res.status(500).json({
+      error: 'Erro ao buscar timeline do flow',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/admin/flow/stats
+ * Busca estatísticas de abandono por etapa
+ */
+router.get('/flow/stats', requireAuth, async (req, res) => {
+  const logger = req.requestId ? createRequestLogger(req.requestId) : globalLogger;
+  
+  try {
+    const stats = await getAbandonmentStats();
+
+    logger.info('Estatísticas do flow buscadas');
+
+    return res.json({
+      stats: stats
+    });
+  } catch (error) {
+    logger.error('Erro ao buscar estatísticas do flow', {
+      error: error.message
+    });
+    return res.status(500).json({
+      error: 'Erro ao buscar estatísticas do flow',
       message: error.message
     });
   }

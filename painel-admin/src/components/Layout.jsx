@@ -37,6 +37,19 @@ export default function Layout({ children }) {
                   <span className={`text-sm ${isActive('/dashboard') ? 'font-semibold' : 'font-medium'}`}>Dashboard</span>
                 </button>
                 <button
+                  onClick={() => navigate('/flow/acompanhamento')}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-full text-left transition-colors cursor-pointer ${
+                    isActive('/flow')
+                      ? 'bg-primary text-neutral-dark shadow-sm'
+                      : 'hover:bg-neutral-light dark:hover:bg-[#2e2d1a] text-neutral-dark dark:text-[#d1d0c5]'
+                  }`}
+                >
+                  <span className="material-symbols-outlined" style={{ fontVariationSettings: isActive('/flow') ? "'FILL' 1" : "'FILL' 0" }}>
+                    alt_route
+                  </span>
+                  <span className={`text-sm ${isActive('/flow') ? 'font-semibold' : 'font-medium'}`}>Flow Tracking</span>
+                </button>
+                <button
                   onClick={() => navigate('/clientes/buscar')}
                   className={`flex items-center gap-3 px-4 py-3 rounded-full text-left transition-colors cursor-pointer ${
                     isActive('/clientes')
@@ -95,8 +108,55 @@ export default function Layout({ children }) {
         </aside>
         
         {/* Main Content */}
-        <main className="flex-1 flex flex-col h-full min-h-screen relative overflow-hidden">
-          {children}
+        <main className="flex-1 flex flex-col h-full min-h-screen relative overflow-hidden bg-background-light dark:bg-background-dark">
+          {location.pathname === '/flow/acompanhamento' ? (
+            <>
+              <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#e5e5dc] dark:border-[#3a3928] bg-white/80 dark:bg-[#1a190b]/80 backdrop-blur-sm px-6 py-4 md:px-10 sticky top-0 z-10">
+                <div className="flex items-center gap-4">
+                  <button className="md:hidden p-2 -ml-2 text-neutral-dark dark:text-white">
+                    <span className="material-symbols-outlined">menu</span>
+                  </button>
+                  <div>
+                    <h2 className="text-neutral-dark dark:text-white text-xl md:text-2xl font-bold leading-tight tracking-tight">Acompanhamento do Flow</h2>
+                    <p className="text-xs text-[#8c8b5f] dark:text-[#a3a272] hidden sm:block">Funnel management &amp; tracking</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4 w-full sm:w-auto justify-end">
+                  <div className="relative hidden sm:block">
+                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#8c8b5f] text-xl">search</span>
+                    <input
+                      type="text"
+                      placeholder="Buscar cliente..."
+                      className="h-10 pl-10 pr-4 rounded-full bg-neutral-light dark:bg-[#2e2d1a] border-none text-sm w-64 focus:ring-2 focus:ring-primary placeholder-[#8c8b5f]"
+                    />
+                  </div>
+                  <button className="relative p-2 rounded-full bg-neutral-light dark:bg-[#2e2d1a] text-neutral-dark dark:text-white hover:bg-neutral-light/80 transition-colors">
+                    <span className="material-symbols-outlined">notifications</span>
+                    <span className="absolute top-2 right-2 size-2 rounded-full bg-accent-red border border-white dark:border-[#2e2d1a]"></span>
+                  </button>
+                </div>
+              </header>
+              {children}
+            </>
+          ) : (
+            <>
+              <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#e5e5dc] dark:border-[#3a3928] bg-white/80 dark:bg-[#1a190b]/80 backdrop-blur-sm px-6 py-4 md:px-10 sticky top-0 z-10">
+                <div className="flex items-center gap-4">
+                  <div>
+                    <h2 className="text-neutral-dark dark:text-white text-xl md:text-2xl font-bold leading-tight tracking-tight">
+                      {location.pathname === '/clientes/buscar' ? 'Buscar Cliente' :
+                       location.pathname === '/assinaturas' ? 'Assinaturas' :
+                       location.pathname === '/pagamentos/registrar' ? 'Registrar Pagamento' :
+                       location.pathname === '/planos' ? 'Planos' :
+                       'Dashboard'}
+                    </h2>
+                    <p className="text-xs text-[#8c8b5f] dark:text-[#a3a272] hidden sm:block">Management Panel</p>
+                  </div>
+                </div>
+              </header>
+              {children}
+            </>
+          )}
         </main>
       </div>
     </div>

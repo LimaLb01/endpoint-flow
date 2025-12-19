@@ -229,6 +229,27 @@ export const api = {
     
     const data = await apiRequest(`/admin/payments?${params.toString()}`);
     return data?.payments || [];
+  },
+
+  /**
+   * Listar interações do flow
+   */
+  listarFlowInteractions: async (queryString = '') => {
+    return apiRequest(`/admin/flow/interactions?${queryString}`);
+  },
+
+  /**
+   * Obter timeline de um flow_token
+   */
+  obterFlowTimeline: async (flowToken) => {
+    return apiRequest(`/admin/flow/timeline/${flowToken}`);
+  },
+
+  /**
+   * Obter estatísticas do flow
+   */
+  obterFlowStats: async () => {
+    return apiRequest('/admin/flow/stats');
   }
 };
 

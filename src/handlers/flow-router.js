@@ -16,6 +16,7 @@ const { handleConfirmBooking } = require('./booking-handler');
 const { cleanPlaceholders } = require('../utils/placeholder-cleaner');
 const { validateFlowRequest, validateByActionType } = require('../utils/validators');
 const { globalLogger } = require('../utils/logger');
+const { trackFlowInteraction } = require('../services/flow-tracking-service');
 
 // Armazenamento de dados anteriores para resolução de placeholders
 let previousFlowData = {};
@@ -81,7 +82,22 @@ async function handleFlowRequest(data, requestId = null) {
   // INIT - Primeira chamada quando Flow é aberto
   if (action === 'INIT') {
     logger.info('Processando INIT - Inicializando Flow');
-    return handleInit();
+    const response = handleInit();
+    
+    // Registrar interação INIT (não bloquear se falhar)
+    trackFlowInteraction({
+      flow_token: flow_token,
+      action_type: 'INIT',
+      screen: 'WELCOME',
+      previous_screen: null,
+      payload: {}
+    }).catch(trackError => {
+      logger.warn('Erro ao rastrear INIT (não crítico)', {
+        error: trackError.message
+      });
+    });
+    
+    return response;
   }
 
   // data_exchange - Navegação entre telas
@@ -111,32 +127,62 @@ async function handleFlowRequest(data, requestId = null) {
     }
     
     try {
+      let response;
       switch (actionType) {
         case 'INIT':
           logger.info('Processando INIT via data_exchange');
-          return handleInit();
+          response = handleInit();
+          break;
       case 'CPF_INPUT':
-        return handleCpfInput(payload);
+        response = await handleCpfInput(payload);
+        break;
       case 'CLUB_OPTION':
-        return handleClubOption(payload);
+        response = await handleClubOption(payload);
+        break;
       case 'SELECT_BRANCH':
-        return handleSelectBranch(payload);
+        response = await handleSelectBranch(payload);
+        break;
       case 'SELECT_BARBER':
-        return handleSelectBarber(payload);
+        response = await handleSelectBarber(payload);
+        break;
       case 'SELECT_SERVICE':
-        return handleSelectService(payload);
+        response = await handleSelectService(payload);
+        break;
       case 'SELECT_DATE':
-        return handleSelectDate(payload);
+        response = await handleSelectDate(payload);
+        break;
       case 'SELECT_TIME':
-        return handleSelectTime(payload);
+        response = await handleSelectTime(payload);
+        break;
       case 'SUBMIT_DETAILS':
-        return handleSubmitDetails(payload);
+        response = await handleSubmitDetails(payload);
+        break;
       case 'CONFIRM_BOOKING':
-        return handleConfirmBooking(payload);
+        response = await handleConfirmBooking(payload);
+        break;
       default:
         // Fallback baseado na tela atual
-        return handleByScreen(screen, payload);
+        response = handleByScreen(screen, payload);
       }
+
+      // Registrar interação do flow (não bloquear se falhar)
+      try {
+        await trackFlowInteraction({
+          flow_token: flow_token || payload.flow_token,
+          client_cpf: payload.client_cpf,
+          client_phone: payload.client_phone,
+          action_type: actionType,
+          screen: response?.screen || screen,
+          previous_screen: screen,
+          payload: payload
+        });
+      } catch (trackError) {
+        logger.warn('Erro ao rastrear interação (não crítico)', {
+          error: trackError.message
+        });
+      }
+
+      return response;
     } catch (error) {
       logger.error('Erro ao processar action_type', {
         actionType,

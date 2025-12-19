@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Acompanhamento do Flow</title>
+<link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#f9f506",
+                        "background-light": "#f8f8f5",
+                        "background-dark": "#23220f",
+                        "neutral-dark": "#181811",
+                        "neutral-light": "#f5f5f0",
+                        "accent-green": "#078816",
+                        "accent-red": "#e71708",
+                    },
+                    fontFamily: {
+                        "display": ["Spline Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "1.5rem", "xl": "2rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>.timeline-scroll::-webkit-scrollbar {
+            width: 4px;
+        }
+        .timeline-scroll::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .timeline-scroll::-webkit-scrollbar-thumb {
+            background-color: #e5e5dc;
+            border-radius: 20px;
+        }
+        .dark .timeline-scroll::-webkit-scrollbar-thumb {
+            background-color: #3a3928;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-neutral-dark dark:text-white font-display antialiased overflow-x-hidden">
+<div class="relative flex min-h-screen w-full flex-col md:flex-row">
+<aside class="w-full md:w-64 flex-shrink-0 border-b md:border-b-0 md:border-r border-[#e5e5dc] dark:border-[#3a3928] bg-white dark:bg-[#1a190b] z-20">
+<div class="flex h-full flex-col justify-between p-4 md:p-6 sticky top-0">
+<div class="flex flex-col gap-8">
+<div class="flex flex-col px-2">
+<h1 class="text-neutral-dark dark:text-white text-xl font-bold leading-normal tracking-tight">BarberAdmin</h1>
+<p class="text-[#8c8b5f] dark:text-[#a3a272] text-xs font-normal leading-normal">Management Panel</p>
+</div>
+<nav class="flex flex-col gap-2">
+<a class="flex items-center gap-3 px-4 py-3 rounded-full hover:bg-neutral-light dark:hover:bg-[#2e2d1a] text-neutral-dark dark:text-[#d1d0c5] transition-colors" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-sm font-medium">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-full bg-primary text-neutral-dark shadow-sm" href="#">
+<span class="material-symbols-outlined filled" style="font-variation-settings: 'FILL' 1;">alt_route</span>
+<span class="text-sm font-semibold">Flow Tracking</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-full hover:bg-neutral-light dark:hover:bg-[#2e2d1a] text-neutral-dark dark:text-[#d1d0c5] transition-colors" href="#">
+<span class="material-symbols-outlined">groups</span>
+<span class="text-sm font-medium">Clients</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-full hover:bg-neutral-light dark:hover:bg-[#2e2d1a] text-neutral-dark dark:text-[#d1d0c5] transition-colors" href="#">
+<span class="material-symbols-outlined">credit_card</span>
+<span class="text-sm font-medium">Subscriptions</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-full hover:bg-neutral-light dark:hover:bg-[#2e2d1a] text-neutral-dark dark:text-[#d1d0c5] transition-colors" href="#">
+<span class="material-symbols-outlined">payments</span>
+<span class="text-sm font-medium">Payments</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-full hover:bg-neutral-light dark:hover:bg-[#2e2d1a] text-neutral-dark dark:text-[#d1d0c5] transition-colors" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-sm font-medium">Settings</span>
+</a>
+</nav>
+</div>
+<div class="px-2 pb-2">
+<div class="flex items-center gap-3 p-3 rounded-xl bg-neutral-light dark:bg-[#2e2d1a]">
+<div class="bg-center bg-no-repeat bg-cover rounded-full size-10 flex-shrink-0" data-alt="Admin user profile picture" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDXAYhe-9y9ecmpQ5Zcel9MLX0nsbIVHKuWbJQ5OtKrq1mfvCXjZj0wQtj4CBw-87Ca5zltrrgM_t_mQTfZkYZ8JUMfuHoR4UFePstw-JvvxwcovY8REDMb6WqJWSCGbEYwvpUnPS7BcfSE2_Is_3iJ-23yr_oFZ5GHp39x7oEfrMcxH7a5lpzE-xTauwr5LVB8cb-h7_IGsm6umTsB6WgkS9Tp8Tue0AjE1BSYNPRHwIzi2YKcFZpS6DI088q6mQ8RLwXgDqen4ZM");'></div>
+<div class="overflow-hidden">
+<p class="text-sm font-bold truncate dark:text-white">Alex Barber</p>
+<p class="text-xs text-[#8c8b5f] dark:text-[#a3a272] truncate">Admin</p>
+</div>
+</div>
+</div>
+</div>
+</aside>
+<main class="flex-1 flex flex-col h-full min-h-screen relative overflow-hidden bg-background-light dark:bg-background-dark">
+<header class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#e5e5dc] dark:border-[#3a3928] bg-white/80 dark:bg-[#1a190b]/80 backdrop-blur-sm px-6 py-4 md:px-10 sticky top-0 z-10">
+<div class="flex items-center gap-4">
+<button class="md:hidden p-2 -ml-2 text-neutral-dark dark:text-white">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<div>
+<h2 class="text-neutral-dark dark:text-white text-xl md:text-2xl font-bold leading-tight tracking-tight">Acompanhamento do Flow</h2>
+<p class="text-xs text-[#8c8b5f] dark:text-[#a3a272] hidden sm:block">Funnel management &amp; tracking</p>
+</div>
+</div>
+<div class="flex items-center gap-4 w-full sm:w-auto justify-end">
+<div class="relative hidden sm:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#8c8b5f] text-xl">search</span>
+<input class="h-10 pl-10 pr-4 rounded-full bg-neutral-light dark:bg-[#2e2d1a] border-none text-sm w-64 focus:ring-2 focus:ring-primary placeholder-[#8c8b5f]" placeholder="Buscar cliente..." type="text"/>
+</div>
+<button class="relative p-2 rounded-full bg-neutral-light dark:bg-[#2e2d1a] text-neutral-dark dark:text-white hover:bg-neutral-light/80 transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-2 right-2 size-2 rounded-full bg-accent-red border border-white dark:border-[#2e2d1a]"></span>
+</button>
+</div>
+</header>
+<div class="p-6 md:p-10 flex flex-col lg:flex-row gap-6 max-w-[1600px] mx-auto w-full h-full">
+<div class="flex-1 flex flex-col gap-6 min-w-0">
+<div class="bg-white dark:bg-[#1a190b] p-4 rounded-xl border border-[#e5e5dc] dark:border-[#3a3928] shadow-sm flex flex-wrap gap-4 items-center justify-between">
+<div class="flex flex-wrap gap-3 w-full lg:w-auto">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#8c8b5f] text-lg">filter_alt</span>
+<select class="h-10 pl-10 pr-8 bg-neutral-light dark:bg-[#2e2d1a] border-none rounded-lg text-sm text-neutral-dark dark:text-white focus:ring-2 focus:ring-primary cursor-pointer w-full sm:w-40">
+<option>Todos Status</option>
+<option>Concluído</option>
+<option>Em andamento</option>
+<option>Abandonado</option>
+</select>
+</div>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#8c8b5f] text-lg">layers</span>
+<select class="h-10 pl-10 pr-8 bg-neutral-light dark:bg-[#2e2d1a] border-none rounded-lg text-sm text-neutral-dark dark:text-white focus:ring-2 focus:ring-primary cursor-pointer w-full sm:w-40">
+<option>Todas Etapas</option>
+<option>Cadastro</option>
+<option>Pagamento</option>
+</select>
+</div>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#8c8b5f] text-lg">date_range</span>
+<input class="h-10 pl-10 pr-4 bg-neutral-light dark:bg-[#2e2d1a] border-none rounded-lg text-sm text-neutral-dark dark:text-white focus:ring-2 focus:ring-primary w-full sm:w-48 placeholder-neutral-500" placeholder="Últimos 7 dias" type="text"/>
+</div>
+</div>
+<div class="flex gap-2">
+<button class="flex items-center justify-center size-10 rounded-lg bg-neutral-light dark:bg-[#2e2d1a] text-neutral-dark dark:text-white hover:bg-[#e5e5dc] dark:hover:bg-[#3a3928] transition-colors">
+<span class="material-symbols-outlined">refresh</span>
+</button>
+<button class="flex items-center justify-center size-10 rounded-lg bg-neutral-light dark:bg-[#2e2d1a] text-neutral-dark dark:text-white hover:bg-[#e5e5dc] dark:hover:bg-[#3a3928] transition-colors">
+<span class="material-symbols-outlined">download</span>
+</button>
+</div>
+</div>
+<div class="bg-white dark:bg-[#1a190b] rounded-xl border border-[#e5e5dc] dark:border-[#3a3928] shadow-sm overflow-hidden flex-1">
+<div class="overflow-x-auto">
+<table class="w-full text-sm text-left">
+<thead class="bg-neutral-light dark:bg-[#2e2d1a] text-xs uppercase text-[#8c8b5f] dark:text-[#a3a272]">
+<tr>
+<th class="px-6 py-4 font-semibold">Cliente</th>
+<th class="px-6 py-4 font-semibold">Status do Flow</th>
+<th class="px-6 py-4 font-semibold">Última Etapa</th>
+<th class="px-6 py-4 font-semibold text-right">Ação</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-[#f0f0eb] dark:divide-[#2e2d1a]">
+<tr class="bg-primary/5 dark:bg-primary/5 border-l-4 border-l-primary cursor-pointer transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-9 rounded-full bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center text-xs font-bold text-neutral-500 dark:text-neutral-400">
+                                                    ?
+                                                </div>
+<div>
+<span class="font-bold text-neutral-dark dark:text-white block">Visitante (CPF ...)</span>
+<span class="text-xs text-[#8c8b5f] dark:text-[#a3a272]">ID: #TEMP-8921</span>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-[#ffebeb] text-accent-red dark:bg-[#3d0f0f] dark:text-[#f87171]">
+<span class="size-1.5 rounded-full bg-current"></span>
+                                                Abandonado
+                                            </span>
+</td>
+<td class="px-6 py-4 text-neutral-dark dark:text-white font-medium">
+                                            Dados Pessoais
+                                        </td>
+<td class="px-6 py-4 text-right">
+<button class="text-xs font-bold text-neutral-dark dark:text-white bg-white dark:bg-[#2e2d1a] border border-[#e5e5dc] dark:border-[#3a3928] px-3 py-1.5 rounded-full hover:bg-neutral-light dark:hover:bg-[#3a3928] transition-colors">
+                                                Ver Detalhes
+                                            </button>
+</td>
+</tr>
+<tr class="hover:bg-neutral-light/50 dark:hover:bg-[#2e2d1a]/50 transition-colors cursor-pointer border-l-4 border-l-transparent">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-9 rounded-full bg-cover bg-center" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBaLI8_4lFoZXcLnoEJoBjDp9cedrphPspn854j7i6s4IL1E_9zwTqNV6GLaJ7S7_yBqw9zfbp_t2HGoVo4YadUp2nAWEn9PdmY3X5NGWbUwkhV065C5CsCslXtcynHd8R1OUKoGs5FX9to-nGuLLj76gLK_oWoMz9-_A7yf6J6MntJOgsYbbumtIVgQKdv7-3mAHL-HSIVdfGH1QzSNiuea6XjvF_JddvX0B5aIdw62SHeuLw5aUWREwzdw1u4DaTgyD0T2kYbqFA");'></div>
+<div>
+<span class="font-medium text-neutral-dark dark:text-white block">Ricardo Gomes</span>
+<span class="text-xs text-[#8c8b5f] dark:text-[#a3a272]">ricardo.g@email.com</span>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-[#e6f6e8] text-accent-green dark:bg-[#0f2e14] dark:text-[#4ade80]">
+<span class="size-1.5 rounded-full bg-current"></span>
+                                                Concluído
+                                            </span>
+</td>
+<td class="px-6 py-4 text-neutral-dark dark:text-white font-medium">
+                                            Concluiu pagamento
+                                        </td>
+<td class="px-6 py-4 text-right">
+<button class="text-xs font-bold text-[#8c8b5f] hover:text-neutral-dark dark:text-[#a3a272] dark:hover:text-white transition-colors">
+                                                Ver Detalhes
+                                            </button>
+</td>
+</tr>
+<tr class="hover:bg-neutral-light/50 dark:hover:bg-[#2e2d1a]/50 transition-colors cursor-pointer border-l-4 border-l-transparent">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-9 rounded-full bg-primary flex items-center justify-center text-neutral-dark font-bold text-xs">LM</div>
+<div>
+<span class="font-medium text-neutral-dark dark:text-white block">Lucas Martins</span>
+<span class="text-xs text-[#8c8b5f] dark:text-[#a3a272]">lucas.dev@email.com</span>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-[#fff8e1] text-yellow-700 dark:bg-[#2e2608] dark:text-[#fde047]">
+<span class="size-1.5 rounded-full bg-current"></span>
+                                                Em andamento
+                                            </span>
+</td>
+<td class="px-6 py-4 text-neutral-dark dark:text-white font-medium">
+                                            Selecionou plano
+                                        </td>
+<td class="px-6 py-4 text-right">
+<button class="text-xs font-bold text-[#8c8b5f] hover:text-neutral-dark dark:text-[#a3a272] dark:hover:text-white transition-colors">
+                                                Ver Detalhes
+                                            </button>
+</td>
+</tr>
+<tr class="hover:bg-neutral-light/50 dark:hover:bg-[#2e2d1a]/50 transition-colors cursor-pointer border-l-4 border-l-transparent">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-9 rounded-full bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center text-xs font-bold text-neutral-500 dark:text-neutral-400">
+                                                    ?
+                                                </div>
+<div>
+<span class="font-medium text-neutral-dark dark:text-white block">Visitante</span>
+<span class="text-xs text-[#8c8b5f] dark:text-[#a3a272]">ID: #TEMP-8910</span>
+</div>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-[#ffebeb] text-accent-red dark:bg-[#3d0f0f] dark:text-[#f87171]">
+<span class="size-1.5 rounded-full bg-current"></span>
+                                                Abandonado
+                                            </span>
+</td>
+<td class="px-6 py-4 text-neutral-dark dark:text-white font-medium">
+                                            Informou CPF
+                                        </td>
+<td class="px-6 py-4 text-right">
+<button class="text-xs font-bold text-[#8c8b5f] hover:text-neutral-dark dark:text-[#a3a272] dark:hover:text-white transition-colors">
+                                                Ver Detalhes
+                                            </button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="px-6 py-4 flex items-center justify-between border-t border-[#f0f0eb] dark:border-[#2e2d1a] bg-neutral-light/30 dark:bg-[#1a190b]">
+<span class="text-xs text-[#8c8b5f] dark:text-[#a3a272]">Showing 1-4 of 24 clients</span>
+<div class="flex gap-2">
+<button class="size-8 rounded-lg flex items-center justify-center bg-white dark:bg-[#2e2d1a] border border-[#e5e5dc] dark:border-[#3a3928] text-neutral-dark dark:text-white hover:bg-neutral-light transition-colors disabled:opacity-50">
+<span class="material-symbols-outlined text-sm">chevron_left</span>
+</button>
+<button class="size-8 rounded-lg flex items-center justify-center bg-white dark:bg-[#2e2d1a] border border-[#e5e5dc] dark:border-[#3a3928] text-neutral-dark dark:text-white hover:bg-neutral-light transition-colors">
+<span class="material-symbols-outlined text-sm">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<div class="w-full lg:w-[400px] flex-shrink-0 flex flex-col h-fit sticky top-24">
+<div class="bg-white dark:bg-[#1a190b] rounded-xl border border-[#e5e5dc] dark:border-[#3a3928] shadow-lg overflow-hidden flex flex-col">
+<div class="p-6 border-b border-[#f0f0eb] dark:border-[#2e2d1a] bg-neutral-light/30 dark:bg-[#2e2d1a]/30">
+<div class="flex justify-between items-start mb-4">
+<h3 class="text-lg font-bold text-neutral-dark dark:text-white">Detalhes do Flow</h3>
+<button class="text-[#8c8b5f] hover:text-neutral-dark dark:text-[#a3a272] dark:hover:text-white">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<div class="flex items-center gap-4">
+<div class="size-14 rounded-full bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center text-xl font-bold text-neutral-500 dark:text-neutral-400 border-2 border-white dark:border-[#1a190b] shadow-sm">
+                                    ?
+                                </div>
+<div>
+<h4 class="text-lg font-bold text-neutral-dark dark:text-white">Visitante (CPF ...)</h4>
+<div class="flex flex-wrap gap-2 mt-1">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-neutral-light text-neutral-600 border border-neutral-200 dark:bg-[#2e2d1a] dark:text-[#a3a272] dark:border-[#3a3928]">
+<span class="material-symbols-outlined text-[12px]">fingerprint</span>
+                                            xxx.492.xxx-12
+                                        </span>
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-[#ffebeb] text-accent-red dark:bg-[#3d0f0f] dark:text-[#f87171]">
+                                            Abandonado há 2h
+                                        </span>
+</div>
+</div>
+</div>
+</div>
+<div class="p-6 overflow-y-auto max-h-[600px] timeline-scroll">
+<h4 class="text-xs font-bold uppercase tracking-wider text-[#8c8b5f] dark:text-[#a3a272] mb-6">Linha do Tempo</h4>
+<div class="flex flex-col">
+<div class="relative pl-10 pb-8 last:pb-0 group">
+<div class="absolute left-[11px] top-7 bottom-0 w-0.5 bg-accent-green"></div>
+<div class="absolute left-0 top-1 size-6 rounded-full bg-accent-green flex items-center justify-center border-2 border-white dark:border-[#1a190b] shadow-sm z-10">
+<span class="material-symbols-outlined text-white text-[14px] font-bold">check</span>
+</div>
+<div class="flex flex-col gap-1">
+<p class="text-sm font-bold text-neutral-dark dark:text-white">Iniciou cadastro</p>
+<p class="text-xs text-[#8c8b5f] dark:text-[#a3a272]">10:30 AM</p>
+</div>
+</div>
+<div class="relative pl-10 pb-8 last:pb-0 group">
+<div class="absolute left-[11px] top-7 bottom-0 w-0.5 bg-accent-green"></div>
+<div class="absolute left-0 top-1 size-6 rounded-full bg-accent-green flex items-center justify-center border-2 border-white dark:border-[#1a190b] shadow-sm z-10">
+<span class="material-symbols-outlined text-white text-[14px] font-bold">check</span>
+</div>
+<div class="flex flex-col gap-1">
+<p class="text-sm font-bold text-neutral-dark dark:text-white">Informou CPF</p>
+<p class="text-xs text-[#8c8b5f] dark:text-[#a3a272]">10:32 AM</p>
+</div>
+</div>
+<div class="relative pl-10 pb-8 last:pb-0 group">
+<div class="absolute left-[11px] top-7 bottom-0 w-0.5 bg-[#e5e5dc] dark:bg-[#3a3928]"></div>
+<div class="absolute left-[-2px] top-0 size-7 rounded-full bg-accent-red flex items-center justify-center border-4 border-red-100 dark:border-red-900/30 shadow-sm z-10 animate-pulse">
+<span class="material-symbols-outlined text-white text-[14px] font-bold">priority_high</span>
+</div>
+<div class="flex flex-col gap-1 rounded-lg bg-red-50 dark:bg-red-900/10 p-3 border border-red-100 dark:border-red-900/30 -mt-2">
+<p class="text-sm font-bold text-accent-red dark:text-red-400">Dados pessoais</p>
+<p class="text-xs text-red-600/70 dark:text-red-400/70">Parou nesta etapa</p>
+<div class="mt-2 text-xs text-neutral-600 dark:text-neutral-400 bg-white/50 dark:bg-black/20 p-2 rounded">
+<span class="font-semibold">Erro possível:</span> Form field validation failure or user drop-off.
+                                        </div>
+</div>
+</div>
+<div class="relative pl-10 pb-8 last:pb-0 group">
+<div class="absolute left-[11px] top-7 bottom-0 w-0.5 bg-[#e5e5dc] dark:bg-[#3a3928]"></div>
+<div class="absolute left-0 top-1 size-6 rounded-full bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center border-2 border-white dark:border-[#1a190b] z-10">
+<span class="material-symbols-outlined text-neutral-400 text-[14px]">person_add</span>
+</div>
+<div class="flex flex-col gap-1 opacity-50">
+<p class="text-sm font-medium text-neutral-dark dark:text-white">Criou cliente</p>
+</div>
+</div>
+<div class="relative pl-10 pb-8 last:pb-0 group">
+<div class="absolute left-[11px] top-7 bottom-0 w-0.5 bg-[#e5e5dc] dark:bg-[#3a3928]"></div>
+<div class="absolute left-0 top-1 size-6 rounded-full bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center border-2 border-white dark:border-[#1a190b] z-10">
+<span class="material-symbols-outlined text-neutral-400 text-[14px]">checklist</span>
+</div>
+<div class="flex flex-col gap-1 opacity-50">
+<p class="text-sm font-medium text-neutral-dark dark:text-white">Selecionou plano</p>
+</div>
+</div>
+<div class="relative pl-10 pb-8 last:pb-0 group">
+<div class="absolute left-[11px] top-7 bottom-0 w-0.5 bg-[#e5e5dc] dark:bg-[#3a3928]"></div>
+<div class="absolute left-0 top-1 size-6 rounded-full bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center border-2 border-white dark:border-[#1a190b] z-10">
+<span class="material-symbols-outlined text-neutral-400 text-[14px]">payments</span>
+</div>
+<div class="flex flex-col gap-1 opacity-50">
+<p class="text-sm font-medium text-neutral-dark dark:text-white">Iniciou pagamento</p>
+</div>
+</div>
+<div class="relative pl-10 pb-0 last:pb-0 group">
+<div class="absolute left-0 top-1 size-6 rounded-full bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center border-2 border-white dark:border-[#1a190b] z-10">
+<span class="material-symbols-outlined text-neutral-400 text-[14px]">verified</span>
+</div>
+<div class="flex flex-col gap-1 opacity-50">
+<p class="text-sm font-medium text-neutral-dark dark:text-white">Concluiu pagamento</p>
+</div>
+</div>
+</div>
+</div>
+<div class="p-6 border-t border-[#f0f0eb] dark:border-[#2e2d1a] bg-neutral-light/50 dark:bg-[#1a190b]">
+<div class="flex flex-col gap-3">
+<button class="w-full flex items-center justify-center gap-2 h-10 px-6 bg-primary text-neutral-dark rounded-full font-bold shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
+<span class="material-symbols-outlined text-lg">arrow_forward</span>
+                                    Ir para Cadastro
+                                </button>
+<button class="w-full flex items-center justify-center gap-2 h-10 px-6 bg-white dark:bg-[#2e2d1a] border border-[#e5e5dc] dark:border-[#3a3928] text-neutral-dark dark:text-white rounded-full font-semibold hover:bg-neutral-light dark:hover:bg-[#3a3928] transition-colors">
+<span class="material-symbols-outlined text-lg">mail</span>
+                                    Enviar Lembrete
+                                </button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+
+</body></html>
