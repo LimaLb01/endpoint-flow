@@ -208,6 +208,93 @@ async function handleFlowRequest(data, requestId = null, requestInfo = null) {
         case 'INIT':
           logger.info('Processando INIT via data_exchange');
           response = handleInit();
+          
+          // Capturar localização geográfica para INIT via data_exchange
+          const accessTimestamp = new Date().toISOString();
+          const clientIP = requestInfo?.ip || 
+                          requestInfo?.headers?.['x-forwarded-for']?.split(',')[0]?.trim() ||
+                          requestInfo?.headers?.['x-real-ip'] ||
+                          requestInfo?.connection?.remoteAddress ||
+                          null;
+          
+          logger.info('INIT via data_exchange - Capturando localização', {
+            flow_token: flow_token,
+            clientIP: clientIP,
+            hasRequestInfo: !!requestInfo
+          });
+          
+          // Registrar interação INIT primeiro
+          trackFlowInteraction({
+            flow_token: flow_token,
+            action_type: 'INIT',
+            screen: 'WELCOME',
+            previous_screen: null,
+            payload: {},
+            metadata: {
+              access_timestamp: accessTimestamp,
+              client_ip: clientIP
+            }
+          }).then(async (initInteractionId) => {
+            if (!initInteractionId) {
+              logger.warn('Não foi possível obter ID da interação INIT');
+              return;
+            }
+            
+            // Obter localização de forma assíncrona e atualizar
+            if (clientIP && !clientIP.startsWith('192.168.') && !clientIP.startsWith('10.') && 
+                clientIP !== '::1' && clientIP !== '127.0.0.1') {
+              try {
+                logger.debug('Buscando localização para IP', { ip: clientIP });
+                const location = await getLocationByIP(clientIP);
+                
+                if (location && !location.isLocal) {
+                  const { supabaseAdmin } = require('../config/supabase');
+                  if (supabaseAdmin) {
+                    const { error: updateError } = await supabaseAdmin
+                      .from('flow_interactions')
+                      .update({
+                        metadata: {
+                          access_timestamp: accessTimestamp,
+                          client_ip: clientIP,
+                          location: location
+                        }
+                      })
+                      .eq('id', initInteractionId);
+                    
+                    if (updateError) {
+                      logger.warn('Erro ao atualizar localização', { 
+                        error: updateError.message,
+                        interactionId: initInteractionId
+                      });
+                    } else {
+                      logger.info('Localização atualizada com sucesso', { 
+                        interactionId: initInteractionId,
+                        location: `${location.city || ''}, ${location.region || ''}, ${location.country || ''}`,
+                        ip: clientIP
+                      });
+                    }
+                  }
+                } else {
+                  logger.debug('Localização é local ou inválida', { 
+                    isLocal: location?.isLocal,
+                    location 
+                  });
+                }
+              } catch (err) {
+                logger.warn('Erro ao obter localização', {
+                  error: err.message,
+                  ip: clientIP
+                });
+              }
+            } else {
+              logger.debug('IP local ou inválido, pulando geolocalização', { ip: clientIP });
+            }
+          }).catch(trackError => {
+            logger.warn('Erro ao rastrear INIT', {
+              error: trackError.message
+            });
+          });
+          
           break;
       case 'CPF_INPUT':
         response = await handleCpfInput(payload);
