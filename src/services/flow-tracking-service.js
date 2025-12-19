@@ -53,7 +53,8 @@ async function trackFlowInteraction(data) {
       action_type,
       screen,
       previous_screen,
-      payload = {}
+      payload = {},
+      metadata = {}
     } = data;
 
     const cleanCpf = client_cpf ? client_cpf.replace(/\D/g, '') : null;
@@ -73,7 +74,8 @@ async function trackFlowInteraction(data) {
       last_step: lastStep,
       payload: payload,
       metadata: {
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        ...metadata // Incluir metadata adicional (localização, IP, etc.)
       }
     };
 
@@ -175,14 +177,29 @@ async function getFlowInteractions(filters = {}) {
       
       // Função para calcular "completude" de uma interação
       const getCompleteness = (inter) => {
-        if (!inter || !inter.payload) return 0;
-        const payload = inter.payload;
+        if (!inter) return 0;
         let score = 0;
-        if (payload.selected_branch) score += 1;
-        if (payload.selected_date) score += 1;
-        if (payload.selected_time) score += 1;
-        if (payload.client_name) score += 1;
-        if (payload.client_phone) score += 1;
+        
+        // Priorizar interação INIT (tem localização e timestamp de acesso)
+        if (inter.screen === 'WELCOME' && inter.action_type === 'INIT') {
+          score += 10; // Bonus alto para INIT
+        }
+        
+        // Verificar se tem localização no metadata
+        if (inter.metadata?.location && !inter.metadata.location.isLocal) {
+          score += 5;
+        }
+        
+        // Verificar dados do payload
+        if (inter.payload) {
+          const payload = inter.payload;
+          if (payload.selected_branch) score += 1;
+          if (payload.selected_date) score += 1;
+          if (payload.selected_time) score += 1;
+          if (payload.client_name) score += 1;
+          if (payload.client_phone) score += 1;
+        }
+        
         return score;
       };
       

@@ -34,33 +34,50 @@ export default function AcompanhamentoFlow() {
     'CONFIRMATION': 'Concluiu pagamento'
   };
 
-  // Mapeamento de filiais
-  const branchNames = {
-    'desvio_rizzo': 'Desvio Rizzo',
-    'exposicao': 'Exposição',
-    'santa_catarina': 'Santa Catarina'
+  // Formatar localização geográfica
+  const formatLocation = (metadata) => {
+    if (!metadata || !metadata.location) return '-';
+    const location = metadata.location;
+    if (location.isLocal) return 'Local';
+    
+    const parts = [];
+    if (location.city) parts.push(location.city);
+    if (location.region) parts.push(location.region);
+    if (location.country && !parts.length) parts.push(location.country);
+    
+    return parts.length > 0 ? parts.join(', ') : '-';
   };
 
-  // Formatar data para exibição
-  const formatDate = (dateString) => {
-    if (!dateString) return '-';
+  // Formatar data de acesso para exibição
+  const formatAccessDate = (metadata, created_at) => {
+    const timestamp = metadata?.access_timestamp || created_at;
+    if (!timestamp) return '-';
     try {
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) {
-        // Tentar parsear como YYYY-MM-DD
-        const [year, month, day] = dateString.split('-');
-        if (year && month && day) {
-          return `${day}/${month}/${year}`;
-        }
-        return dateString;
-      }
+      const date = new Date(timestamp);
+      if (isNaN(date.getTime())) return '-';
       return date.toLocaleDateString('pt-BR', {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric'
       });
     } catch {
-      return dateString;
+      return '-';
+    }
+  };
+
+  // Formatar horário de acesso para exibição
+  const formatAccessTime = (metadata, created_at) => {
+    const timestamp = metadata?.access_timestamp || created_at;
+    if (!timestamp) return '-';
+    try {
+      const date = new Date(timestamp);
+      if (isNaN(date.getTime())) return '-';
+      return date.toLocaleTimeString('pt-BR', {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch {
+      return '-';
     }
   };
 
@@ -353,9 +370,9 @@ export default function AcompanhamentoFlow() {
                   <thead className="bg-neutral-light dark:bg-[#2e2d1a] text-xs uppercase text-[#8c8b5f] dark:text-[#a3a272]">
                     <tr>
                       <th className="px-6 py-4 font-semibold">Cliente</th>
-                      <th className="px-6 py-4 font-semibold">Local</th>
-                      <th className="px-6 py-4 font-semibold">Data</th>
-                      <th className="px-6 py-4 font-semibold">Horário</th>
+                      <th className="px-6 py-4 font-semibold">Localização</th>
+                      <th className="px-6 py-4 font-semibold">Data de Acesso</th>
+                      <th className="px-6 py-4 font-semibold">Horário de Acesso</th>
                       <th className="px-6 py-4 font-semibold">Status do Flow</th>
                       <th className="px-6 py-4 font-semibold">Última Etapa</th>
                       <th className="px-6 py-4 font-semibold text-right">Ação</th>
@@ -369,13 +386,11 @@ export default function AcompanhamentoFlow() {
                       const cpf = interaction.client_cpf;
                       const maskedCpf = cpf ? utils.aplicarMascaraCPF(cpf).replace(/(\d{3})\.(\d{3})\.(\d{3})-(\d{2})/, 'xxx.$2.xxx-$4') : null;
                       
-                      // Extrair dados do agendamento do payload
-                      const selectedBranch = interaction.payload?.selected_branch;
-                      const branchName = selectedBranch ? (branchNames[selectedBranch] || selectedBranch) : '-';
-                      const selectedDate = interaction.payload?.selected_date;
-                      const formattedDate = formatDate(selectedDate);
-                      const selectedTime = interaction.payload?.selected_time;
-                      const formattedTime = selectedTime || '-';
+                      // Extrair dados de localização e acesso do metadata
+                      const metadata = interaction.metadata || {};
+                      const locationText = formatLocation(metadata);
+                      const accessDate = formatAccessDate(metadata, interaction.created_at);
+                      const accessTime = formatAccessTime(metadata, interaction.created_at);
                       
                       return (
                         <tr
@@ -413,13 +428,13 @@ export default function AcompanhamentoFlow() {
                             </div>
                           </td>
                           <td className="px-6 py-4 text-neutral-dark dark:text-white font-medium">
-                            {branchName}
+                            {locationText}
                           </td>
                           <td className="px-6 py-4 text-neutral-dark dark:text-white font-medium">
-                            {formattedDate}
+                            {accessDate}
                           </td>
                           <td className="px-6 py-4 text-neutral-dark dark:text-white font-medium">
-                            {formattedTime}
+                            {accessTime}
                           </td>
                           <td className="px-6 py-4">
                             {getStatusBadge(interaction.status)}

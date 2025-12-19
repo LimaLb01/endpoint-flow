@@ -421,7 +421,7 @@ router.post('/whatsapp-flow', flowWebhookRateLimiter, async (req, res) => {
     
     let response;
     try {
-      response = await handleFlowRequest(decryptedData, req.requestId);
+      response = await handleFlowRequest(decryptedData, req.requestId, req);
       logger.info('handleFlowRequest executado com sucesso', {
         screen: response?.screen,
         hasData: !!response?.data

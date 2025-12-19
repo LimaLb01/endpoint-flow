@@ -17,6 +17,7 @@ const { cleanPlaceholders } = require('../utils/placeholder-cleaner');
 const { validateFlowRequest, validateByActionType } = require('../utils/validators');
 const { globalLogger } = require('../utils/logger');
 const { trackFlowInteraction } = require('../services/flow-tracking-service');
+const { getLocationByIP } = require('../services/geolocation-service');
 
 // Armazenamento de dados anteriores para resolução de placeholders
 let previousFlowData = {};
@@ -24,9 +25,10 @@ let previousFlowData = {};
 /**
  * Processa requisições do Flow
  * @param {object} data - Dados da requisição
+ * @param {object} requestInfo - Informações da requisição HTTP (req object)
  * @returns {Promise<object>} Resposta do Flow
  */
-async function handleFlowRequest(data, requestId = null) {
+async function handleFlowRequest(data, requestId = null, requestInfo = null) {
   const logger = requestId ? require('../utils/logger').createRequestLogger(requestId) : globalLogger;
   
   // Validar estrutura básica da requisição
@@ -84,13 +86,60 @@ async function handleFlowRequest(data, requestId = null) {
     logger.info('Processando INIT - Inicializando Flow');
     const response = handleInit();
     
+    // Obter localização geográfica e timestamp de acesso
+    const accessTimestamp = new Date().toISOString();
+    const clientIP = requestInfo?.ip || 
+                    requestInfo?.headers?.['x-forwarded-for']?.split(',')[0]?.trim() ||
+                    requestInfo?.headers?.['x-real-ip'] ||
+                    requestInfo?.connection?.remoteAddress ||
+                    null;
+    
+    // Obter localização de forma assíncrona (não bloquear resposta)
+    if (clientIP && !clientIP.startsWith('192.168.') && !clientIP.startsWith('10.') && clientIP !== '::1' && clientIP !== '127.0.0.1') {
+      getLocationByIP(clientIP).then(location => {
+        // Atualizar metadata da interação INIT com localização de forma assíncrona
+        if (location && !location.isLocal && flow_token) {
+          const { supabaseAdmin } = require('../config/supabase');
+          if (supabaseAdmin) {
+            supabaseAdmin
+              .from('flow_interactions')
+              .update({
+                metadata: {
+                  access_timestamp: accessTimestamp,
+                  client_ip: clientIP,
+                  location: location
+                }
+              })
+              .eq('flow_token', flow_token)
+              .eq('screen', 'WELCOME')
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .then(() => {
+                logger.debug('Localização atualizada na interação INIT', { location });
+              })
+              .catch(err => {
+                logger.warn('Erro ao atualizar localização (não crítico)', { error: err.message });
+              });
+          }
+        }
+      }).catch(err => {
+        logger.warn('Erro ao obter localização (não crítico)', {
+          error: err.message
+        });
+      });
+    }
+    
     // Registrar interação INIT (não bloquear se falhar)
     trackFlowInteraction({
       flow_token: flow_token,
       action_type: 'INIT',
       screen: 'WELCOME',
       previous_screen: null,
-      payload: {}
+      payload: {},
+      metadata: {
+        access_timestamp: accessTimestamp,
+        client_ip: clientIP
+      }
     }).catch(trackError => {
       logger.warn('Erro ao rastrear INIT (não crítico)', {
         error: trackError.message
@@ -167,6 +216,7 @@ async function handleFlowRequest(data, requestId = null) {
 
       // Registrar interação do flow (não bloquear se falhar)
       try {
+        const accessTimestamp = new Date().toISOString();
         await trackFlowInteraction({
           flow_token: flow_token || payload.flow_token,
           client_cpf: payload.client_cpf,
@@ -174,7 +224,11 @@ async function handleFlowRequest(data, requestId = null) {
           action_type: actionType,
           screen: response?.screen || screen,
           previous_screen: screen,
-          payload: payload
+          payload: payload,
+          metadata: {
+            access_timestamp: accessTimestamp,
+            client_ip: requestInfo?.ip || requestInfo?.headers?.['x-forwarded-for']?.split(',')[0]?.trim() || null
+          }
         });
       } catch (trackError) {
         logger.warn('Erro ao rastrear interação (não crítico)', {
