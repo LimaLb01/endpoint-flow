@@ -250,6 +250,24 @@ export const api = {
    */
   obterFlowStats: async () => {
     return apiRequest('/admin/flow/stats');
+  },
+
+  /**
+   * Excluir uma interação do flow
+   */
+  excluirFlowInteraction: async (interactionId) => {
+    return apiRequest(`/admin/flow/interactions/${interactionId}`, {
+      method: 'DELETE'
+    });
+  },
+
+  /**
+   * Excluir todas as interações de um flow_token
+   */
+  excluirFlowInteractionsByToken: async (flowToken) => {
+    return apiRequest(`/admin/flow/interactions/token/${flowToken}`, {
+      method: 'DELETE'
+    });
   }
 };
 

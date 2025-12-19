@@ -307,10 +307,78 @@ async function getAbandonmentStats() {
   }
 }
 
+/**
+ * Exclui uma interação do flow
+ * @param {string} interactionId - ID da interação
+ * @returns {Promise<boolean>} true se excluído com sucesso
+ */
+async function deleteFlowInteraction(interactionId) {
+  if (!isAdminConfigured()) {
+    globalLogger.warn('Supabase Admin não configurado, pulando exclusão');
+    return false;
+  }
+
+  try {
+    const { error } = await supabaseAdmin
+      .from('flow_interactions')
+      .delete()
+      .eq('id', interactionId);
+
+    if (error) throw error;
+
+    globalLogger.info('Interação do flow excluída', {
+      interactionId
+    });
+
+    return true;
+  } catch (error) {
+    globalLogger.error('Erro ao excluir interação do flow', {
+      error: error.message,
+      interactionId
+    });
+    return false;
+  }
+}
+
+/**
+ * Exclui todas as interações de um flow_token
+ * @param {string} flowToken - Token do flow
+ * @returns {Promise<boolean>} true se excluído com sucesso
+ */
+async function deleteFlowInteractionsByToken(flowToken) {
+  if (!isAdminConfigured()) {
+    globalLogger.warn('Supabase Admin não configurado, pulando exclusão');
+    return false;
+  }
+
+  try {
+    const { error } = await supabaseAdmin
+      .from('flow_interactions')
+      .delete()
+      .eq('flow_token', flowToken);
+
+    if (error) throw error;
+
+    globalLogger.info('Interações do flow excluídas', {
+      flowToken
+    });
+
+    return true;
+  } catch (error) {
+    globalLogger.error('Erro ao excluir interações do flow', {
+      error: error.message,
+      flowToken
+    });
+    return false;
+  }
+}
+
 module.exports = {
   trackFlowInteraction,
   getFlowInteractions,
   getFlowTimeline,
-  getAbandonmentStats
+  getAbandonmentStats,
+  deleteFlowInteraction,
+  deleteFlowInteractionsByToken
 };
 

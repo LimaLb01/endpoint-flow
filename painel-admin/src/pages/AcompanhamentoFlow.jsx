@@ -19,6 +19,7 @@ export default function AcompanhamentoFlow() {
     limit: 20,
     total: 0
   });
+  const [deletingId, setDeletingId] = useState(null);
 
   // Mapeamento de telas para nomes amigáveis
   const screenNames = {
@@ -140,6 +141,34 @@ export default function AcompanhamentoFlow() {
       }
     } else {
       setTimeline([]);
+    }
+  };
+
+  // Excluir interação do flow
+  const handleDeleteInteraction = async (interaction, e) => {
+    e.stopPropagation(); // Prevenir seleção ao clicar no botão
+    
+    if (!window.confirm('Tem certeza que deseja excluir esta interação do flow?')) {
+      return;
+    }
+
+    setDeletingId(interaction.id);
+    try {
+      await api.excluirFlowInteraction(interaction.id);
+      
+      // Se a interação excluída era a selecionada, limpar seleção
+      if (selectedInteraction?.id === interaction.id) {
+        setSelectedInteraction(null);
+        setTimeline([]);
+      }
+      
+      // Recarregar lista
+      await loadInteractions();
+    } catch (error) {
+      console.error('Erro ao excluir interação:', error);
+      alert('Erro ao excluir interação. Tente novamente.');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -443,27 +472,47 @@ export default function AcompanhamentoFlow() {
                             {screenNames[interaction.screen] || interaction.screen}
                           </td>
                           <td className="px-6 py-4 text-right">
-                            {isSelected ? (
+                            <div className="flex items-center justify-end gap-2">
+                              {isSelected ? (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleSelectInteraction(interaction);
+                                  }}
+                                  className="text-xs font-bold text-neutral-dark dark:text-white bg-white dark:bg-[#2e2d1a] border border-[#e5e5dc] dark:border-[#3a3928] px-3 py-1.5 rounded-full hover:bg-neutral-light dark:hover:bg-[#3a3928] transition-colors"
+                                >
+                                  Ver Detalhes
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleSelectInteraction(interaction);
+                                  }}
+                                  className="text-xs font-bold text-[#8c8b5f] hover:text-neutral-dark dark:text-[#a3a272] dark:hover:text-white transition-colors"
+                                >
+                                  Ver Detalhes
+                                </button>
+                              )}
                               <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleSelectInteraction(interaction);
-                                }}
-                                className="text-xs font-bold text-neutral-dark dark:text-white bg-white dark:bg-[#2e2d1a] border border-[#e5e5dc] dark:border-[#3a3928] px-3 py-1.5 rounded-full hover:bg-neutral-light dark:hover:bg-[#3a3928] transition-colors"
+                                onClick={(e) => handleDeleteInteraction(interaction, e)}
+                                disabled={deletingId === interaction.id}
+                                className="text-xs font-bold text-accent-red dark:text-[#f87171] hover:text-red-700 dark:hover:text-red-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                                title="Excluir interação"
                               >
-                                Ver Detalhes
+                                {deletingId === interaction.id ? (
+                                  <>
+                                    <span className="material-symbols-outlined text-sm animate-spin">hourglass_empty</span>
+                                    Excluindo...
+                                  </>
+                                ) : (
+                                  <>
+                                    <span className="material-symbols-outlined text-sm">delete</span>
+                                    Excluir
+                                  </>
+                                )}
                               </button>
-                            ) : (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleSelectInteraction(interaction);
-                                }}
-                                className="text-xs font-bold text-[#8c8b5f] hover:text-neutral-dark dark:text-[#a3a272] dark:hover:text-white transition-colors"
-                              >
-                                Ver Detalhes
-                              </button>
-                            )}
+                            </div>
                           </td>
                         </tr>
                       );

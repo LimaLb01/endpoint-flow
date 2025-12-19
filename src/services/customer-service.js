@@ -84,6 +84,16 @@ async function createCustomer(customerData) {
       .single();
 
     if (error) {
+      // Se for erro de duplicata (constraint única), buscar o cliente existente
+      if (error.code === '23505' || error.message?.includes('duplicate') || error.message?.includes('unique')) {
+        globalLogger.warn('Tentativa de criar cliente duplicado, buscando existente', {
+          cpf: cleanCpf.replace(/\d(?=\d{4})/g, '*')
+        });
+        const existing = await getCustomerByCpf(cleanCpf);
+        if (existing) {
+          return existing;
+        }
+      }
       throw error;
     }
 
@@ -148,15 +158,28 @@ async function updateCustomer(customerId, updates) {
  * @returns {Promise<object|null>} Cliente encontrado ou criado
  */
 async function getOrCreateCustomer(cpf, additionalData = {}) {
+  // Primeiro, tenta buscar cliente existente
   const existing = await getCustomerByCpf(cpf);
   if (existing) {
     return existing;
   }
 
-  return await createCustomer({
+  // Se não existe, tenta criar
+  // O createCustomer já trata duplicatas (race conditions)
+  const created = await createCustomer({
     cpf,
     ...additionalData
   });
+
+  // Se a criação falhou por duplicata, busca novamente
+  if (!created) {
+    const retry = await getCustomerByCpf(cpf);
+    if (retry) {
+      return retry;
+    }
+  }
+
+  return created;
 }
 
 /**

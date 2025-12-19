@@ -12,7 +12,7 @@ const { createRequestLogger, globalLogger } = require('../utils/logger');
 const { supabaseAdmin, isAdminConfigured } = require('../config/supabase');
 const { requireAuth } = require('../middleware/auth-middleware');
 const { notifyPaymentConfirmed } = require('../services/notification-service');
-const { getFlowInteractions, getFlowTimeline, getAbandonmentStats } = require('../services/flow-tracking-service');
+const { getFlowInteractions, getFlowTimeline, getAbandonmentStats, deleteFlowInteraction, deleteFlowInteractionsByToken } = require('../services/flow-tracking-service');
 
 /**
  * GET /api/admin/customers
@@ -893,6 +893,82 @@ router.get('/flow/stats', requireAuth, async (req, res) => {
     });
     return res.status(500).json({
       error: 'Erro ao buscar estatísticas do flow',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * DELETE /api/admin/flow/interactions/:id
+ * Exclui uma interação do flow
+ */
+router.delete('/flow/interactions/:id', requireAuth, async (req, res) => {
+  const logger = req.requestId ? createRequestLogger(req.requestId) : globalLogger;
+  
+  try {
+    const { id } = req.params;
+
+    const deleted = await deleteFlowInteraction(id);
+
+    if (!deleted) {
+      return res.status(404).json({
+        error: 'Interação não encontrada ou não pôde ser excluída'
+      });
+    }
+
+    logger.info('Interação do flow excluída', {
+      interactionId: id
+    });
+
+    return res.json({
+      success: true,
+      message: 'Interação excluída com sucesso'
+    });
+  } catch (error) {
+    logger.error('Erro ao excluir interação do flow', {
+      error: error.message,
+      interactionId: req.params.id
+    });
+    return res.status(500).json({
+      error: 'Erro ao excluir interação do flow',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * DELETE /api/admin/flow/interactions/token/:flowToken
+ * Exclui todas as interações de um flow_token
+ */
+router.delete('/flow/interactions/token/:flowToken', requireAuth, async (req, res) => {
+  const logger = req.requestId ? createRequestLogger(req.requestId) : globalLogger;
+  
+  try {
+    const { flowToken } = req.params;
+
+    const deleted = await deleteFlowInteractionsByToken(flowToken);
+
+    if (!deleted) {
+      return res.status(404).json({
+        error: 'Interações não encontradas ou não puderam ser excluídas'
+      });
+    }
+
+    logger.info('Interações do flow excluídas', {
+      flowToken
+    });
+
+    return res.json({
+      success: true,
+      message: 'Interações excluídas com sucesso'
+    });
+  } catch (error) {
+    logger.error('Erro ao excluir interações do flow', {
+      error: error.message,
+      flowToken: req.params.flowToken
+    });
+    return res.status(500).json({
+      error: 'Erro ao excluir interações do flow',
       message: error.message
     });
   }
