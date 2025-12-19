@@ -211,12 +211,24 @@ async function getFlowInteractions(filters = {}) {
         const currentCompleteness = getCompleteness(current);
         const newCompleteness = getCompleteness(interaction);
         
-        // Priorizar interação mais completa, ou mais recente se empatar
-        if (newCompleteness > currentCompleteness) {
-          groupedByClient[key] = interaction;
-        } else if (newCompleteness === currentCompleteness && 
-                   new Date(interaction.created_at) > new Date(current.created_at)) {
-          groupedByClient[key] = interaction;
+        // Verificar se tem localização
+        const newHasLocation = interaction.metadata?.location && !interaction.metadata.location.isLocal;
+        const currentHasLocation = current.metadata?.location && !current.metadata.location.isLocal;
+        
+        // Priorizar interação com localização
+        if (newHasLocation && !currentHasLocation) {
+          groupedByClient[clientKey] = interaction;
+        } else if (!newHasLocation && currentHasLocation) {
+          // Manter a atual se ela tem localização e a nova não tem
+          // Não fazer nada, manter current
+        } else {
+          // Ambas têm ou não têm localização - priorizar mais completa ou mais recente
+          if (newCompleteness > currentCompleteness) {
+            groupedByClient[clientKey] = interaction;
+          } else if (newCompleteness === currentCompleteness && 
+                     new Date(interaction.created_at) > new Date(current.created_at)) {
+            groupedByClient[clientKey] = interaction;
+          }
         }
       }
     });
