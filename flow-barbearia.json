@@ -35,7 +35,7 @@
   "screens": [
     {
       "id": "WELCOME",
-      "title": "Bem-vindo 18",
+      "title": "Bem-vindo 19",
       "terminal": false,
       "data": {},
       "layout": {
@@ -102,8 +102,9 @@
                 "type": "TextInput",
                 "name": "client_cpf",
                 "label": "CPF",
+                "placeholder": "000.000.000-00",
                 "required": true,
-                "input-type": "number"
+                "input-type": "text"
               }
             ]
           },
@@ -831,8 +832,9 @@
                 "type": "TextInput",
                 "name": "client_phone",
                 "label": "WhatsApp para contato",
+                "placeholder": "(00) 00000-0000",
                 "required": true,
-                "input-type": "phone"
+                "input-type": "text"
               },
               {
                 "type": "TextInput",
