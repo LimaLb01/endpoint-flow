@@ -34,6 +34,36 @@ export default function AcompanhamentoFlow() {
     'CONFIRMATION': 'Concluiu pagamento'
   };
 
+  // Mapeamento de filiais
+  const branchNames = {
+    'desvio_rizzo': 'Desvio Rizzo',
+    'exposicao': 'Exposição',
+    'santa_catarina': 'Santa Catarina'
+  };
+
+  // Formatar data para exibição
+  const formatDate = (dateString) => {
+    if (!dateString) return '-';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        // Tentar parsear como YYYY-MM-DD
+        const [year, month, day] = dateString.split('-');
+        if (year && month && day) {
+          return `${day}/${month}/${year}`;
+        }
+        return dateString;
+      }
+      return date.toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+    } catch {
+      return dateString;
+    }
+  };
+
   // Carregar interações
   useEffect(() => {
     loadInteractions();
@@ -323,6 +353,9 @@ export default function AcompanhamentoFlow() {
                   <thead className="bg-neutral-light dark:bg-[#2e2d1a] text-xs uppercase text-[#8c8b5f] dark:text-[#a3a272]">
                     <tr>
                       <th className="px-6 py-4 font-semibold">Cliente</th>
+                      <th className="px-6 py-4 font-semibold">Local</th>
+                      <th className="px-6 py-4 font-semibold">Data</th>
+                      <th className="px-6 py-4 font-semibold">Horário</th>
                       <th className="px-6 py-4 font-semibold">Status do Flow</th>
                       <th className="px-6 py-4 font-semibold">Última Etapa</th>
                       <th className="px-6 py-4 font-semibold text-right">Ação</th>
@@ -335,6 +368,15 @@ export default function AcompanhamentoFlow() {
                       const customerEmail = interaction.payload?.client_email || '';
                       const cpf = interaction.client_cpf;
                       const maskedCpf = cpf ? utils.aplicarMascaraCPF(cpf).replace(/(\d{3})\.(\d{3})\.(\d{3})-(\d{2})/, 'xxx.$2.xxx-$4') : null;
+                      
+                      // Extrair dados do agendamento do payload
+                      const selectedBranch = interaction.payload?.selected_branch;
+                      const branchName = selectedBranch ? (branchNames[selectedBranch] || selectedBranch) : '-';
+                      const selectedDate = interaction.payload?.selected_date;
+                      const formattedDate = formatDate(selectedDate);
+                      const selectedTime = interaction.payload?.selected_time;
+                      const formattedTime = selectedTime || '-';
+                      
                       return (
                         <tr
                           key={interaction.id}
@@ -369,6 +411,15 @@ export default function AcompanhamentoFlow() {
                                 </>
                               )}
                             </div>
+                          </td>
+                          <td className="px-6 py-4 text-neutral-dark dark:text-white font-medium">
+                            {branchName}
+                          </td>
+                          <td className="px-6 py-4 text-neutral-dark dark:text-white font-medium">
+                            {formattedDate}
+                          </td>
+                          <td className="px-6 py-4 text-neutral-dark dark:text-white font-medium">
+                            {formattedTime}
                           </td>
                           <td className="px-6 py-4">
                             {getStatusBadge(interaction.status)}

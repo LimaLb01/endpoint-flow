@@ -124,6 +124,7 @@ async function trackFlowInteraction(data) {
 
 /**
  * Busca interações do flow com filtros
+ * Retorna apenas a interação mais recente de cada flow_token
  */
 async function getFlowInteractions(filters = {}) {
   if (!isAdminConfigured()) {
@@ -131,6 +132,7 @@ async function getFlowInteractions(filters = {}) {
   }
 
   try {
+    // Primeiro, buscar todas as interações com filtros aplicados
     let query = supabaseAdmin
       .from('flow_interactions')
       .select('*', { count: 'exact' });
@@ -159,18 +161,61 @@ async function getFlowInteractions(filters = {}) {
     // Ordenar por data mais recente
     query = query.order('created_at', { ascending: false });
 
-    // Paginação
-    const limit = filters.limit || 50;
-    const offset = filters.offset || 0;
-    query = query.range(offset, offset + limit - 1);
-
-    const { data, error, count } = await query;
+    // Buscar todas as interações (sem paginação inicial para agrupar)
+    const { data: allInteractions, error, count } = await query;
 
     if (error) throw error;
 
+    // Agrupar por flow_token e pegar a interação mais completa de cada grupo
+    // Se não tiver flow_token, usar o id como chave única
+    const groupedByFlowToken = {};
+    (allInteractions || []).forEach(interaction => {
+      const key = interaction.flow_token || interaction.id;
+      const current = groupedByFlowToken[key];
+      
+      // Função para calcular "completude" de uma interação
+      const getCompleteness = (inter) => {
+        if (!inter || !inter.payload) return 0;
+        const payload = inter.payload;
+        let score = 0;
+        if (payload.selected_branch) score += 1;
+        if (payload.selected_date) score += 1;
+        if (payload.selected_time) score += 1;
+        if (payload.client_name) score += 1;
+        if (payload.client_phone) score += 1;
+        return score;
+      };
+      
+      if (!current) {
+        groupedByFlowToken[key] = interaction;
+      } else {
+        const currentCompleteness = getCompleteness(current);
+        const newCompleteness = getCompleteness(interaction);
+        
+        // Priorizar interação mais completa, ou mais recente se empatar
+        if (newCompleteness > currentCompleteness) {
+          groupedByFlowToken[key] = interaction;
+        } else if (newCompleteness === currentCompleteness && 
+                   new Date(interaction.created_at) > new Date(current.created_at)) {
+          groupedByFlowToken[key] = interaction;
+        }
+      }
+    });
+
+    // Converter para array e ordenar por data mais recente
+    let uniqueInteractions = Object.values(groupedByFlowToken);
+    uniqueInteractions.sort((a, b) => 
+      new Date(b.created_at) - new Date(a.created_at)
+    );
+
+    // Aplicar paginação após agrupar
+    const limit = filters.limit || 50;
+    const offset = filters.offset || 0;
+    const paginatedInteractions = uniqueInteractions.slice(offset, offset + limit);
+
     return {
-      interactions: data || [],
-      total: count || 0
+      interactions: paginatedInteractions,
+      total: uniqueInteractions.length
     };
   } catch (error) {
     globalLogger.error('Erro ao buscar interações do flow', {
