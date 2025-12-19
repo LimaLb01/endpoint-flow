@@ -168,16 +168,14 @@ async function getFlowInteractions(filters = {}) {
 
     if (error) throw error;
 
-    // Agrupar por cliente (CPF) primeiro, depois por flow_token
-    // Isso evita mostrar múltiplos registros do mesmo cliente
+    // Agrupar por cliente (CPF) - mostrar apenas UMA entrada por cliente
+    // Priorizar a interação mais completa (com localização, dados completos, etc.)
     const groupedByClient = {};
     (allInteractions || []).forEach(interaction => {
-      // Usar CPF como chave primária, flow_token como secundária
-      const clientKey = interaction.client_cpf || 'sem_cpf';
-      const flowKey = interaction.flow_token || `no_token_${interaction.id}`;
-      const key = `${clientKey}_${flowKey}`;
+      // Usar APENAS CPF como chave - uma entrada por cliente
+      const clientKey = interaction.client_cpf || `sem_cpf_${interaction.id}`;
       
-      const current = groupedByClient[key];
+      const current = groupedByClient[clientKey];
       
       // Função para calcular "completude" de uma interação
       const getCompleteness = (inter) => {

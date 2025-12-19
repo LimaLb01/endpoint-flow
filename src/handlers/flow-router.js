@@ -121,49 +121,94 @@ async function handleFlowRequest(data, requestId = null, requestInfo = null) {
       // Obter localização de forma assíncrona e atualizar
       if (clientIP && !clientIP.startsWith('192.168.') && !clientIP.startsWith('10.') && 
           clientIP !== '::1' && clientIP !== '127.0.0.1') {
-        try {
-          logger.debug('Buscando localização para IP', { ip: clientIP });
-          const location = await getLocationByIP(clientIP);
-          
-          if (location && !location.isLocal) {
-            const { supabaseAdmin } = require('../config/supabase');
-            if (supabaseAdmin) {
-              const { error: updateError } = await supabaseAdmin
-                .from('flow_interactions')
-                .update({
-                  metadata: {
-                    access_timestamp: accessTimestamp,
-                    client_ip: clientIP,
-                    location: location
+              try {
+                logger.info('🌍 Buscando localização para IP', { ip: clientIP });
+                const location = await getLocationByIP(clientIP);
+                
+                if (location && !location.isLocal) {
+                  const { supabaseAdmin } = require('../config/supabase');
+                  if (supabaseAdmin) {
+                    // Atualizar a interação INIT específica
+                    const { error: updateError } = await supabaseAdmin
+                      .from('flow_interactions')
+                      .update({
+                        metadata: {
+                          access_timestamp: accessTimestamp,
+                          client_ip: clientIP,
+                          location: location
+                        }
+                      })
+                      .eq('id', initInteractionId);
+                    
+                    if (updateError) {
+                      logger.error('❌ Erro ao atualizar localização na interação INIT', { 
+                        error: updateError.message,
+                        interactionId: initInteractionId,
+                        code: updateError.code
+                      });
+                    } else {
+                      logger.info('✅ Localização atualizada com sucesso!', { 
+                        interactionId: initInteractionId,
+                        location: `${location.city || ''}, ${location.region || ''}, ${location.country || ''}`,
+                        ip: clientIP,
+                        fullLocation: location
+                      });
+                      
+                      // Também atualizar outras interações do mesmo flow_token (se houver CPF)
+                      // Isso garante que todas as interações do mesmo flow tenham a localização
+                      if (flow_token) {
+                        // Buscar todas as interações do mesmo flow_token
+                        const { data: otherInteractions } = await supabaseAdmin
+                          .from('flow_interactions')
+                          .select('id, metadata')
+                          .eq('flow_token', flow_token)
+                          .neq('id', initInteractionId);
+                        
+                        if (otherInteractions && otherInteractions.length > 0) {
+                          // Atualizar cada uma com a localização
+                          for (const otherInteraction of otherInteractions) {
+                            const currentMetadata = otherInteraction.metadata || {};
+                            const { error: mergeError } = await supabaseAdmin
+                              .from('flow_interactions')
+                              .update({
+                                metadata: {
+                                  ...currentMetadata,
+                                  location: location,
+                                  access_timestamp: currentMetadata.access_timestamp || accessTimestamp,
+                                  client_ip: currentMetadata.client_ip || clientIP
+                                }
+                              })
+                              .eq('id', otherInteraction.id);
+                            
+                            if (mergeError) {
+                              logger.debug('Erro ao propagar localização para outra interação', {
+                                interactionId: otherInteraction.id,
+                                error: mergeError.message
+                              });
+                            }
+                          }
+                          logger.debug('Localização propagada para outras interações', {
+                            count: otherInteractions.length,
+                            flow_token
+                          });
+                        }
+                      }
+                    }
                   }
-                })
-                .eq('id', initInteractionId);
-              
-              if (updateError) {
-                logger.warn('Erro ao atualizar localização', { 
-                  error: updateError.message,
-                  interactionId: initInteractionId
-                });
-              } else {
-                logger.info('Localização atualizada com sucesso', { 
-                  interactionId: initInteractionId,
-                  location: `${location.city || ''}, ${location.region || ''}, ${location.country || ''}`,
-                  ip: clientIP
+                } else {
+                  logger.warn('⚠️ Localização é local ou inválida', { 
+                    isLocal: location?.isLocal,
+                    location,
+                    ip: clientIP
+                  });
+                }
+              } catch (err) {
+                logger.error('❌ Erro ao obter localização', {
+                  error: err.message,
+                  ip: clientIP,
+                  stack: err.stack?.substring(0, 200)
                 });
               }
-            }
-          } else {
-            logger.debug('Localização é local ou inválida', { 
-              isLocal: location?.isLocal,
-              location 
-            });
-          }
-        } catch (err) {
-          logger.warn('Erro ao obter localização', {
-            error: err.message,
-            ip: clientIP
-          });
-        }
       } else {
         logger.debug('IP local ou inválido, pulando geolocalização', { ip: clientIP });
       }
@@ -241,15 +286,17 @@ async function handleFlowRequest(data, requestId = null, requestInfo = null) {
             }
             
             // Obter localização de forma assíncrona e atualizar
+            // Também atualizar TODAS as interações do mesmo flow_token com a localização
             if (clientIP && !clientIP.startsWith('192.168.') && !clientIP.startsWith('10.') && 
                 clientIP !== '::1' && clientIP !== '127.0.0.1') {
               try {
-                logger.debug('Buscando localização para IP', { ip: clientIP });
+                logger.info('Buscando localização para IP', { ip: clientIP });
                 const location = await getLocationByIP(clientIP);
                 
                 if (location && !location.isLocal) {
                   const { supabaseAdmin } = require('../config/supabase');
                   if (supabaseAdmin) {
+                    // Atualizar a interação INIT específica
                     const { error: updateError } = await supabaseAdmin
                       .from('flow_interactions')
                       .update({
@@ -262,32 +309,73 @@ async function handleFlowRequest(data, requestId = null, requestInfo = null) {
                       .eq('id', initInteractionId);
                     
                     if (updateError) {
-                      logger.warn('Erro ao atualizar localização', { 
+                      logger.warn('Erro ao atualizar localização na interação INIT', { 
                         error: updateError.message,
                         interactionId: initInteractionId
                       });
                     } else {
-                      logger.info('Localização atualizada com sucesso', { 
+                      logger.info('✅ Localização atualizada com sucesso na interação INIT', { 
                         interactionId: initInteractionId,
                         location: `${location.city || ''}, ${location.region || ''}, ${location.country || ''}`,
                         ip: clientIP
                       });
                     }
+                    
+                    // Também atualizar TODAS as outras interações do mesmo flow_token com a localização
+                    // Isso garante que qualquer interação do mesmo flow tenha acesso à localização
+                    if (flow_token) {
+                      const { error: bulkUpdateError } = await supabaseAdmin
+                        .from('flow_interactions')
+                        .update({
+                          metadata: supabaseAdmin.rpc('jsonb_set', {
+                            metadata: supabaseAdmin.raw('metadata'),
+                            path: '{location}',
+                            new_value: JSON.stringify(location)
+                          })
+                        })
+                        .eq('flow_token', flow_token)
+                        .neq('id', initInteractionId)
+                        .is('metadata->location', null);
+                      
+                      // Alternativa mais simples: usar merge do JSONB
+                      const { error: mergeError } = await supabaseAdmin
+                        .from('flow_interactions')
+                        .update({
+                          metadata: supabaseAdmin.raw(`metadata || '{"location": ${JSON.stringify(location)}}'::jsonb`)
+                        })
+                        .eq('flow_token', flow_token)
+                        .neq('id', initInteractionId);
+                      
+                      if (mergeError) {
+                        logger.debug('Não foi possível propagar localização para outras interações', {
+                          error: mergeError.message
+                        });
+                      } else {
+                        logger.debug('Localização propagada para outras interações do flow_token', {
+                          flow_token
+                        });
+                      }
+                    }
                   }
                 } else {
-                  logger.debug('Localização é local ou inválida', { 
+                  logger.warn('Localização é local ou inválida', { 
                     isLocal: location?.isLocal,
-                    location 
+                    location,
+                    ip: clientIP
                   });
                 }
               } catch (err) {
-                logger.warn('Erro ao obter localização', {
+                logger.error('Erro ao obter localização', {
                   error: err.message,
-                  ip: clientIP
+                  ip: clientIP,
+                  stack: err.stack
                 });
               }
             } else {
-              logger.debug('IP local ou inválido, pulando geolocalização', { ip: clientIP });
+              logger.warn('IP local ou inválido, pulando geolocalização', { 
+                ip: clientIP,
+                isLocal: clientIP?.startsWith('192.168.') || clientIP?.startsWith('10.') || clientIP === '::1' || clientIP === '127.0.0.1'
+              });
             }
           }).catch(trackError => {
             logger.warn('Erro ao rastrear INIT', {
