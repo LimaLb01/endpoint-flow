@@ -94,23 +94,14 @@ async function handleFlowRequest(data, requestId = null, requestInfo = null) {
                     requestInfo?.connection?.remoteAddress ||
                     null;
     
-    // Obter localização de forma assíncrona (não bloquear resposta)
-    let locationData = null;
-    if (clientIP && !clientIP.startsWith('192.168.') && !clientIP.startsWith('10.') && clientIP !== '::1' && clientIP !== '127.0.0.1') {
-      getLocationByIP(clientIP).then(location => {
-        locationData = location;
-        logger.debug('Localização obtida', { 
-          ip: clientIP,
-          location: location.isLocal ? 'Local' : `${location.city}, ${location.region}, ${location.country}` 
-        });
-      }).catch(err => {
-        logger.warn('Erro ao obter localização (não crítico)', {
-          error: err.message
-        });
-      });
-    }
+    logger.info('INIT - Capturando localização', {
+      flow_token: flow_token,
+      clientIP: clientIP,
+      hasRequestInfo: !!requestInfo,
+      headers: requestInfo?.headers ? Object.keys(requestInfo.headers) : []
+    });
     
-    // Registrar interação INIT com localização (se já obtida) ou atualizar depois
+    // Registrar interação INIT primeiro
     trackFlowInteraction({
       flow_token: flow_token,
       action_type: 'INIT',
@@ -119,19 +110,25 @@ async function handleFlowRequest(data, requestId = null, requestInfo = null) {
       payload: {},
       metadata: {
         access_timestamp: accessTimestamp,
-        client_ip: clientIP,
-        ...(locationData && !locationData.isLocal ? { location: locationData } : {})
+        client_ip: clientIP
       }
-    }).then(initInteractionId => {
-      // Se a localização ainda não foi obtida, buscar e atualizar
-      if (initInteractionId && clientIP && !locationData && 
-          !clientIP.startsWith('192.168.') && !clientIP.startsWith('10.') && 
+    }).then(async (initInteractionId) => {
+      if (!initInteractionId) {
+        logger.warn('Não foi possível obter ID da interação INIT');
+        return;
+      }
+      
+      // Obter localização de forma assíncrona e atualizar
+      if (clientIP && !clientIP.startsWith('192.168.') && !clientIP.startsWith('10.') && 
           clientIP !== '::1' && clientIP !== '127.0.0.1') {
-        getLocationByIP(clientIP).then(location => {
+        try {
+          logger.debug('Buscando localização para IP', { ip: clientIP });
+          const location = await getLocationByIP(clientIP);
+          
           if (location && !location.isLocal) {
             const { supabaseAdmin } = require('../config/supabase');
             if (supabaseAdmin) {
-              supabaseAdmin
+              const { error: updateError } = await supabaseAdmin
                 .from('flow_interactions')
                 .update({
                   metadata: {
@@ -140,26 +137,38 @@ async function handleFlowRequest(data, requestId = null, requestInfo = null) {
                     location: location
                   }
                 })
-                .eq('id', initInteractionId)
-                .then(() => {
-                  logger.debug('Localização atualizada na interação INIT', { 
-                    interactionId: initInteractionId,
-                    location: `${location.city}, ${location.region}, ${location.country}` 
-                  });
-                })
-                .catch(err => {
-                  logger.warn('Erro ao atualizar localização (não crítico)', { error: err.message });
+                .eq('id', initInteractionId);
+              
+              if (updateError) {
+                logger.warn('Erro ao atualizar localização', { 
+                  error: updateError.message,
+                  interactionId: initInteractionId
                 });
+              } else {
+                logger.info('Localização atualizada com sucesso', { 
+                  interactionId: initInteractionId,
+                  location: `${location.city || ''}, ${location.region || ''}, ${location.country || ''}`,
+                  ip: clientIP
+                });
+              }
             }
+          } else {
+            logger.debug('Localização é local ou inválida', { 
+              isLocal: location?.isLocal,
+              location 
+            });
           }
-        }).catch(err => {
-          logger.warn('Erro ao obter localização (não crítico)', {
-            error: err.message
+        } catch (err) {
+          logger.warn('Erro ao obter localização', {
+            error: err.message,
+            ip: clientIP
           });
-        });
+        }
+      } else {
+        logger.debug('IP local ou inválido, pulando geolocalização', { ip: clientIP });
       }
     }).catch(trackError => {
-      logger.warn('Erro ao rastrear INIT (não crítico)', {
+      logger.warn('Erro ao rastrear INIT', {
         error: trackError.message
       });
     });

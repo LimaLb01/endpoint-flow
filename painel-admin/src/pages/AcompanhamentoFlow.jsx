@@ -117,18 +117,24 @@ export default function AcompanhamentoFlow() {
       
       if (data) {
         const interactionsList = data.interactions || [];
+        // Log detalhado para debug
         console.log('📊 Interações carregadas:', {
           total: data.total,
-          retornadas: interactionsList.length,
-          amostra: interactionsList.slice(0, 3).map(i => ({
-            id: i.id,
-            cpf: i.client_cpf,
-            flow_token: i.flow_token,
-            screen: i.screen,
-            hasLocation: !!i.metadata?.location,
-            location: i.metadata?.location ? `${i.metadata.location.city || ''}, ${i.metadata.location.region || ''}` : 'N/A'
-          }))
+          retornadas: interactionsList.length
         });
+        if (interactionsList.length > 0) {
+          console.log('📋 Amostra das primeiras 3 interações:', 
+            JSON.stringify(interactionsList.slice(0, 3).map(i => ({
+              id: i.id,
+              cpf: i.client_cpf,
+              flow_token: i.flow_token,
+              screen: i.screen,
+              hasLocation: !!i.metadata?.location,
+              location: i.metadata?.location,
+              metadata: i.metadata
+            })), null, 2)
+          );
+        }
         setInteractions(interactionsList);
         setPagination(prev => ({ ...prev, total: data.total || 0 }));
       }
