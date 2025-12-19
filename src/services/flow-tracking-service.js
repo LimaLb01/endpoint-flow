@@ -206,7 +206,7 @@ async function getFlowInteractions(filters = {}) {
       };
       
       if (!current) {
-        groupedByClient[key] = interaction;
+        groupedByClient[clientKey] = interaction;
       } else {
         const currentCompleteness = getCompleteness(current);
         const newCompleteness = getCompleteness(interaction);
