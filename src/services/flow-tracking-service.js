@@ -168,12 +168,16 @@ async function getFlowInteractions(filters = {}) {
 
     if (error) throw error;
 
-    // Agrupar por flow_token e pegar a interação mais completa de cada grupo
-    // Se não tiver flow_token, usar o id como chave única
-    const groupedByFlowToken = {};
+    // Agrupar por cliente (CPF) primeiro, depois por flow_token
+    // Isso evita mostrar múltiplos registros do mesmo cliente
+    const groupedByClient = {};
     (allInteractions || []).forEach(interaction => {
-      const key = interaction.flow_token || interaction.id;
-      const current = groupedByFlowToken[key];
+      // Usar CPF como chave primária, flow_token como secundária
+      const clientKey = interaction.client_cpf || 'sem_cpf';
+      const flowKey = interaction.flow_token || `no_token_${interaction.id}`;
+      const key = `${clientKey}_${flowKey}`;
+      
+      const current = groupedByClient[key];
       
       // Função para calcular "completude" de uma interação
       const getCompleteness = (inter) => {
@@ -204,23 +208,23 @@ async function getFlowInteractions(filters = {}) {
       };
       
       if (!current) {
-        groupedByFlowToken[key] = interaction;
+        groupedByClient[key] = interaction;
       } else {
         const currentCompleteness = getCompleteness(current);
         const newCompleteness = getCompleteness(interaction);
         
         // Priorizar interação mais completa, ou mais recente se empatar
         if (newCompleteness > currentCompleteness) {
-          groupedByFlowToken[key] = interaction;
+          groupedByClient[key] = interaction;
         } else if (newCompleteness === currentCompleteness && 
                    new Date(interaction.created_at) > new Date(current.created_at)) {
-          groupedByFlowToken[key] = interaction;
+          groupedByClient[key] = interaction;
         }
       }
     });
 
     // Converter para array e ordenar por data mais recente
-    let uniqueInteractions = Object.values(groupedByFlowToken);
+    let uniqueInteractions = Object.values(groupedByClient);
     uniqueInteractions.sort((a, b) => 
       new Date(b.created_at) - new Date(a.created_at)
     );

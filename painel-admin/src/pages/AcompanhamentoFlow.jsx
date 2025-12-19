@@ -116,7 +116,20 @@ export default function AcompanhamentoFlow() {
       const data = await api.listarFlowInteractions(params.toString());
       
       if (data) {
-        setInteractions(data.interactions || []);
+        const interactionsList = data.interactions || [];
+        console.log('📊 Interações carregadas:', {
+          total: data.total,
+          retornadas: interactionsList.length,
+          amostra: interactionsList.slice(0, 3).map(i => ({
+            id: i.id,
+            cpf: i.client_cpf,
+            flow_token: i.flow_token,
+            screen: i.screen,
+            hasLocation: !!i.metadata?.location,
+            location: i.metadata?.location ? `${i.metadata.location.city || ''}, ${i.metadata.location.region || ''}` : 'N/A'
+          }))
+        });
+        setInteractions(interactionsList);
         setPagination(prev => ({ ...prev, total: data.total || 0 }));
       }
     } catch (error) {

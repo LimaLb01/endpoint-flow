@@ -66,7 +66,17 @@ async function handleCpfInput(payload) {
     const subscriptionInfo = await getActiveSubscriptionByCpf(cleanCpf);
     
     // Garante que o cliente existe no banco (cria se não existir)
-    const customer = await getOrCreateCustomer(cleanCpf);
+    // Usar getCustomerByCpf primeiro para evitar criação desnecessária
+    let customer = await getCustomerByCpf(cleanCpf);
+    if (!customer) {
+      // Só criar se realmente não existir
+      customer = await getOrCreateCustomer(cleanCpf);
+      if (customer) {
+        globalLogger.info('Cliente criado durante flow', {
+          cpf: cleanCpf.replace(/\d(?=\d{4})/g, '*')
+        });
+      }
+    }
     
     if (subscriptionInfo.has_plan) {
       // Cliente tem plano ativo, busca dados completos do cliente

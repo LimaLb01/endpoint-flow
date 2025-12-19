@@ -94,8 +94,23 @@ async function handleFlowRequest(data, requestId = null, requestInfo = null) {
                     requestInfo?.connection?.remoteAddress ||
                     null;
     
-    // Registrar interação INIT primeiro (não bloquear se falhar)
-    let initInteractionId = null;
+    // Obter localização de forma assíncrona (não bloquear resposta)
+    let locationData = null;
+    if (clientIP && !clientIP.startsWith('192.168.') && !clientIP.startsWith('10.') && clientIP !== '::1' && clientIP !== '127.0.0.1') {
+      getLocationByIP(clientIP).then(location => {
+        locationData = location;
+        logger.debug('Localização obtida', { 
+          ip: clientIP,
+          location: location.isLocal ? 'Local' : `${location.city}, ${location.region}, ${location.country}` 
+        });
+      }).catch(err => {
+        logger.warn('Erro ao obter localização (não crítico)', {
+          error: err.message
+        });
+      });
+    }
+    
+    // Registrar interação INIT com localização (se já obtida) ou atualizar depois
     trackFlowInteraction({
       flow_token: flow_token,
       action_type: 'INIT',
@@ -104,16 +119,16 @@ async function handleFlowRequest(data, requestId = null, requestInfo = null) {
       payload: {},
       metadata: {
         access_timestamp: accessTimestamp,
-        client_ip: clientIP
+        client_ip: clientIP,
+        ...(locationData && !locationData.isLocal ? { location: locationData } : {})
       }
-    }).then(id => {
-      initInteractionId = id;
-      
-      // Após salvar a interação, obter localização e atualizar
-      if (clientIP && !clientIP.startsWith('192.168.') && !clientIP.startsWith('10.') && clientIP !== '::1' && clientIP !== '127.0.0.1') {
+    }).then(initInteractionId => {
+      // Se a localização ainda não foi obtida, buscar e atualizar
+      if (initInteractionId && clientIP && !locationData && 
+          !clientIP.startsWith('192.168.') && !clientIP.startsWith('10.') && 
+          clientIP !== '::1' && clientIP !== '127.0.0.1') {
         getLocationByIP(clientIP).then(location => {
-          // Atualizar metadata da interação INIT com localização
-          if (location && !location.isLocal && initInteractionId) {
+          if (location && !location.isLocal) {
             const { supabaseAdmin } = require('../config/supabase');
             if (supabaseAdmin) {
               supabaseAdmin
