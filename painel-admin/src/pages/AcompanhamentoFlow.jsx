@@ -966,6 +966,7 @@ export default function AcompanhamentoFlow() {
             </>
           )}
         </div>
+      </div>
 
       {/* Painel de Detalhes */}
       {selectedInteraction && (
