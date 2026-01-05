@@ -4,19 +4,68 @@ import Layout from '../components/Layout';
 
 export default function Agendamentos() {
   const [agendamentos, setAgendamentos] = useState([]);
+  const [agendamentosFiltrados, setAgendamentosFiltrados] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [barbeiros, setBarbeiros] = useState([]);
   const [filtros, setFiltros] = useState({
     startDate: new Date().toISOString().split('T')[0],
     endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    barberId: ''
+    barberId: '',
+    buscaCliente: '',
+    status: ''
   });
   const [agendamentoSelecionado, setAgendamentoSelecionado] = useState(null);
   const [mostrarModal, setMostrarModal] = useState(false);
 
+  // Carregar barbeiros ao montar
   useEffect(() => {
-    carregarAgendamentos();
-  }, [filtros]);
+    const carregarBarbeiros = async () => {
+      try {
+        const dados = await api.listarBarbeiros();
+        // Filtrar apenas barbeiros reais (não "Sem preferência")
+        const barbeirosFiltrados = (dados || []).filter(b => 
+          b.id && !b.id.startsWith('sem_preferencia')
+        );
+        setBarbeiros(barbeirosFiltrados);
+      } catch (error) {
+        console.error('Erro ao carregar barbeiros:', error);
+      }
+    };
+    carregarBarbeiros();
+  }, []);
+
+  // Debounce para evitar muitas requisições
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      carregarAgendamentos();
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [filtros.startDate, filtros.endDate, filtros.barberId]);
+
+  // Filtrar agendamentos localmente (busca e status)
+  useEffect(() => {
+    let filtrados = [...agendamentos];
+
+    // Filtro por busca de cliente
+    if (filtros.buscaCliente) {
+      const busca = filtros.buscaCliente.toLowerCase();
+      filtrados = filtrados.filter(ag => 
+        ag.clientName?.toLowerCase().includes(busca) ||
+        ag.clientPhone?.includes(busca) ||
+        ag.clientEmail?.toLowerCase().includes(busca) ||
+        ag.service?.toLowerCase().includes(busca)
+      );
+    }
+
+    // Filtro por status
+    if (filtros.status) {
+      filtrados = filtrados.filter(ag => ag.status === filtros.status);
+    }
+
+    setAgendamentosFiltrados(filtrados);
+  }, [agendamentos, filtros.buscaCliente, filtros.status]);
 
   const carregarAgendamentos = async () => {
     setLoading(true);
@@ -75,7 +124,77 @@ export default function Agendamentos() {
     });
   };
 
-  const agendamentosPorData = agendamentos.reduce((acc, agendamento) => {
+  // Funções de filtros rápidos
+  const aplicarFiltroRapido = (tipo) => {
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    
+    let startDate, endDate;
+    
+    switch (tipo) {
+      case 'hoje':
+        startDate = hoje.toISOString().split('T')[0];
+        endDate = hoje.toISOString().split('T')[0];
+        break;
+      case 'esta_semana':
+        const inicioSemana = new Date(hoje);
+        inicioSemana.setDate(hoje.getDate() - hoje.getDay()); // Domingo
+        const fimSemana = new Date(inicioSemana);
+        fimSemana.setDate(inicioSemana.getDate() + 6); // Sábado
+        startDate = inicioSemana.toISOString().split('T')[0];
+        endDate = fimSemana.toISOString().split('T')[0];
+        break;
+      case 'este_mes':
+        startDate = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().split('T')[0];
+        endDate = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).toISOString().split('T')[0];
+        break;
+      case 'proximos_7_dias':
+        startDate = hoje.toISOString().split('T')[0];
+        const proximos7 = new Date(hoje);
+        proximos7.setDate(hoje.getDate() + 7);
+        endDate = proximos7.toISOString().split('T')[0];
+        break;
+      case 'proximos_30_dias':
+        startDate = hoje.toISOString().split('T')[0];
+        const proximos30 = new Date(hoje);
+        proximos30.setDate(hoje.getDate() + 30);
+        endDate = proximos30.toISOString().split('T')[0];
+        break;
+      default:
+        return;
+    }
+    
+    setFiltros({ ...filtros, startDate, endDate });
+  };
+
+  const limparFiltros = () => {
+    const hoje = new Date();
+    const proximos30 = new Date(hoje);
+    proximos30.setDate(hoje.getDate() + 30);
+    
+    setFiltros({
+      startDate: hoje.toISOString().split('T')[0],
+      endDate: proximos30.toISOString().split('T')[0],
+      barberId: '',
+      buscaCliente: '',
+      status: ''
+    });
+  };
+
+  // Validar datas
+  const validarDatas = () => {
+    if (filtros.startDate && filtros.endDate) {
+      const start = new Date(filtros.startDate);
+      const end = new Date(filtros.endDate);
+      if (start > end) {
+        alert('A data inicial não pode ser maior que a data final!');
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const agendamentosPorData = agendamentosFiltrados.reduce((acc, agendamento) => {
     const data = new Date(agendamento.start);
     const dataKey = data.toLocaleDateString('pt-BR');
     
@@ -86,7 +205,7 @@ export default function Agendamentos() {
     return acc;
   }, {});
 
-  const agendamentosHoje = agendamentos.filter(ag => {
+  const agendamentosHoje = agendamentosFiltrados.filter(ag => {
     const hoje = new Date();
     const dataAg = new Date(ag.start);
     return dataAg.toDateString() === hoje.toDateString();
@@ -97,8 +216,53 @@ export default function Agendamentos() {
       <div className="p-6 md:p-10 flex flex-col gap-6 max-w-[1600px] mx-auto w-full">
         {/* Filtros */}
         <div className="bg-white dark:bg-[#1a190b] rounded-xl p-6 shadow-sm border border-[#f0f0eb] dark:border-[#2e2d1a]">
-          <h3 className="text-lg font-bold text-neutral-dark dark:text-white mb-4">Filtros</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold text-neutral-dark dark:text-white">Filtros</h3>
+            <button
+              onClick={limparFiltros}
+              className="px-4 h-9 rounded-full bg-neutral-light dark:bg-[#2e2d1a] text-[#8c8b5f] dark:text-[#a3a272] text-sm font-medium hover:bg-neutral dark:hover:bg-[#3e3d2a] transition-colors flex items-center gap-2"
+            >
+              <span className="material-symbols-outlined text-lg">refresh</span>
+              Limpar Filtros
+            </button>
+          </div>
+
+          {/* Filtros Rápidos */}
+          <div className="mb-4 flex flex-wrap gap-2">
+            <button
+              onClick={() => aplicarFiltroRapido('hoje')}
+              className="px-4 h-9 rounded-full bg-neutral-light dark:bg-[#2e2d1a] text-[#8c8b5f] dark:text-[#a3a272] text-sm font-medium hover:bg-primary hover:text-neutral-dark dark:hover:text-white transition-colors"
+            >
+              Hoje
+            </button>
+            <button
+              onClick={() => aplicarFiltroRapido('esta_semana')}
+              className="px-4 h-9 rounded-full bg-neutral-light dark:bg-[#2e2d1a] text-[#8c8b5f] dark:text-[#a3a272] text-sm font-medium hover:bg-primary hover:text-neutral-dark dark:hover:text-white transition-colors"
+            >
+              Esta Semana
+            </button>
+            <button
+              onClick={() => aplicarFiltroRapido('este_mes')}
+              className="px-4 h-9 rounded-full bg-neutral-light dark:bg-[#2e2d1a] text-[#8c8b5f] dark:text-[#a3a272] text-sm font-medium hover:bg-primary hover:text-neutral-dark dark:hover:text-white transition-colors"
+            >
+              Este Mês
+            </button>
+            <button
+              onClick={() => aplicarFiltroRapido('proximos_7_dias')}
+              className="px-4 h-9 rounded-full bg-neutral-light dark:bg-[#2e2d1a] text-[#8c8b5f] dark:text-[#a3a272] text-sm font-medium hover:bg-primary hover:text-neutral-dark dark:hover:text-white transition-colors"
+            >
+              Próximos 7 Dias
+            </button>
+            <button
+              onClick={() => aplicarFiltroRapido('proximos_30_dias')}
+              className="px-4 h-9 rounded-full bg-neutral-light dark:bg-[#2e2d1a] text-[#8c8b5f] dark:text-[#a3a272] text-sm font-medium hover:bg-primary hover:text-neutral-dark dark:hover:text-white transition-colors"
+            >
+              Próximos 30 Dias
+            </button>
+          </div>
+
+          {/* Filtros Principais */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             <div>
               <label className="block text-sm font-medium text-[#8c8b5f] dark:text-[#a3a272] mb-2">
                 Data Inicial
@@ -106,7 +270,10 @@ export default function Agendamentos() {
               <input
                 type="date"
                 value={filtros.startDate}
-                onChange={(e) => setFiltros({ ...filtros, startDate: e.target.value })}
+                onChange={(e) => {
+                  setFiltros({ ...filtros, startDate: e.target.value });
+                  setTimeout(validarDatas, 100);
+                }}
                 className="w-full h-10 px-4 rounded-full bg-neutral-light dark:bg-[#2e2d1a] border-none text-sm focus:ring-2 focus:ring-primary"
               />
             </div>
@@ -117,7 +284,10 @@ export default function Agendamentos() {
               <input
                 type="date"
                 value={filtros.endDate}
-                onChange={(e) => setFiltros({ ...filtros, endDate: e.target.value })}
+                onChange={(e) => {
+                  setFiltros({ ...filtros, endDate: e.target.value });
+                  setTimeout(validarDatas, 100);
+                }}
                 className="w-full h-10 px-4 rounded-full bg-neutral-light dark:bg-[#2e2d1a] border-none text-sm focus:ring-2 focus:ring-primary"
               />
             </div>
@@ -131,7 +301,38 @@ export default function Agendamentos() {
                 className="w-full h-10 px-4 rounded-full bg-neutral-light dark:bg-[#2e2d1a] border-none text-sm focus:ring-2 focus:ring-primary"
               >
                 <option value="">Todos</option>
-                {/* Opções serão preenchidas dinamicamente se necessário */}
+                {barbeiros.map(barber => (
+                  <option key={barber.id} value={barber.id}>
+                    {barber.title || barber.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[#8c8b5f] dark:text-[#a3a272] mb-2">
+                Buscar (Cliente/Serviço)
+              </label>
+              <input
+                type="text"
+                value={filtros.buscaCliente}
+                onChange={(e) => setFiltros({ ...filtros, buscaCliente: e.target.value })}
+                placeholder="Nome, telefone, email..."
+                className="w-full h-10 px-4 rounded-full bg-neutral-light dark:bg-[#2e2d1a] border-none text-sm focus:ring-2 focus:ring-primary"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[#8c8b5f] dark:text-[#a3a272] mb-2">
+                Status
+              </label>
+              <select
+                value={filtros.status}
+                onChange={(e) => setFiltros({ ...filtros, status: e.target.value })}
+                className="w-full h-10 px-4 rounded-full bg-neutral-light dark:bg-[#2e2d1a] border-none text-sm focus:ring-2 focus:ring-primary"
+              >
+                <option value="">Todos</option>
+                <option value="confirmed">Confirmado</option>
+                <option value="tentative">Tentativo</option>
+                <option value="cancelled">Cancelado</option>
               </select>
             </div>
           </div>
@@ -140,8 +341,13 @@ export default function Agendamentos() {
         {/* Resumo */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-white dark:bg-[#1a190b] rounded-xl p-6 shadow-sm border border-[#f0f0eb] dark:border-[#2e2d1a]">
-            <p className="text-[#8c8b5f] dark:text-[#a3a272] text-sm font-medium mb-1">Total de Agendamentos</p>
-            <p className="text-3xl font-bold text-neutral-dark dark:text-white">{agendamentos.length}</p>
+            <p className="text-[#8c8b5f] dark:text-[#a3a272] text-sm font-medium mb-1">
+              Total de Agendamentos
+              {filtros.buscaCliente || filtros.status ? (
+                <span className="ml-2 text-xs">({agendamentos.length} total)</span>
+              ) : null}
+            </p>
+            <p className="text-3xl font-bold text-neutral-dark dark:text-white">{agendamentosFiltrados.length}</p>
           </div>
           <div className="bg-white dark:bg-[#1a190b] rounded-xl p-6 shadow-sm border border-[#f0f0eb] dark:border-[#2e2d1a]">
             <p className="text-[#8c8b5f] dark:text-[#a3a272] text-sm font-medium mb-1">Agendamentos Hoje</p>
@@ -150,7 +356,7 @@ export default function Agendamentos() {
           <div className="bg-white dark:bg-[#1a190b] rounded-xl p-6 shadow-sm border border-[#f0f0eb] dark:border-[#2e2d1a]">
             <p className="text-[#8c8b5f] dark:text-[#a3a272] text-sm font-medium mb-1">Próximos 7 Dias</p>
             <p className="text-3xl font-bold text-neutral-dark dark:text-white">
-              {agendamentos.filter(ag => {
+              {agendamentosFiltrados.filter(ag => {
                 const dataAg = new Date(ag.start);
                 const hoje = new Date();
                 const seteDias = new Date(hoje.getTime() + 7 * 24 * 60 * 60 * 1000);
@@ -179,7 +385,7 @@ export default function Agendamentos() {
               Tentar Novamente
             </button>
           </div>
-        ) : agendamentos.length === 0 ? (
+        ) : agendamentosFiltrados.length === 0 ? (
           <div className="bg-white dark:bg-[#1a190b] rounded-xl p-6 shadow-sm border border-[#f0f0eb] dark:border-[#2e2d1a] text-center py-20">
             <span className="material-symbols-outlined text-6xl text-[#8c8b5f] dark:text-[#a3a272] mb-4">event_busy</span>
             <p className="text-lg font-bold text-neutral-dark dark:text-white mb-2">Nenhum agendamento encontrado</p>
