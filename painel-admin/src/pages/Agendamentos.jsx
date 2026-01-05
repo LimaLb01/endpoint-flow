@@ -32,6 +32,8 @@ export default function Agendamentos() {
   const [agendamentoSelecionado, setAgendamentoSelecionado] = useState(null);
   const [mostrarModal, setMostrarModal] = useState(false);
   const [filtroRapidoAtivo, setFiltroRapidoAtivo] = useState(null);
+  const [atualizando, setAtualizando] = useState(false);
+  const [ultimaAtualizacao, setUltimaAtualizacao] = useState(new Date());
 
   // Carregar barbeiros ao montar
   useEffect(() => {
@@ -57,6 +59,77 @@ export default function Agendamentos() {
     }, 300);
 
     return () => clearTimeout(timer);
+  }, [filtros.startDate, filtros.endDate, filtros.barberId]);
+
+  // Atualização automática a cada 30 segundos (sem recarregar a página)
+  useEffect(() => {
+    let intervalId;
+    let timeoutId;
+
+    const atualizarEmSegundoPlano = async () => {
+      // Não mostrar loading durante atualização automática
+      setAtualizando(true);
+      try {
+        const dados = await api.listarAgendamentos({
+          startDate: filtros.startDate ? new Date(filtros.startDate).toISOString() : undefined,
+          endDate: filtros.endDate ? new Date(filtros.endDate).toISOString() : undefined,
+          barberId: filtros.barberId || undefined,
+          maxResults: 250
+        });
+        
+        setAgendamentos(dados || []);
+        setUltimaAtualizacao(new Date());
+      } catch (error) {
+        console.error('Erro ao atualizar agendamentos:', error);
+        // Não mostrar erro durante atualização automática
+      } finally {
+        // Pequeno delay para mostrar o indicador
+        setTimeout(() => setAtualizando(false), 500);
+      }
+    };
+
+    // Função para verificar se a página está visível
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // Pausar atualização quando a aba não está visível
+        if (intervalId) {
+          clearInterval(intervalId);
+          intervalId = null;
+        }
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          timeoutId = null;
+        }
+      } else {
+        // Retomar atualização quando a aba fica visível
+        if (!intervalId && !timeoutId) {
+          // Atualizar imediatamente ao voltar
+          atualizarEmSegundoPlano();
+          // Depois continuar com intervalo
+          intervalId = setInterval(atualizarEmSegundoPlano, 30000); // 30 segundos
+        }
+      }
+    };
+
+    // Configurar listener de visibilidade
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Iniciar atualização automática apenas se a página estiver visível
+    if (!document.hidden) {
+      // Primeira atualização após 30 segundos
+      timeoutId = setTimeout(() => {
+        atualizarEmSegundoPlano();
+        // Depois continuar com intervalo
+        intervalId = setInterval(atualizarEmSegundoPlano, 30000); // 30 segundos
+      }, 30000);
+    }
+
+    // Limpar ao desmontar
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+      if (timeoutId) clearTimeout(timeoutId);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [filtros.startDate, filtros.endDate, filtros.barberId]);
 
   // Filtrar agendamentos localmente (busca e status)
@@ -291,9 +364,36 @@ export default function Agendamentos() {
     return dataAg.toDateString() === hoje.toDateString();
   });
 
+  // Formatar tempo desde última atualização
+  const formatarTempoAtualizacao = () => {
+    if (!ultimaAtualizacao) return '';
+    const agora = new Date();
+    const diff = Math.floor((agora - ultimaAtualizacao) / 1000); // segundos
+    
+    if (diff < 60) return 'há poucos segundos';
+    if (diff < 3600) return `há ${Math.floor(diff / 60)} min`;
+    return `há ${Math.floor(diff / 3600)}h`;
+  };
+
   return (
     <Layout>
       <div className="p-6 md:p-10 flex flex-col gap-6 max-w-[1600px] mx-auto w-full">
+        {/* Indicador de atualização automática */}
+        <div className="flex items-center justify-end gap-2 text-xs text-[#8c8b5f] dark:text-[#a3a272]">
+          {atualizando && (
+            <span className="flex items-center gap-1">
+              <span className="material-symbols-outlined text-sm animate-spin">sync</span>
+              <span>Atualizando...</span>
+            </span>
+          )}
+          {!atualizando && ultimaAtualizacao && (
+            <span className="flex items-center gap-1">
+              <span className="material-symbols-outlined text-sm">schedule</span>
+              <span>Atualizado {formatarTempoAtualizacao()}</span>
+            </span>
+          )}
+        </div>
+
         {/* Filtros */}
         <div className="bg-white dark:bg-[#1a190b] rounded-xl p-6 shadow-sm border border-[#f0f0eb] dark:border-[#2e2d1a]">
           <div className="flex items-center justify-between mb-4">
