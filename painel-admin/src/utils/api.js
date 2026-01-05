@@ -81,6 +81,11 @@ async function apiRequest(endpoint, options = {}) {
       console.warn('Erro de rede, retornando null');
       return null;
     }
+    // Para DELETE com 404, retornar false em vez de lançar exceção
+    if (options.method === 'DELETE' && error.message.includes('404')) {
+      console.warn('Interação não encontrada (404), retornando false');
+      return false;
+    }
     throw error;
   }
 }
