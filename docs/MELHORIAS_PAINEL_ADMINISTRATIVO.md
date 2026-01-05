@@ -115,21 +115,34 @@ Este documento lista todas as melhorias propostas para o painel administrativo, 
 
 ---
 
-### 6. ⏳ Notificações e Alertas - **PENDENTE**
+### 6. ✅ Notificações e Alertas - **CONCLUÍDA**
 **Prioridade:** Alta  
-**Status:** ⏳ Aguardando implementação
+**Status:** ✅ Implementada e testada
 
-**Melhorias propostas:**
-- [ ] Badge de notificações no header
-- [ ] Alertas de assinaturas vencendo (7 dias)
-- [ ] Pagamentos pendentes
-- [ ] Agendamentos cancelados
-- [ ] Novos clientes (últimas 24h)
-- [ ] Configurações de notificações
+**Melhorias implementadas:**
+- ✅ Badge de notificações no header com contador
+- ✅ Alertas de assinaturas vencendo (7 dias)
+- ✅ Pagamentos pendentes
+- ✅ Novos clientes (últimas 24h)
+- ✅ Dropdown de notificações com lista completa
+- ✅ Atualização automática a cada 30 segundos
+- ✅ Botão de atualização manual
+- ✅ Navegação automática ao clicar em notificações
+- ✅ Formatação de tempo relativo (ex: "2h atrás")
+- ✅ Ícones e cores por tipo de notificação
+- ✅ Fechamento ao clicar fora do dropdown
+
+**Arquivos criados/modificados:**
+- `src/services/admin-notifications-service.js` (novo)
+- `src/routes/admin-routes.js` (endpoint `/api/admin/notifications`)
+- `painel-admin/src/components/Notifications.jsx` (novo)
+- `painel-admin/src/components/Layout.jsx` (integração no header)
+- `painel-admin/src/utils/api.js` (função `obterNotificacoes`)
 
 **Notas:**
-- O backend já possui serviço de notificações (`src/services/notification-service.js`)
-- Precisa implementar sistema de notificações no frontend
+- Sistema busca notificações do banco de dados em tempo real
+- Suporta múltiplos tipos de notificações com prioridades diferentes
+- Interface responsiva e acessível
 
 ---
 
@@ -166,11 +179,11 @@ Este documento lista todas as melhorias propostas para o painel administrativo, 
 ## 📊 Resumo de Progresso
 
 - **Total de melhorias:** 8
-- **Concluídas:** 3 (37.5%)
-- **Pendentes:** 5 (62.5%)
+- **Concluídas:** 4 (50%)
+- **Pendentes:** 4 (50%)
 
 ### Por Prioridade:
-- **Alta:** 3 melhorias (2 concluídas, 1 pendente)
+- **Alta:** 3 melhorias (3 concluídas ✅)
 - **Média:** 4 melhorias (1 concluída, 3 pendentes)
 - **Baixa:** 1 melhoria (pendente)
 
@@ -179,15 +192,30 @@ Este documento lista todas as melhorias propostas para o painel administrativo, 
 ## 🎯 Próximos Passos
 
 1. ✅ **Implementar Melhoria #3:** Analytics do Flow - **CONCLUÍDA**
-2. **Implementar Melhoria #6:** Notificações e Alertas (alta prioridade)
-3. **Implementar Melhoria #4:** Relatórios e Exportação
-4. **Implementar Melhoria #5:** Gerenciamento de Planos
-5. **Implementar Melhoria #7:** Busca Avançada
-6. **Implementar Melhoria #8:** Melhorias de UX
+2. ✅ **Implementar Melhoria #6:** Notificações e Alertas - **CONCLUÍDA**
+3. **Implementar Melhoria #4:** Relatórios e Exportação (prioridade média)
+4. **Implementar Melhoria #5:** Gerenciamento de Planos (prioridade média)
+5. **Implementar Melhoria #7:** Busca Avançada (prioridade média)
+6. **Implementar Melhoria #8:** Melhorias de UX (prioridade baixa)
 
 ---
 
 **Última atualização:** 05/01/2026
+
+### Melhoria #6 - Notificações e Alertas
+- **Data de conclusão:** 05/01/2026
+- **Tecnologias utilizadas:** React Hooks, Supabase, Material Symbols
+- **Endpoint backend:** `GET /api/admin/notifications`
+- **Funcionalidades principais:**
+  - Busca assinaturas vencendo nos próximos 7 dias
+  - Busca pagamentos pendentes de confirmação
+  - Busca novos clientes das últimas 24 horas
+  - Badge dinâmico com contador de notificações
+  - Dropdown interativo com lista de notificações
+  - Atualização automática a cada 30 segundos
+  - Navegação automática ao clicar em notificações
+- **Performance:** Notificações buscadas do banco em tempo real
+- **UX:** Interface responsiva com fechamento ao clicar fora
 
 ---
 
