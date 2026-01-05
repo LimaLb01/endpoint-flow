@@ -886,6 +886,7 @@ export default function AcompanhamentoFlow() {
           </div>
         </div>
       )}
+        </div>
       </div>
     </Layout>
   );
