@@ -323,6 +323,280 @@ async function getAbandonmentStats() {
 }
 
 /**
+ * Busca estatísticas completas de analytics do Flow
+ * Inclui: funil, abandono, tempo médio, interações ao longo do tempo, heatmap, localização
+ */
+async function getFlowAnalytics(filters = {}) {
+  if (!isAdminConfigured()) {
+    return {
+      funnel: [],
+      abandonment: {},
+      averageTime: {},
+      interactionsOverTime: [],
+      heatmap: {},
+      location: {}
+    };
+  }
+
+  try {
+    // Definir período padrão (últimos 30 dias)
+    const endDate = filters.endDate || new Date().toISOString();
+    const startDate = filters.startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+
+    // Buscar todas as interações no período
+    let query = supabaseAdmin
+      .from('flow_interactions')
+      .select('id, flow_token, screen, status, created_at, metadata, previous_screen')
+      .gte('created_at', startDate)
+      .lte('created_at', endDate)
+      .order('created_at', { ascending: true });
+
+    const { data: interactions, error } = await query;
+    if (error) throw error;
+
+    // Ordem das etapas do funil
+    const funnelOrder = [
+      'WELCOME',
+      'CPF_INPUT',
+      'CLUB_OPTION',
+      'BRANCH_SELECTION',
+      'BARBER_SELECTION',
+      'SERVICE_SELECTION',
+      'DATE_SELECTION',
+      'TIME_SELECTION',
+      'DETAILS',
+      'CONFIRMATION'
+    ];
+
+    // 1. FUNIL DE CONVERSÃO
+    const funnel = [];
+    const uniqueTokensByScreen = {};
+    const screenStats = {};
+
+    // Agrupar por flow_token e encontrar a última tela alcançada
+    const tokensByLastScreen = {};
+    interactions.forEach(interaction => {
+      if (!interaction.flow_token) return;
+      
+      const token = interaction.flow_token;
+      const screen = interaction.screen;
+      
+      if (!tokensByLastScreen[token] || 
+          funnelOrder.indexOf(screen) > funnelOrder.indexOf(tokensByLastScreen[token])) {
+        tokensByLastScreen[token] = screen;
+      }
+
+      if (!screenStats[screen]) {
+        screenStats[screen] = {
+          total: 0,
+          uniqueTokens: new Set(),
+          abandoned: 0,
+          completed: 0,
+          in_progress: 0,
+          timestamps: []
+        };
+      }
+      
+      screenStats[screen].total++;
+      screenStats[screen].uniqueTokens.add(token);
+      screenStats[screen][interaction.status]++;
+      if (interaction.created_at) {
+        screenStats[screen].timestamps.push(new Date(interaction.created_at).getTime());
+      }
+    });
+
+    // Construir funil
+    let previousCount = 0;
+    funnelOrder.forEach(screen => {
+      const stats = screenStats[screen] || { uniqueTokens: new Set(), total: 0 };
+      const count = stats.uniqueTokens ? stats.uniqueTokens.size : 0;
+      const dropoff = previousCount > 0 ? ((previousCount - count) / previousCount * 100) : 0;
+      
+      funnel.push({
+        screen,
+        name: SCREEN_NAMES[screen] || screen,
+        count,
+        dropoff: previousCount > 0 ? dropoff.toFixed(1) : 0,
+        conversion: previousCount > 0 ? (count / previousCount * 100).toFixed(1) : 100
+      });
+      
+      previousCount = count;
+    });
+
+    // 2. TAXA DE ABANDONO POR ETAPA
+    const abandonment = {};
+    Object.keys(screenStats).forEach(screen => {
+      const stats = screenStats[screen];
+      const total = stats.uniqueTokens ? stats.uniqueTokens.size : 0;
+      if (total > 0) {
+        abandonment[screen] = {
+          total,
+          abandoned: stats.abandoned || 0,
+          completed: stats.completed || 0,
+          in_progress: stats.in_progress || 0,
+          abandonmentRate: ((stats.abandoned || 0) / total * 100).toFixed(1),
+          completionRate: ((stats.completed || 0) / total * 100).toFixed(1)
+        };
+      }
+    });
+
+    // 3. TEMPO MÉDIO POR ETAPA
+    const averageTime = {};
+    const tokensByScreen = {};
+    
+    // Agrupar interações por flow_token e screen
+    interactions.forEach(interaction => {
+      if (!interaction.flow_token || !interaction.screen) return;
+      
+      const token = interaction.flow_token;
+      const screen = interaction.screen;
+      
+      if (!tokensByScreen[token]) {
+        tokensByScreen[token] = {};
+      }
+      
+      if (!tokensByScreen[token][screen]) {
+        tokensByScreen[token][screen] = [];
+      }
+      
+      tokensByScreen[token][screen].push(new Date(interaction.created_at).getTime());
+    });
+
+    // Calcular tempo médio entre etapas
+    Object.keys(screenStats).forEach(screen => {
+      const screenIndex = funnelOrder.indexOf(screen);
+      if (screenIndex <= 0) return;
+      
+      const previousScreen = funnelOrder[screenIndex - 1];
+      const timeDiffs = [];
+      
+      Object.keys(tokensByScreen).forEach(token => {
+        const screenTimes = tokensByScreen[token][screen];
+        const previousTimes = tokensByScreen[token][previousScreen];
+        
+        if (screenTimes && previousTimes && screenTimes.length > 0 && previousTimes.length > 0) {
+          const screenTime = Math.min(...screenTimes);
+          const previousTime = Math.max(...previousTimes);
+          timeDiffs.push((screenTime - previousTime) / 1000 / 60); // em minutos
+        }
+      });
+      
+      if (timeDiffs.length > 0) {
+        const avgTime = timeDiffs.reduce((a, b) => a + b, 0) / timeDiffs.length;
+        averageTime[screen] = {
+          average: avgTime.toFixed(1),
+          min: Math.min(...timeDiffs).toFixed(1),
+          max: Math.max(...timeDiffs).toFixed(1),
+          count: timeDiffs.length
+        };
+      }
+    });
+
+    // 4. INTERAÇÕES AO LONGO DO TEMPO (últimos 30 dias, agrupado por dia)
+    const interactionsOverTime = [];
+    const interactionsByDate = {};
+    
+    interactions.forEach(interaction => {
+      if (!interaction.created_at) return;
+      const date = new Date(interaction.created_at).toISOString().split('T')[0];
+      if (!interactionsByDate[date]) {
+        interactionsByDate[date] = { total: 0, completed: 0, abandoned: 0 };
+      }
+      interactionsByDate[date].total++;
+      if (interaction.status === 'completed') interactionsByDate[date].completed++;
+      if (interaction.status === 'abandoned') interactionsByDate[date].abandoned++;
+    });
+
+    // Ordenar por data
+    Object.keys(interactionsByDate).sort().forEach(date => {
+      interactionsOverTime.push({
+        date,
+        total: interactionsByDate[date].total,
+        completed: interactionsByDate[date].completed,
+        abandoned: interactionsByDate[date].abandoned
+      });
+    });
+
+    // 5. HEATMAP DE HORÁRIOS (agrupar por hora do dia)
+    const heatmap = {};
+    for (let hour = 0; hour < 24; hour++) {
+      heatmap[hour] = { total: 0, completed: 0, abandoned: 0 };
+    }
+    
+    interactions.forEach(interaction => {
+      if (!interaction.created_at) return;
+      const hour = new Date(interaction.created_at).getHours();
+      if (heatmap[hour]) {
+        heatmap[hour].total++;
+        if (interaction.status === 'completed') heatmap[hour].completed++;
+        if (interaction.status === 'abandoned') heatmap[hour].abandoned++;
+      }
+    });
+
+    // 6. ANÁLISE DE LOCALIZAÇÃO
+    const location = {};
+    const locationStats = {};
+    
+    interactions.forEach(interaction => {
+      const loc = interaction.metadata?.location;
+      if (!loc || loc.isLocal) return;
+      
+      const locationKey = loc.city || loc.region || loc.country || 'Desconhecido';
+      if (!locationStats[locationKey]) {
+        locationStats[locationKey] = {
+          total: 0,
+          completed: 0,
+          abandoned: 0,
+          uniqueTokens: new Set()
+        };
+      }
+      
+      locationStats[locationKey].total++;
+      if (interaction.flow_token) {
+        locationStats[locationKey].uniqueTokens.add(interaction.flow_token);
+      }
+      if (interaction.status === 'completed') locationStats[locationKey].completed++;
+      if (interaction.status === 'abandoned') locationStats[locationKey].abandoned++;
+    });
+
+    // Converter para formato de resposta
+    Object.keys(locationStats).forEach(key => {
+      const stats = locationStats[key];
+      location[key] = {
+        total: stats.uniqueTokens.size,
+        interactions: stats.total,
+        completed: stats.completed,
+        abandoned: stats.abandoned,
+        conversionRate: stats.uniqueTokens.size > 0 
+          ? ((stats.completed / stats.uniqueTokens.size) * 100).toFixed(1)
+          : '0.0'
+      };
+    });
+
+    return {
+      funnel,
+      abandonment,
+      averageTime,
+      interactionsOverTime,
+      heatmap,
+      location
+    };
+  } catch (error) {
+    globalLogger.error('Erro ao buscar analytics do flow', {
+      error: error.message
+    });
+    return {
+      funnel: [],
+      abandonment: {},
+      averageTime: {},
+      interactionsOverTime: [],
+      heatmap: {},
+      location: {}
+    };
+  }
+}
+
+/**
  * Exclui uma interação do flow
  * @param {string} interactionId - ID da interação
  * @returns {Promise<boolean>} true se excluído com sucesso
@@ -393,6 +667,7 @@ module.exports = {
   getFlowInteractions,
   getFlowTimeline,
   getAbandonmentStats,
+  getFlowAnalytics,
   deleteFlowInteraction,
   deleteFlowInteractionsByToken
 };

@@ -1,12 +1,35 @@
 import { useState, useEffect } from 'react';
 import { api, utils } from '../utils/api';
 import Layout from '../components/Layout';
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  Cell
+} from 'recharts';
 
 export default function AcompanhamentoFlow() {
   const [interactions, setInteractions] = useState([]);
   const [selectedInteraction, setSelectedInteraction] = useState(null);
   const [timeline, setTimeline] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [analytics, setAnalytics] = useState({
+    funnel: [],
+    abandonment: {},
+    averageTime: {},
+    interactionsOverTime: [],
+    heatmap: {},
+    location: {}
+  });
+  const [analyticsLoading, setAnalyticsLoading] = useState(true);
+  const [showAnalytics, setShowAnalytics] = useState(true);
   const [filters, setFilters] = useState({
     status: 'all',
     screen: 'all',
@@ -87,6 +110,11 @@ export default function AcompanhamentoFlow() {
     loadInteractions();
   }, [filters, pagination.page]);
 
+  // Carregar analytics
+  useEffect(() => {
+    loadAnalytics();
+  }, []);
+
   // Selecionar primeira interação automaticamente quando carregar
   useEffect(() => {
     if (interactions.length > 0 && !selectedInteraction && !loading) {
@@ -160,6 +188,21 @@ export default function AcompanhamentoFlow() {
       }
     } else {
       setTimeline([]);
+    }
+  };
+
+  // Carregar analytics
+  const loadAnalytics = async () => {
+    setAnalyticsLoading(true);
+    try {
+      const data = await api.obterFlowAnalytics();
+      if (data) {
+        setAnalytics(data);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar analytics:', error);
+    } finally {
+      setAnalyticsLoading(false);
     }
   };
 
@@ -344,11 +387,213 @@ export default function AcompanhamentoFlow() {
     });
   };
 
+  // Preparar dados para gráficos
+  const funnelData = analytics.funnel || [];
+  const abandonmentData = Object.keys(analytics.abandonment || {}).map(screen => ({
+    screen: screenNames[screen] || screen,
+    taxaAbandono: parseFloat(analytics.abandonment[screen]?.abandonmentRate || 0),
+    taxaConversao: parseFloat(analytics.abandonment[screen]?.completionRate || 0)
+  }));
+  const averageTimeData = Object.keys(analytics.averageTime || {}).map(screen => ({
+    screen: screenNames[screen] || screen,
+    tempoMedio: parseFloat(analytics.averageTime[screen]?.average || 0)
+  }));
+  const interactionsOverTimeData = (analytics.interactionsOverTime || []).map(item => ({
+    date: new Date(item.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
+    total: item.total,
+    completos: item.completed,
+    abandonados: item.abandoned
+  }));
+  const heatmapData = Object.keys(analytics.heatmap || {}).map(hour => ({
+    hora: `${hour}h`,
+    total: analytics.heatmap[hour]?.total || 0,
+    completos: analytics.heatmap[hour]?.completed || 0,
+    abandonados: analytics.heatmap[hour]?.abandoned || 0
+  }));
+  const locationData = Object.keys(analytics.location || {}).map(loc => ({
+    localizacao: loc,
+    total: analytics.location[loc]?.total || 0,
+    taxaConversao: parseFloat(analytics.location[loc]?.conversionRate || 0)
+  })).sort((a, b) => b.total - a.total).slice(0, 10);
+
   return (
     <Layout>
-      <div className="p-6 md:p-10 flex flex-col lg:flex-row gap-6 max-w-[1600px] mx-auto w-full h-full">
-      {/* Lista de Interações */}
-      <div className="flex-1 flex flex-col gap-6 min-w-0">
+      <div className="p-6 md:p-10 flex flex-col gap-6 max-w-[1600px] mx-auto w-full">
+        {/* Seção de Analytics */}
+        {showAnalytics && (
+          <div className="bg-white dark:bg-[#1a190b] rounded-xl p-6 shadow-sm border border-[#f0f0eb] dark:border-[#2e2d1a]">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-neutral-dark dark:text-white">Analytics do Flow</h2>
+              <button
+                onClick={() => setShowAnalytics(false)}
+                className="text-[#8c8b5f] hover:text-neutral-dark dark:text-[#a3a272] dark:hover:text-white"
+              >
+                <span className="material-symbols-outlined">expand_less</span>
+              </button>
+            </div>
+
+            {analyticsLoading ? (
+              <div className="text-center py-8 text-[#8c8b5f] dark:text-[#a3a272]">Carregando analytics...</div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Funil de Conversão */}
+                <div className="lg:col-span-2">
+                  <h3 className="text-lg font-bold text-neutral-dark dark:text-white mb-4">Funil de Conversão</h3>
+                  <div className="space-y-2">
+                    {funnelData.map((step, index) => {
+                      const maxCount = funnelData[0]?.count || 1;
+                      const width = (step.count / maxCount) * 100;
+                      return (
+                        <div key={step.screen} className="flex items-center gap-4">
+                          <div className="w-32 text-sm font-medium text-neutral-dark dark:text-white">{step.name}</div>
+                          <div className="flex-1 relative">
+                            <div className="w-full h-8 bg-neutral-light dark:bg-[#2e2d1a] rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-primary transition-all duration-500 flex items-center justify-end pr-2"
+                                style={{ width: `${width}%` }}
+                              >
+                                <span className="text-xs font-bold text-neutral-dark">{step.count}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="w-24 text-right text-sm text-[#8c8b5f] dark:text-[#a3a272]">
+                            {step.dropoff > 0 && `-${step.dropoff}%`}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Taxa de Abandono por Etapa */}
+                <div>
+                  <h3 className="text-lg font-bold text-neutral-dark dark:text-white mb-4">Taxa de Abandono por Etapa</h3>
+                  {abandonmentData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={abandonmentData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e5dc" />
+                        <XAxis dataKey="screen" angle={-45} textAnchor="end" height={100} fontSize={12} />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Bar dataKey="taxaAbandono" fill="#ef4444" name="Taxa de Abandono (%)" />
+                        <Bar dataKey="taxaConversao" fill="#22c55e" name="Taxa de Conversão (%)" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="text-center py-8 text-[#8c8b5f] dark:text-[#a3a272]">Sem dados</div>
+                  )}
+                </div>
+
+                {/* Tempo Médio por Etapa */}
+                <div>
+                  <h3 className="text-lg font-bold text-neutral-dark dark:text-white mb-4">Tempo Médio por Etapa (minutos)</h3>
+                  {averageTimeData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={averageTimeData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e5dc" />
+                        <XAxis dataKey="screen" angle={-45} textAnchor="end" height={100} fontSize={12} />
+                        <YAxis />
+                        <Tooltip />
+                        <Bar dataKey="tempoMedio" fill="#f9f506" name="Tempo Médio (min)" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="text-center py-8 text-[#8c8b5f] dark:text-[#a3a272]">Sem dados</div>
+                  )}
+                </div>
+
+                {/* Interações ao Longo do Tempo */}
+                <div className="lg:col-span-2">
+                  <h3 className="text-lg font-bold text-neutral-dark dark:text-white mb-4">Interações ao Longo do Tempo</h3>
+                  {interactionsOverTimeData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <LineChart data={interactionsOverTimeData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e5dc" />
+                        <XAxis dataKey="date" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Line type="monotone" dataKey="total" stroke="#f9f506" name="Total" />
+                        <Line type="monotone" dataKey="completos" stroke="#22c55e" name="Completos" />
+                        <Line type="monotone" dataKey="abandonados" stroke="#ef4444" name="Abandonados" />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="text-center py-8 text-[#8c8b5f] dark:text-[#a3a272]">Sem dados</div>
+                  )}
+                </div>
+
+                {/* Heatmap de Horários */}
+                <div>
+                  <h3 className="text-lg font-bold text-neutral-dark dark:text-white mb-4">Heatmap de Horários</h3>
+                  {heatmapData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={heatmapData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e5dc" />
+                        <XAxis dataKey="hora" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Bar dataKey="total" fill="#f9f506" name="Total" />
+                        <Bar dataKey="completos" fill="#22c55e" name="Completos" />
+                        <Bar dataKey="abandonados" fill="#ef4444" name="Abandonados" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="text-center py-8 text-[#8c8b5f] dark:text-[#a3a272]">Sem dados</div>
+                  )}
+                </div>
+
+                {/* Análise de Localização */}
+                <div>
+                  <h3 className="text-lg font-bold text-neutral-dark dark:text-white mb-4">Top 10 Localizações por Conversão</h3>
+                  {locationData.length > 0 ? (
+                    <div className="space-y-2">
+                      {locationData.map((loc, index) => (
+                        <div key={loc.localizacao} className="flex items-center gap-4">
+                          <div className="w-8 text-sm font-bold text-[#8c8b5f] dark:text-[#a3a272]">#{index + 1}</div>
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-sm font-medium text-neutral-dark dark:text-white">{loc.localizacao}</span>
+                              <span className="text-xs text-[#8c8b5f] dark:text-[#a3a272]">{loc.total} usuários</span>
+                            </div>
+                            <div className="w-full h-2 bg-neutral-light dark:bg-[#2e2d1a] rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-primary transition-all duration-500"
+                                style={{ width: `${loc.taxaConversao}%` }}
+                              ></div>
+                            </div>
+                            <div className="text-xs text-[#8c8b5f] dark:text-[#a3a272] mt-1">
+                              Taxa de conversão: {loc.taxaConversao}%
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-[#8c8b5f] dark:text-[#a3a272]">Sem dados</div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Botão para mostrar analytics */}
+        {!showAnalytics && (
+          <button
+            onClick={() => setShowAnalytics(true)}
+            className="w-full bg-white dark:bg-[#1a190b] rounded-xl p-4 shadow-sm border border-[#f0f0eb] dark:border-[#2e2d1a] text-left flex items-center justify-between hover:bg-neutral-light dark:hover:bg-[#2e2d1a] transition-colors"
+          >
+            <span className="text-lg font-bold text-neutral-dark dark:text-white">Analytics do Flow</span>
+            <span className="material-symbols-outlined text-[#8c8b5f] dark:text-[#a3a272]">expand_more</span>
+          </button>
+        )}
+
+        {/* Lista de Interações */}
+        <div className="flex flex-col lg:flex-row gap-6 w-full h-full">
+          <div className="flex-1 flex flex-col gap-6 min-w-0">
         {/* Filtros */}
         <div className="bg-white dark:bg-[#1a190b] p-4 rounded-xl border border-[#e5e5dc] dark:border-[#3a3928] shadow-sm flex flex-wrap gap-4 items-center justify-between">
           <div className="flex flex-wrap gap-3 w-full lg:w-auto">

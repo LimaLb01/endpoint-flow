@@ -256,6 +256,25 @@ export const api = {
   },
 
   /**
+   * Obter analytics completos do flow
+   */
+  obterFlowAnalytics: async (filtros = {}) => {
+    const params = new URLSearchParams();
+    if (filtros.startDate) params.append('startDate', filtros.startDate);
+    if (filtros.endDate) params.append('endDate', filtros.endDate);
+    
+    const data = await apiRequest(`/admin/flow/analytics?${params.toString()}`);
+    return data?.analytics || {
+      funnel: [],
+      abandonment: {},
+      averageTime: {},
+      interactionsOverTime: [],
+      heatmap: {},
+      location: {}
+    };
+  },
+
+  /**
    * Excluir uma interação do flow
    */
   excluirFlowInteraction: async (interactionId) => {
@@ -297,6 +316,13 @@ export const api = {
     return apiRequest(`/admin/appointments/${eventId}?${params.toString()}`, {
       method: 'DELETE'
     });
+  },
+
+  /**
+   * Listar barbeiros
+   */
+  listarBarbeiros: async () => {
+    return apiRequest('/admin/barbers');
   }
 };
 

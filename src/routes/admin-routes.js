@@ -12,8 +12,9 @@ const { createRequestLogger, globalLogger } = require('../utils/logger');
 const { supabaseAdmin, isAdminConfigured } = require('../config/supabase');
 const { requireAuth } = require('../middleware/auth-middleware');
 const { notifyPaymentConfirmed } = require('../services/notification-service');
-const { getFlowInteractions, getFlowTimeline, getAbandonmentStats, deleteFlowInteraction, deleteFlowInteractionsByToken } = require('../services/flow-tracking-service');
+const { getFlowInteractions, getFlowTimeline, getAbandonmentStats, getFlowAnalytics, deleteFlowInteraction, deleteFlowInteractionsByToken } = require('../services/flow-tracking-service');
 const { listAppointments, cancelAppointment } = require('../services/calendar-service');
+const { getAllBarbers } = require('../config/branches');
 
 /**
  * GET /api/admin/customers
@@ -1158,6 +1159,37 @@ router.get('/flow/stats', requireAuth, async (req, res) => {
 });
 
 /**
+ * GET /api/admin/flow/analytics
+ * Busca analytics completos do Flow (funil, abandono, tempo médio, heatmap, localização)
+ */
+router.get('/flow/analytics', requireAuth, async (req, res) => {
+  const logger = req.requestId ? createRequestLogger(req.requestId) : globalLogger;
+  
+  try {
+    const { startDate, endDate } = req.query;
+    const filters = {};
+    if (startDate) filters.startDate = startDate;
+    if (endDate) filters.endDate = endDate;
+
+    const analytics = await getFlowAnalytics(filters);
+
+    logger.info('Analytics do flow buscados');
+
+    return res.json({
+      analytics: analytics
+    });
+  } catch (error) {
+    logger.error('Erro ao buscar analytics do flow', {
+      error: error.message
+    });
+    return res.status(500).json({
+      error: 'Erro ao buscar analytics do flow',
+      message: error.message
+    });
+  }
+});
+
+/**
  * DELETE /api/admin/flow/interactions/:id
  * Exclui uma interação do flow
  */
@@ -1308,6 +1340,32 @@ router.delete('/appointments/:eventId', requireAuth, async (req, res) => {
     });
     return res.status(500).json({
       error: 'Erro ao cancelar agendamento',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/admin/barbers
+ * Lista todos os barbeiros disponíveis
+ */
+router.get('/barbers', requireAuth, async (req, res) => {
+  const logger = req.requestId ? createRequestLogger(req.requestId) : globalLogger;
+  
+  try {
+    const barbers = getAllBarbers();
+    
+    logger.info('Barbeiros listados', {
+      total: barbers.length
+    });
+
+    return res.json(barbers);
+  } catch (error) {
+    logger.error('Erro ao listar barbeiros', {
+      error: error.message
+    });
+    return res.status(500).json({
+      error: 'Erro ao listar barbeiros',
       message: error.message
     });
   }
