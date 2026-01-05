@@ -8,6 +8,7 @@ import ListarAssinaturas from './pages/ListarAssinaturas';
 import DetalhesAssinatura from './pages/DetalhesAssinatura';
 import Planos from './pages/Planos';
 import AcompanhamentoFlow from './pages/AcompanhamentoFlow';
+import Agendamentos from './pages/Agendamentos';
 
 function App() {
   return (
@@ -67,6 +68,14 @@ function App() {
           element={
             <ProtectedRoute>
               <AcompanhamentoFlow />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/agendamentos"
+          element={
+            <ProtectedRoute>
+              <Agendamentos />
             </ProtectedRoute>
           }
         />

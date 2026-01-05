@@ -573,11 +573,138 @@ async function cancelAppointment(eventId, barberId) {
   }
 }
 
+/**
+ * Lista agendamentos do Google Calendar
+ * @param {object} options - Opções de filtro
+ * @param {string} options.startDate - Data de início (ISO string)
+ * @param {string} options.endDate - Data de fim (ISO string)
+ * @param {string} options.barberId - ID do barbeiro (opcional)
+ * @param {number} options.maxResults - Número máximo de resultados
+ * @returns {Array} Lista de agendamentos
+ */
+async function listAppointments(options = {}) {
+  const logger = options.requestId ? require('../utils/logger').createRequestLogger(options.requestId) : globalLogger;
+  
+  await initializeCalendar();
+  
+  if (!calendar) {
+    logger.warn('Google Calendar não configurado');
+    return [];
+  }
+
+  try {
+    const {
+      startDate = new Date().toISOString(),
+      endDate,
+      barberId,
+      maxResults = 250
+    } = options;
+
+    // Se não especificou endDate, buscar próximos 30 dias
+    const end = endDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+
+    // Se especificou barbeiro, usar calendário específico, senão buscar em todos
+    const calendarsToSearch = barberId 
+      ? [{ id: barberId, calendarId: BARBER_CALENDARS[barberId] || 'primary' }]
+      : Object.entries(BARBER_CALENDARS).map(([id, calId]) => ({ id, calendarId: calId }));
+
+    // Se não há calendários configurados, usar primary
+    if (calendarsToSearch.length === 0) {
+      calendarsToSearch.push({ id: 'default', calendarId: 'primary' });
+    }
+
+    const allAppointments = [];
+
+    // Buscar em cada calendário
+    for (const { id: barber, calendarId } of calendarsToSearch) {
+      try {
+        const response = await withGoogleCalendarTimeout(
+          () => calendar.events.list({
+            calendarId,
+            timeMin: startDate,
+            timeMax: end,
+            maxResults: maxResults,
+            singleEvents: true,
+            orderBy: 'startTime'
+          }),
+          'Google Calendar - List Events',
+          options.requestId
+        );
+
+        if (response.data.items) {
+          response.data.items.forEach(event => {
+            // Extrair informações do evento
+            const summary = event.summary || 'Sem título';
+            const description = event.description || '';
+            
+            // Tentar extrair informações do cliente da descrição
+            const clientMatch = description.match(/📱 Cliente: (.+)/);
+            const phoneMatch = description.match(/📞 Telefone: (.+)/);
+            const barberMatch = description.match(/✂️ Barbeiro: (.+)/);
+            const emailMatch = description.match(/📧 Email: (.+)/);
+            const notesMatch = description.match(/📝 Obs: (.+)/);
+
+            // Tentar identificar o serviço do título
+            const serviceMatch = summary.match(/^(.+?)\s*-\s*(.+?)\s*\(/);
+
+            allAppointments.push({
+              id: event.id,
+              title: summary,
+              service: serviceMatch ? serviceMatch[1] : 'Serviço não identificado',
+              clientName: clientMatch ? clientMatch[1] : (serviceMatch ? serviceMatch[2] : 'Cliente não identificado'),
+              clientPhone: phoneMatch ? phoneMatch[1] : null,
+              clientEmail: emailMatch ? emailMatch[1] : null,
+              barber: barberMatch ? barberMatch[1] : BARBER_NAMES[barber] || 'Barbeiro não identificado',
+              barberId: barber,
+              start: event.start?.dateTime || event.start?.date,
+              end: event.end?.dateTime || event.end?.date,
+              status: event.status || 'confirmed',
+              htmlLink: event.htmlLink,
+              location: event.location,
+              notes: notesMatch ? notesMatch[1] : null,
+              created: event.created,
+              updated: event.updated
+            });
+          });
+        }
+      } catch (error) {
+        logger.warn(`Erro ao buscar eventos do calendário ${calendarId}`, {
+          error: error.message,
+          barber
+        });
+        // Continuar com outros calendários mesmo se um falhar
+      }
+    }
+
+    // Ordenar por data de início
+    allAppointments.sort((a, b) => {
+      const dateA = new Date(a.start);
+      const dateB = new Date(b.start);
+      return dateA - dateB;
+    });
+
+    logger.info('Agendamentos listados', {
+      total: allAppointments.length,
+      startDate,
+      endDate: end
+    });
+
+    return allAppointments;
+
+  } catch (error) {
+    logger.error('Erro ao listar agendamentos', {
+      error: error.message
+    });
+    throw error;
+  }
+}
+
 module.exports = {
   getBarbers,
   getAvailableSlots,
   createAppointment,
   isSlotAvailable,
-  cancelAppointment
+  cancelAppointment,
+  listAppointments
 };
 

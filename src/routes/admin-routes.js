@@ -13,6 +13,7 @@ const { supabaseAdmin, isAdminConfigured } = require('../config/supabase');
 const { requireAuth } = require('../middleware/auth-middleware');
 const { notifyPaymentConfirmed } = require('../services/notification-service');
 const { getFlowInteractions, getFlowTimeline, getAbandonmentStats, deleteFlowInteraction, deleteFlowInteractionsByToken } = require('../services/flow-tracking-service');
+const { listAppointments, cancelAppointment } = require('../services/calendar-service');
 
 /**
  * GET /api/admin/customers
@@ -633,7 +634,7 @@ router.get('/stats', requireAuth, async (req, res) => {
       throw vencidasError;
     }
     
-    // Receita do mês atual (pagamentos confirmados)
+    // Receita do mês atual (pagamentos confirmados + succeeded)
     const inicioMes = new Date();
     inicioMes.setDate(1);
     inicioMes.setHours(0, 0, 0, 0);
@@ -643,31 +644,289 @@ router.get('/stats', requireAuth, async (req, res) => {
     fimMes.setDate(0);
     fimMes.setHours(23, 59, 59, 999);
     
-    const { data: pagamentos, error: pagamentosError } = await supabaseAdmin
+    // Pagamentos manuais confirmados
+    const { data: pagamentosManuais, error: pagamentosManuaisError } = await supabaseAdmin
       .from('manual_payments')
       .select('amount')
       .eq('status', 'confirmed')
       .gte('payment_date', inicioMes.toISOString())
       .lte('payment_date', fimMes.toISOString());
     
-    if (pagamentosError) {
-      throw pagamentosError;
-    }
+    // Pagamentos da tabela payments (Stripe)
+    const { data: pagamentosStripe, error: pagamentosStripeError } = await supabaseAdmin
+      .from('payments')
+      .select('amount')
+      .eq('status', 'succeeded')
+      .gte('payment_date', inicioMes.toISOString())
+      .lte('payment_date', fimMes.toISOString());
     
-    const receitaMes = pagamentos?.reduce((total, p) => {
+    const receitaManuais = pagamentosManuais?.reduce((total, p) => {
       return total + (parseFloat(p.amount) || 0);
     }, 0) || 0;
+    
+    const receitaStripe = pagamentosStripe?.reduce((total, p) => {
+      return total + (parseFloat(p.amount) || 0);
+    }, 0) || 0;
+    
+    const receitaMes = receitaManuais + receitaStripe;
+    
+    // Receita do mês anterior (para comparação)
+    const inicioMesAnterior = new Date(inicioMes);
+    inicioMesAnterior.setMonth(inicioMesAnterior.getMonth() - 1);
+    
+    const fimMesAnterior = new Date(inicioMes);
+    fimMesAnterior.setDate(0);
+    fimMesAnterior.setHours(23, 59, 59, 999);
+    
+    let receitaMesAnterior = 0;
+    try {
+      // Pagamentos manuais do mês anterior
+      const { data: pagamentosManuaisAnterior, error: pagamentosManuaisAnteriorError } = await supabaseAdmin
+        .from('manual_payments')
+        .select('amount')
+        .eq('status', 'confirmed')
+        .gte('payment_date', inicioMesAnterior.toISOString())
+        .lte('payment_date', fimMesAnterior.toISOString());
+      
+      // Pagamentos Stripe do mês anterior
+      const { data: pagamentosStripeAnterior, error: pagamentosStripeAnteriorError } = await supabaseAdmin
+        .from('payments')
+        .select('amount')
+        .eq('status', 'succeeded')
+        .gte('payment_date', inicioMesAnterior.toISOString())
+        .lte('payment_date', fimMesAnterior.toISOString());
+      
+      const receitaManuaisAnterior = pagamentosManuaisAnterior?.reduce((total, p) => {
+        return total + (parseFloat(p.amount) || 0);
+      }, 0) || 0;
+      
+      const receitaStripeAnterior = pagamentosStripeAnterior?.reduce((total, p) => {
+        return total + (parseFloat(p.amount) || 0);
+      }, 0) || 0;
+      
+      receitaMesAnterior = receitaManuaisAnterior + receitaStripeAnterior;
+    } catch (error) {
+      logger.warn('Erro ao calcular receita do mês anterior', { error: error.message });
+    }
+    
+    const crescimentoReceita = receitaMesAnterior > 0 
+      ? ((receitaMes - receitaMesAnterior) / receitaMesAnterior) * 100 
+      : 0;
+    
+    // Receita histórica (últimos 6 meses)
+    const receitaHistorica = [];
+    try {
+      for (let i = 5; i >= 0; i--) {
+        const mes = new Date();
+        mes.setMonth(mes.getMonth() - i);
+        const inicio = new Date(mes.getFullYear(), mes.getMonth(), 1);
+        const fim = new Date(mes.getFullYear(), mes.getMonth() + 1, 0, 23, 59, 59, 999);
+        
+        // Pagamentos manuais
+        const { data: pagamentosManuaisMes, error: errorManuaisMes } = await supabaseAdmin
+          .from('manual_payments')
+          .select('amount')
+          .eq('status', 'confirmed')
+          .gte('payment_date', inicio.toISOString())
+          .lte('payment_date', fim.toISOString());
+        
+        // Pagamentos Stripe
+        const { data: pagamentosStripeMes, error: errorStripeMes } = await supabaseAdmin
+          .from('payments')
+          .select('amount')
+          .eq('status', 'succeeded')
+          .gte('payment_date', inicio.toISOString())
+          .lte('payment_date', fim.toISOString());
+        
+        const receitaManuais = pagamentosManuaisMes?.reduce((total, p) => {
+          return total + (parseFloat(p.amount) || 0);
+        }, 0) || 0;
+        
+        const receitaStripe = pagamentosStripeMes?.reduce((total, p) => {
+          return total + (parseFloat(p.amount) || 0);
+        }, 0) || 0;
+        
+        const receita = receitaManuais + receitaStripe;
+        
+        receitaHistorica.push({
+          mes: inicio.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }),
+          receita: receita
+        });
+      }
+    } catch (error) {
+      logger.warn('Erro ao calcular receita histórica', { error: error.message });
+    }
+    
+    // Top 5 clientes por receita (de ambas as tabelas)
+    let top5Clientes = [];
+    try {
+      // Pagamentos manuais
+      const { data: topClientesManuais, error: topClientesManuaisError } = await supabaseAdmin
+        .from('manual_payments')
+        .select(`
+          amount,
+          customer_id,
+          customers(id, name, cpf)
+        `)
+        .eq('status', 'confirmed')
+        .order('payment_date', { ascending: false })
+        .limit(100);
+      
+      // Pagamentos Stripe
+      const { data: topClientesStripe, error: topClientesStripeError } = await supabaseAdmin
+        .from('payments')
+        .select(`
+          amount,
+          customer_id,
+          customers(id, name, cpf)
+        `)
+        .eq('status', 'succeeded')
+        .order('payment_date', { ascending: false })
+        .limit(100);
+      
+      const topClientes = [
+        ...(topClientesManuais || []),
+        ...(topClientesStripe || [])
+      ];
+      
+      const clientesReceita = {};
+      if (topClientes && topClientes.length > 0) {
+        topClientes.forEach(p => {
+          if (p.customers && p.customer_id) {
+            const customerId = p.customer_id;
+            if (!clientesReceita[customerId]) {
+              clientesReceita[customerId] = {
+                id: customerId,
+                name: p.customers.name,
+                cpf: p.customers.cpf,
+                total: 0
+              };
+            }
+            clientesReceita[customerId].total += parseFloat(p.amount) || 0;
+          }
+        });
+      }
+      
+      top5Clientes = Object.values(clientesReceita)
+        .sort((a, b) => b.total - a.total)
+        .slice(0, 5);
+    } catch (error) {
+      logger.warn('Erro ao calcular top clientes', { error: error.message });
+    }
+    
+    // Receita por plano
+    let receitaPorPlano = {};
+    try {
+      const { data: assinaturasComPlanos, error: planosError } = await supabaseAdmin
+        .from('subscriptions')
+        .select(`
+          plan_id,
+          plans(id, name, price)
+        `)
+        .eq('status', 'active');
+      
+      receitaPorPlano = {};
+      if (assinaturasComPlanos && !planosError) {
+        assinaturasComPlanos.forEach(sub => {
+          if (sub.plans && sub.plan_id) {
+            const planId = sub.plan_id;
+            if (!receitaPorPlano[planId]) {
+              receitaPorPlano[planId] = {
+                name: sub.plans.name,
+                receita: 0,
+                assinaturas: 0
+              };
+            }
+            receitaPorPlano[planId].receita += parseFloat(sub.plans.price) || 0;
+            receitaPorPlano[planId].assinaturas += 1;
+          }
+        });
+      }
+    } catch (error) {
+      logger.warn('Erro ao calcular receita por plano', { error: error.message });
+    }
+    
+    // Assinaturas vencendo em 7 dias
+    let assinaturasVencendo = 0;
+    try {
+      const dataLimite = new Date();
+      dataLimite.setDate(dataLimite.getDate() + 7);
+      
+      const { count: countVencendo, error: vencendoError } = await supabaseAdmin
+        .from('subscriptions')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'active')
+        .lte('current_period_end', dataLimite.toISOString())
+        .gte('current_period_end', new Date().toISOString());
+      
+      if (!vencendoError) {
+        assinaturasVencendo = countVencendo || 0;
+      }
+    } catch (error) {
+      logger.warn('Erro ao calcular assinaturas vencendo', { error: error.message });
+    }
+    
+    // Estatísticas do Flow
+    let flowStats = {
+      total: 0,
+      completos: 0,
+      abandonados: 0,
+      emAndamento: 0,
+      taxaConversao: 0
+    };
+    
+    try {
+      const { data: flowInteractions, error: flowError } = await supabaseAdmin
+        .from('flow_interactions')
+        .select('status, screen, flow_token')
+        .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
+      
+      if (flowInteractions && !flowError) {
+        const uniqueTokens = new Set();
+        const completosTokens = new Set();
+        const abandonadosTokens = new Set();
+        
+        flowInteractions.forEach(interaction => {
+          if (interaction.flow_token) {
+            uniqueTokens.add(interaction.flow_token);
+            if (interaction.status === 'completed') {
+              completosTokens.add(interaction.flow_token);
+            } else if (interaction.status === 'abandoned') {
+              abandonadosTokens.add(interaction.flow_token);
+            }
+          }
+        });
+        
+        flowStats = {
+          total: uniqueTokens.size,
+          completos: completosTokens.size,
+          abandonados: abandonadosTokens.size,
+          emAndamento: uniqueTokens.size - completosTokens.size - abandonadosTokens.size,
+          taxaConversao: uniqueTokens.size > 0 ? (completosTokens.size / uniqueTokens.size) * 100 : 0
+        };
+      }
+    } catch (error) {
+      logger.warn('Erro ao calcular estatísticas do flow', { error: error.message });
+    }
     
     const stats = {
       totalClientes: totalClientes || 0,
       assinaturasAtivas: assinaturasAtivas || 0,
       assinaturasVencidas: assinaturasVencidas || 0,
-      receitaMes: receitaMes
+      receitaMes: receitaMes,
+      receitaMesAnterior: receitaMesAnterior,
+      crescimentoReceita: crescimentoReceita,
+      receitaHistorica: receitaHistorica,
+      top5Clientes: top5Clientes,
+      receitaPorPlano: Object.values(receitaPorPlano),
+      assinaturasVencendo: assinaturasVencendo,
+      flowStats: flowStats
     };
     
     logger.info('Estatísticas do dashboard carregadas', {
       totalClientes: stats.totalClientes,
-      assinaturasAtivas: stats.assinaturasAtivas
+      assinaturasAtivas: stats.assinaturasAtivas,
+      receitaMes: stats.receitaMes
     });
     
     return res.json({
@@ -969,6 +1228,86 @@ router.delete('/flow/interactions/token/:flowToken', requireAuth, async (req, re
     });
     return res.status(500).json({
       error: 'Erro ao excluir interações do flow',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/admin/appointments
+ * Lista agendamentos do Google Calendar
+ */
+router.get('/appointments', requireAuth, async (req, res) => {
+  const logger = req.requestId ? createRequestLogger(req.requestId) : globalLogger;
+  
+  try {
+    const {
+      startDate,
+      endDate,
+      barberId,
+      maxResults = 250
+    } = req.query;
+
+    const appointments = await listAppointments({
+      startDate: startDate || new Date().toISOString(),
+      endDate,
+      barberId,
+      maxResults: parseInt(maxResults),
+      requestId: req.requestId
+    });
+
+    logger.info('Agendamentos listados', {
+      total: appointments.length,
+      barberId,
+      startDate,
+      endDate
+    });
+
+    return res.json({
+      success: true,
+      appointments,
+      total: appointments.length
+    });
+  } catch (error) {
+    logger.error('Erro ao listar agendamentos', {
+      error: error.message
+    });
+    return res.status(500).json({
+      error: 'Erro ao listar agendamentos',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * DELETE /api/admin/appointments/:eventId
+ * Cancela um agendamento no Google Calendar
+ */
+router.delete('/appointments/:eventId', requireAuth, async (req, res) => {
+  const logger = req.requestId ? createRequestLogger(req.requestId) : globalLogger;
+  
+  try {
+    const { eventId } = req.params;
+    const { barberId } = req.query;
+
+    await cancelAppointment(eventId, barberId);
+
+    logger.info('Agendamento cancelado', {
+      eventId,
+      barberId
+    });
+
+    return res.json({
+      success: true,
+      message: 'Agendamento cancelado com sucesso'
+    });
+  } catch (error) {
+    logger.error('Erro ao cancelar agendamento', {
+      error: error.message,
+      eventId: req.params.eventId
+    });
+    return res.status(500).json({
+      error: 'Erro ao cancelar agendamento',
       message: error.message
     });
   }

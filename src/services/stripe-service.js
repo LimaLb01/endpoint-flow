@@ -196,12 +196,6 @@ async function handleCheckoutCompleted(session) {
       // Criar assinatura
       const subscriptionResult = await handleSubscriptionUpdated(stripeSubscription, customer.id, planId);
       
-<<<<<<< Current (Your changes)
-=======
-      // Buscar assinatura criada/atualizada
-      let subscription = await getSubscriptionByStripeId(stripeSubscription.id);
-      
->>>>>>> Incoming (Background Agent changes)
       // Buscar invoice inicial da assinatura para registrar pagamento
       if (stripeSubscription.latest_invoice) {
         try {

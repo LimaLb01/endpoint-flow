@@ -209,13 +209,16 @@ export const api = {
    * Obter estatísticas do dashboard
    */
   obterEstatisticas: async () => {
-    const data = await apiRequest('/admin/stats');
-    return data?.stats || {
-      totalClientes: 0,
-      assinaturasAtivas: 0,
-      assinaturasVencidas: 0,
-      receitaMes: 0
-    };
+    try {
+      const data = await apiRequest('/admin/stats');
+      if (!data) {
+        throw new Error('Erro ao conectar com o servidor');
+      }
+      return data;
+    } catch (error) {
+      console.error('Erro em obterEstatisticas:', error);
+      throw error;
+    }
   },
 
   /**
@@ -266,6 +269,32 @@ export const api = {
    */
   excluirFlowInteractionsByToken: async (flowToken) => {
     return apiRequest(`/admin/flow/interactions/token/${flowToken}`, {
+      method: 'DELETE'
+    });
+  },
+
+  /**
+   * Listar agendamentos do Google Calendar
+   */
+  listarAgendamentos: async (filtros = {}) => {
+    const params = new URLSearchParams();
+    if (filtros.startDate) params.append('startDate', filtros.startDate);
+    if (filtros.endDate) params.append('endDate', filtros.endDate);
+    if (filtros.barberId) params.append('barberId', filtros.barberId);
+    if (filtros.maxResults) params.append('maxResults', filtros.maxResults);
+    
+    const data = await apiRequest(`/admin/appointments?${params.toString()}`);
+    return data?.appointments || [];
+  },
+
+  /**
+   * Cancelar agendamento
+   */
+  cancelarAgendamento: async (eventId, barberId) => {
+    const params = new URLSearchParams();
+    if (barberId) params.append('barberId', barberId);
+    
+    return apiRequest(`/admin/appointments/${eventId}?${params.toString()}`, {
       method: 'DELETE'
     });
   }
