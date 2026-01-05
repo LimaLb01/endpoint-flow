@@ -15,6 +15,7 @@ const { notifyPaymentConfirmed } = require('../services/notification-service');
 const { getFlowInteractions, getFlowTimeline, getAbandonmentStats, getFlowAnalytics, deleteFlowInteraction, deleteFlowInteractionsByToken } = require('../services/flow-tracking-service');
 const { listAppointments, cancelAppointment } = require('../services/calendar-service');
 const { getAllBarbers } = require('../config/branches');
+const { getAdminNotifications } = require('../services/admin-notifications-service');
 
 /**
  * GET /api/admin/customers
@@ -1366,6 +1367,32 @@ router.get('/barbers', requireAuth, async (req, res) => {
     });
     return res.status(500).json({
       error: 'Erro ao listar barbeiros',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/admin/notifications
+ * Retorna notificações e alertas para o painel administrativo
+ */
+router.get('/notifications', requireAuth, async (req, res) => {
+  const logger = req.requestId ? createRequestLogger(req.requestId) : globalLogger;
+  
+  try {
+    const notifications = await getAdminNotifications();
+    
+    logger.info('Notificações administrativas buscadas', {
+      total: notifications.total
+    });
+    
+    return res.json(notifications);
+  } catch (error) {
+    logger.error('Erro ao buscar notificações administrativas', {
+      error: error.message
+    });
+    return res.status(500).json({
+      error: 'Erro ao buscar notificações',
       message: error.message
     });
   }

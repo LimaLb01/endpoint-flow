@@ -431,6 +431,15 @@ export const utils = {
   validarEmail: (email) => {
     const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return regex.test(email);
+  },
+
+  /**
+   * Buscar notificações administrativas
+   */
+  obterNotificacoes: async () => {
+    return await apiRequest('/admin/notifications', {
+      method: 'GET'
+    });
   }
 };
 

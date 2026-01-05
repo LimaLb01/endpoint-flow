@@ -1,4 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
+import Notifications from './Notifications';
 
 export default function Layout({ children }) {
   const navigate = useNavigate();
@@ -141,10 +142,7 @@ export default function Layout({ children }) {
                       className="h-10 pl-10 pr-4 rounded-full bg-neutral-light dark:bg-[#2e2d1a] border-none text-sm w-64 focus:ring-2 focus:ring-primary placeholder-[#8c8b5f]"
                     />
                   </div>
-                  <button className="relative p-2 rounded-full bg-neutral-light dark:bg-[#2e2d1a] text-neutral-dark dark:text-white hover:bg-neutral-light/80 transition-colors">
-                    <span className="material-symbols-outlined">notifications</span>
-                    <span className="absolute top-2 right-2 size-2 rounded-full bg-accent-red border border-white dark:border-[#2e2d1a]"></span>
-                  </button>
+                  <Notifications />
                 </div>
               </header>
               {children}
@@ -164,6 +162,9 @@ export default function Layout({ children }) {
                     </h2>
                     <p className="text-xs text-[#8c8b5f] dark:text-[#a3a272] hidden sm:block">Management Panel</p>
                   </div>
+                </div>
+                <div className="flex items-center gap-4">
+                  <Notifications />
                 </div>
               </header>
               {children}
