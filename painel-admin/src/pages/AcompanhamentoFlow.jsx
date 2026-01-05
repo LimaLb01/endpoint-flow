@@ -226,6 +226,13 @@ export default function AcompanhamentoFlow() {
         setTimeline([]);
       }
       
+      // Remover da seleção múltipla se estiver selecionada
+      setSelectedIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(interaction.id);
+        return newSet;
+      });
+      
       // Recarregar lista
       await loadInteractions();
     } catch (error) {
@@ -233,6 +240,71 @@ export default function AcompanhamentoFlow() {
       alert('Erro ao excluir interação. Tente novamente.');
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  // Alternar seleção de uma interação
+  const handleToggleSelection = (interactionId, e) => {
+    e.stopPropagation(); // Prevenir seleção da linha ao clicar no checkbox
+    setSelectedIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(interactionId)) {
+        newSet.delete(interactionId);
+      } else {
+        newSet.add(interactionId);
+      }
+      return newSet;
+    });
+  };
+
+  // Selecionar todas as interações
+  const handleSelectAll = (e) => {
+    e.stopPropagation();
+    if (selectedIds.size === interactions.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(interactions.map(i => i.id)));
+    }
+  };
+
+  // Excluir interações selecionadas
+  const handleDeleteSelected = async () => {
+    if (selectedIds.size === 0) return;
+    
+    const count = selectedIds.size;
+    if (!window.confirm(`Tem certeza que deseja excluir ${count} interação(ões) do flow?`)) {
+      return;
+    }
+
+    setIsDeletingMultiple(true);
+    try {
+      const deletePromises = Array.from(selectedIds).map(id => 
+        api.excluirFlowInteraction(id).catch(error => {
+          console.error(`Erro ao excluir interação ${id}:`, error);
+          return null;
+        })
+      );
+      
+      await Promise.all(deletePromises);
+      
+      // Se alguma interação excluída era a selecionada, limpar seleção
+      if (selectedInteraction && selectedIds.has(selectedInteraction.id)) {
+        setSelectedInteraction(null);
+        setTimeline([]);
+      }
+      
+      // Limpar seleções
+      setSelectedIds(new Set());
+      
+      // Recarregar lista
+      await loadInteractions();
+      
+      alert(`${count} interação(ões) excluída(s) com sucesso!`);
+    } catch (error) {
+      console.error('Erro ao excluir interações:', error);
+      alert('Erro ao excluir algumas interações. Verifique o console para mais detalhes.');
+    } finally {
+      setIsDeletingMultiple(false);
     }
   };
 
@@ -683,6 +755,14 @@ export default function AcompanhamentoFlow() {
                 <table className="w-full text-sm text-left">
                   <thead className="bg-neutral-light dark:bg-[#2e2d1a] text-xs uppercase text-[#8c8b5f] dark:text-[#a3a272]">
                     <tr>
+                      <th className="px-6 py-4 font-semibold">
+                        <input
+                          type="checkbox"
+                          checked={interactions.length > 0 && selectedIds.size === interactions.length}
+                          onChange={handleSelectAll}
+                          className="size-4 rounded border-[#8c8b5f] text-primary focus:ring-2 focus:ring-primary cursor-pointer"
+                        />
+                      </th>
                       <th className="px-6 py-4 font-semibold">Cliente</th>
                       <th className="px-6 py-4 font-semibold">Localização</th>
                       <th className="px-6 py-4 font-semibold">Data de Acesso</th>
