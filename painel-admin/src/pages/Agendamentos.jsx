@@ -378,7 +378,7 @@ export default function Agendamentos() {
                     setTimeout(validarDatas, 100);
                   }}
                   lang="pt-BR"
-                  className="w-full h-10 px-4 pr-10 rounded-full bg-neutral-light dark:bg-[#2e2d1a] border-none text-sm focus:ring-2 focus:ring-primary [color-scheme:light] [&::-webkit-datetime-edit-text]:opacity-0 [&::-webkit-datetime-edit-month-field]:opacity-0 [&::-webkit-datetime-edit-day-field]:opacity-0 [&::-webkit-datetime-edit-year-field]:opacity-0 [&::-webkit-inner-spin-button]:hidden [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-3 [&::-webkit-calendar-picker-indicator]:w-5 [&::-webkit-calendar-picker-indicator]:h-5"
+                  className="w-full h-10 px-4 pr-10 rounded-full bg-neutral-light dark:bg-[#2e2d1a] border-none text-sm focus:ring-2 focus:ring-primary [color-scheme:light] [&::-webkit-datetime-edit]:!hidden [&::-webkit-inner-spin-button]:hidden [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-3 [&::-webkit-calendar-picker-indicator]:w-5 [&::-webkit-calendar-picker-indicator]:h-5"
                 />
                 {filtros.startDate && (
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-medium text-neutral-dark dark:text-white pointer-events-none select-none z-10">
@@ -403,7 +403,7 @@ export default function Agendamentos() {
                     setTimeout(validarDatas, 100);
                   }}
                   lang="pt-BR"
-                  className="w-full h-10 px-4 pr-10 rounded-full bg-neutral-light dark:bg-[#2e2d1a] border-none text-sm focus:ring-2 focus:ring-primary [color-scheme:light] [&::-webkit-datetime-edit-text]:opacity-0 [&::-webkit-datetime-edit-month-field]:opacity-0 [&::-webkit-datetime-edit-day-field]:opacity-0 [&::-webkit-datetime-edit-year-field]:opacity-0 [&::-webkit-inner-spin-button]:hidden [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-3 [&::-webkit-calendar-picker-indicator]:w-5 [&::-webkit-calendar-picker-indicator]:h-5"
+                  className="w-full h-10 px-4 pr-10 rounded-full bg-neutral-light dark:bg-[#2e2d1a] border-none text-sm focus:ring-2 focus:ring-primary [color-scheme:light] [&::-webkit-datetime-edit]:!hidden [&::-webkit-inner-spin-button]:hidden [&::-webkit-calendar-picker-indicator]:opacity-100 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-3 [&::-webkit-calendar-picker-indicator]:w-5 [&::-webkit-calendar-picker-indicator]:h-5"
                 />
                 {filtros.endDate && (
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm font-medium text-neutral-dark dark:text-white pointer-events-none select-none z-10">
