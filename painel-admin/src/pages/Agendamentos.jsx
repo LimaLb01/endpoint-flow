@@ -106,7 +106,7 @@ export default function Agendamentos() {
           // Atualizar imediatamente ao voltar
           atualizarEmSegundoPlano();
           // Depois continuar com intervalo
-          intervalId = setInterval(atualizarEmSegundoPlano, 30000); // 30 segundos
+          intervalId = setInterval(atualizarEmSegundoPlano, 15000); // 15 segundos
         }
       }
     };
@@ -116,12 +116,12 @@ export default function Agendamentos() {
 
     // Iniciar atualização automática apenas se a página estiver visível
     if (!document.hidden) {
-      // Primeira atualização após 30 segundos
+      // Primeira atualização após 15 segundos
       timeoutId = setTimeout(() => {
         atualizarEmSegundoPlano();
         // Depois continuar com intervalo
-        intervalId = setInterval(atualizarEmSegundoPlano, 30000); // 30 segundos
-      }, 30000);
+        intervalId = setInterval(atualizarEmSegundoPlano, 15000); // 15 segundos
+      }, 15000);
     }
 
     // Limpar ao desmontar
@@ -375,23 +375,48 @@ export default function Agendamentos() {
     return `há ${Math.floor(diff / 3600)}h`;
   };
 
+  // Função para atualização manual
+  const atualizarManual = async () => {
+    setAtualizando(true);
+    try {
+      await carregarAgendamentos();
+    } catch (error) {
+      console.error('Erro ao atualizar manualmente:', error);
+    } finally {
+      setAtualizando(false);
+    }
+  };
+
   return (
     <Layout>
       <div className="p-6 md:p-10 flex flex-col gap-6 max-w-[1600px] mx-auto w-full">
-        {/* Indicador de atualização automática */}
-        <div className="flex items-center justify-end gap-2 text-xs text-[#8c8b5f] dark:text-[#a3a272]">
-          {atualizando && (
-            <span className="flex items-center gap-1">
-              <span className="material-symbols-outlined text-sm animate-spin">sync</span>
-              <span>Atualizando...</span>
+        {/* Indicador de atualização automática e botão de atualizar */}
+        <div className="flex items-center justify-end gap-3">
+          <div className="flex items-center gap-2 text-xs text-[#8c8b5f] dark:text-[#a3a272]">
+            {atualizando && (
+              <span className="flex items-center gap-1">
+                <span className="material-symbols-outlined text-sm animate-spin">sync</span>
+                <span>Atualizando...</span>
+              </span>
+            )}
+            {!atualizando && ultimaAtualizacao && (
+              <span className="flex items-center gap-1">
+                <span className="material-symbols-outlined text-sm">schedule</span>
+                <span>Atualizado {formatarTempoAtualizacao()}</span>
+              </span>
+            )}
+          </div>
+          <button
+            onClick={atualizarManual}
+            disabled={atualizando}
+            className="px-3 h-8 rounded-full bg-primary text-neutral-dark dark:text-white text-sm font-medium hover:bg-primary/90 dark:hover:bg-primary/90 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+            title="Atualizar agendamentos agora"
+          >
+            <span className={`material-symbols-outlined text-base ${atualizando ? 'animate-spin' : ''}`}>
+              refresh
             </span>
-          )}
-          {!atualizando && ultimaAtualizacao && (
-            <span className="flex items-center gap-1">
-              <span className="material-symbols-outlined text-sm">schedule</span>
-              <span>Atualizado {formatarTempoAtualizacao()}</span>
-            </span>
-          )}
+            <span>Atualizar</span>
+          </button>
         </div>
 
         {/* Filtros */}
