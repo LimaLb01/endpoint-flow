@@ -218,7 +218,19 @@ export default function AcompanhamentoFlow() {
 
     setDeletingId(interaction.id);
     try {
-      await api.excluirFlowInteraction(interaction.id);
+      console.log(`🗑️ Excluindo interação individual: ${interaction.id}`);
+      const result = await api.excluirFlowInteraction(interaction.id);
+      console.log(`📥 Resultado da exclusão individual:`, result);
+      
+      // Verificar se realmente excluiu
+      if (result !== true) {
+        console.warn(`⚠️ Interação ${interaction.id} não foi excluída (retornou ${result})`);
+        alert('A interação não pôde ser excluída. Ela pode não existir mais no banco de dados.');
+        setDeletingId(null);
+        return;
+      }
+      
+      console.log(`✅ Interação ${interaction.id} excluída com sucesso`);
       
       // Se a interação excluída era a selecionada, limpar seleção
       if (selectedInteraction?.id === interaction.id) {
@@ -234,10 +246,14 @@ export default function AcompanhamentoFlow() {
       });
       
       // Recarregar lista
+      console.log('🔄 Recarregando lista após exclusão individual...');
       await loadInteractions();
+      console.log('✅ Lista recarregada após exclusão individual');
+      
+      alert('Interação excluída com sucesso!');
     } catch (error) {
-      console.error('Erro ao excluir interação:', error);
-      alert('Erro ao excluir interação. Tente novamente.');
+      console.error('❌ Erro ao excluir interação:', error);
+      alert(`Erro ao excluir interação: ${error.message || 'Erro desconhecido'}`);
     } finally {
       setDeletingId(null);
     }
