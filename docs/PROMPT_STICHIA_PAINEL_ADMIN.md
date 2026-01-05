@@ -286,3 +286,4 @@ const buscarCliente = async (cpf) => {
 - Priorizar funcionalidades essenciais primeiro
 - Adicionar melhorias visuais depois
 
+

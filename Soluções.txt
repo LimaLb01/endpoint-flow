@@ -1,0 +1,2445 @@
+Obter localização dos usuários no WhatsApp Flow
+
+No estado atual do WhatsApp Flows (v3.0), não existe nenhum campo automático de localização no payload criptografado enviado à sua aplicação. O payload do Flow contém apenas os dados coletados nos componentes de entrada (texto, listas, etc.). De fato, conforme a documentação do 360dialog, os componentes de formulário do Flow incluem inputs como texto, dropdowns, checkboxes, botões e seletores de data – nenhum deles captura automaticamente localização ou endereço
+docs.360dialog.com
+. Em outras palavras, não há campo como user_location no JSON do Flow.
+
+Também não há headers HTTP especiais que informem o IP real do usuário. Todas as requisições dos Flows passam pelos servidores do WhatsApp/Meta, de modo que os cabeçalhos X-Forwarded-For ou similares conterão apenas o IP da infraestrutura da Meta, não do dispositivo cliente. Não existe, até onde se sabe, nenhum cabeçalho oculto ou parâmetro de requisição que exponha a localização ou IP do usuário.
+
+Da mesma forma, não há API pública da Meta/WhatsApp que permita consultar a localização de um usuário pelo número ou ID de WhatsApp. Os APIs oficiais (Cloud API ou Graph API) não fornecem esse tipo de dado por motivos de privacidade. O WhatsApp não disponibiliza um serviço que mapeie número de telefone para localização geográfica do usuário. Assim, não é possível obter cidade/região do cliente sem que ele mesmo forneça essa informação voluntariamente.
+
+Também não há “permissão de localização” no WhatsApp Flow como em apps móveis. Não é possível, durante um Flow, acionar um prompt automático de GPS do dispositivo. A única forma de obter a localização do usuário é fazendo com que ele compartilhe manualmente. Por exemplo, o WhatsApp oferece um template de mensagem do tipo “Request Location”. Esse template exibe ao usuário um botão “Enviar localização” que, quando clicado, abre o mapa do dispositivo e envia sua localização atual ao negócio
+msgclub.net
+. Ou seja, você pode usar esse template dentro de sua conversa (fora do Flow ou como uma etapa final) para pedir ao usuário que clique e compartilhe sua localização exata.
+
+Por fim, os webhooks do WhatsApp Business incluem dados de localização somente se o usuário enviar uma mensagem de localização. Se você utilizar um template de “Solicitar Localização” ou solicitar ao cliente que envie sua localização, então o webhook que chegará ao seu servidor conterá um objeto location. Esse objeto incluirá latitude e longitude do usuário (e opcionalmente nome/endereço do local)
+developers.liveperson.com
+. Por exemplo, em documentação técnica vemos que “Latitude e Longitude sempre existem na resposta do consumidor” após ele compartilhar localização
+developers.liveperson.com
+. Quando isso ocorre, os campos messages[0].location.latitude e messages[0].location.longitude estarão presentes no payload recebido via webhook. A plataforma Twilio, por exemplo, confirma que ao receber uma mensagem de localização do usuário, o webhook inclui esses parâmetros de latitude/longitude e até um endereço (se disponível)
+twilio.com
+.
+
+Resumo das possíveis abordagens: não há método automático integrado para obter a cidade/região do usuário no Flow – você precisa que o próprio usuário compartilhe a localização. Em geral, as opções são: (a) usar um template “Request Location” para solicitar ao cliente que envie sua localização
+msgclub.net
+; (b) instruir o usuário no Flow ou por mensagem subsequente a clicar no ícone de anexo e “Enviar Localização”; (c) então tratar o webhook de mensagem recebido, extraindo latitude/longitude dos dados de localização compartilhados. Fora isso, não há header oculto nem API externa que revele a localização do usuário no WhatsApp Flow.
+
+Referências: Segundo a documentação técnica, os componentes de entrada do Flow não incluem captura de localização
+docs.360dialog.com
+. O WhatsApp disponibiliza templates de “solicitar localização” para o usuário compartilhar sua localização
+msgclub.net
+, e quando isso acontece o payload do webhook traz latitude/longitude nas respostas
+developers.liveperson.com
+twilio.com
+. Estas são atualmente as únicas formas oficiais de obter dados de localização de usuários no WhatsApp Business API.
+
+
+# 📍 Guia Completo: Captura de Localização no WhatsApp Flow
+
+## 🚫 A Resposta Direta (Má Notícia)
+
+**Infelizmente, NÃO é possível capturar automaticamente a localização geográfica real dos usuários no WhatsApp Flow.**
+
+### Por que não funciona?
+
+1. **Proxy da Meta**: Todas as requisições passam pelos servidores da Meta/WhatsApp
+2. **Privacidade**: WhatsApp não expõe a localização do usuário por questões de privacidade
+3. **Sem API**: Não existe API da Meta que forneça localização baseada em `wa_id` ou número de telefone
+4. **Payload vazio**: O payload do Flow não contém dados de localização do usuário
+
+---
+
+## ❌ O que NÃO está disponível
+
+Após pesquisa extensa na documentação oficial do WhatsApp Flow, confirmei que os seguintes recursos **NÃO EXISTEM**:
+
+### 1. Campos de Localização no Payload
+```json
+// ❌ Isso NÃO existe no payload do Flow
+{
+  "version": "3.0",
+  "user_locale": "pt_BR",
+  "action": "data_exchange",
+  "screen": "SCREEN_NAME",
+  "data": { ... },
+  "flow_token": "token",
+  "user_location": { // ❌ NÃO EXISTE
+    "city": "São Paulo",
+    "country": "Brasil"
+  }
+}
+```
+
+### 2. Headers HTTP Especiais
+```
+❌ x-whatsapp-user-location: NÃO EXISTE
+❌ x-meta-user-location: NÃO EXISTE
+❌ x-user-country: NÃO EXISTE
+```
+
+Os únicos headers disponíveis são relacionados à infraestrutura (Railway, Meta, etc.), não ao usuário final.
+
+### 3. API de Geolocalização por Número
+```
+❌ Não existe endpoint para consultar localização baseado em wa_id
+❌ Não existe endpoint para consultar localização baseado em phone_number
+```
+
+### 4. Permissão de Localização no Flow
+```
+❌ WhatsApp Flow não tem componente "Location Permission Request"
+❌ Não há forma de solicitar acesso à localização GPS do dispositivo
+```
+
+---
+
+## ✅ O que ESTÁ disponível
+
+### 1. **Location Request Message** (Solução Manual)
+
+Você pode pedir para o usuário **compartilhar manualmente** a localização, mas isso acontece **FORA do Flow**, via mensagem interativa.
+
+#### Como funciona:
+
+```javascript
+// 1. Enviar Location Request Message
+POST https://graph.facebook.com/v18.0/PHONE_NUMBER_ID/messages
+
+{
+  "messaging_product": "whatsapp",
+  "recipient_type": "individual",
+  "to": "USER_PHONE_NUMBER",
+  "type": "interactive",
+  "interactive": {
+    "type": "location_request_message",
+    "body": {
+      "text": "Para melhor atendê-lo, compartilhe sua localização:"
+    },
+    "action": {
+      "name": "send_location"
+    }
+  }
+}
+```
+
+#### O que você recebe (Webhook):
+
+```json
+{
+  "object": "whatsapp_business_account",
+  "entry": [{
+    "changes": [{
+      "value": {
+        "messages": [{
+          "from": "5511999999999",
+          "type": "location",
+          "location": {
+            "latitude": -23.5505,
+            "longitude": -46.6333,
+            "address": "Av. Paulista, 1578 - São Paulo, SP", // Opcional
+            "name": "MASP" // Opcional
+          }
+        }]
+      }
+    }]
+  }]
+}
+```
+
+#### ⚠️ Limitações:
+- ❌ Não funciona **DENTRO** do Flow
+- ❌ Requer **ação manual** do usuário
+- ❌ Usuário pode **recusar** compartilhar
+- ❌ Interrompe o fluxo do agendamento
+
+---
+
+### 2. **Country Code do Número de Telefone** (Workaround Parcial)
+
+O código do país do número de telefone pode dar uma **aproximação muito grosseira** da localização.
+
+#### Implementação:
+
+```javascript
+// Extrair código do país do wa_id ou phone_number
+function getCountryFromPhone(phoneNumber) {
+  // Remove caracteres não numéricos
+  const cleaned = phoneNumber.replace(/\D/g, '');
+  
+  // Mapear códigos de país para países
+  const countryCodes = {
+    '55': { country: 'Brasil', code: 'BR' },
+    '1': { country: 'EUA/Canadá', code: 'US' },
+    '44': { country: 'Reino Unido', code: 'GB' },
+    '351': { country: 'Portugal', code: 'PT' },
+    // ... adicione mais conforme necessário
+  };
+  
+  // Tentar encontrar o código mais longo que corresponda
+  for (let len = 3; len >= 1; len--) {
+    const code = cleaned.substring(0, len);
+    if (countryCodes[code]) {
+      return countryCodes[code];
+    }
+  }
+  
+  return { country: 'Desconhecido', code: null };
+}
+
+// Exemplo de uso no webhook nfm_reply
+app.post('/webhook/whatsapp-flow', async (req, res) => {
+  // ... código de descriptografia ...
+  
+  const phoneNumber = req.body.entry[0].changes[0].value.messages[0].from;
+  const location = getCountryFromPhone(phoneNumber);
+  
+  console.log('País estimado:', location.country);
+  // Salvar no banco de dados junto com o agendamento
+});
+```
+
+#### ⚠️ Limitações:
+- ❌ Apenas **país**, não cidade/região
+- ❌ Códigos compartilhados (ex: +1 = EUA e Canadá)
+- ❌ Usuário pode ter número de outro país
+- ❌ Não reflete localização **atual**
+
+---
+
+## 🎯 Soluções Práticas para Seu Caso
+
+Como você precisa de dados de localização para KPIs, aqui estão as **3 melhores abordagens** (em ordem de recomendação):
+
+### **Opção 1: Campo Manual no Flow** ⭐ RECOMENDADO
+
+Adicione um campo no Flow onde o usuário **seleciona a cidade manualmente**.
+
+#### Vantagens:
+- ✅ Funciona **DENTRO** do Flow
+- ✅ Não interrompe o agendamento
+- ✅ Dados confiáveis (usuário confirma)
+- ✅ Fácil de implementar
+
+#### Implementação:
+
+```json
+{
+  "id": "CITY_SELECTION",
+  "title": "Sua Localização",
+  "terminal": false,
+  "data": {
+    "cities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "title": { "type": "string" },
+          "description": { "type": "string" }
+        }
+      },
+      "__example__": [
+        { "id": "sao_paulo", "title": "São Paulo", "description": "SP" },
+        { "id": "rio_janeiro", "title": "Rio de Janeiro", "description": "RJ" },
+        { "id": "belo_horizonte", "title": "Belo Horizonte", "description": "MG" },
+        { "id": "other", "title": "Outra cidade", "description": "Digite manualmente" }
+      ]
+    }
+  },
+  "layout": {
+    "type": "SingleColumnLayout",
+    "children": [
+      {
+        "type": "TextHeading",
+        "text": "De onde você está nos acessando?"
+      },
+      {
+        "type": "TextCaption",
+        "text": "Isso nos ajuda a melhorar nosso serviço 😊"
+      },
+      {
+        "type": "Form",
+        "name": "city_form",
+        "children": [
+          {
+            "type": "Dropdown",
+            "name": "selected_city",
+            "label": "Selecione sua cidade",
+            "required": true,
+            "data-source": "${data.cities}"
+          }
+        ]
+      },
+      {
+        "type": "Footer",
+        "label": "Continuar",
+        "on-click-action": {
+          "name": "data_exchange",
+          "payload": {
+            "action_type": "SELECT_CITY",
+            "selected_city": "${city_form.selected_city}"
+          }
+        }
+      }
+    ]
+  }
+}
+```
+
+#### Onde adicionar no routing:
+```json
+{
+  "routing_model": {
+    "WELCOME": ["CITY_SELECTION"],  // ← Logo no início
+    "CITY_SELECTION": ["SERVICE_SELECTION"],
+    "SERVICE_SELECTION": ["DATE_SELECTION"],
+    // ... resto do flow
+  }
+}
+```
+
+---
+
+### **Opção 2: Capturar Country Code Automaticamente** ⭐
+
+Use o código do país do número de telefone para pelo menos saber o país de origem.
+
+#### Implementação no Endpoint:
+
+```javascript
+// src/utils/location-helper.js
+const countryCodes = {
+  '55': { country: 'Brasil', region: 'América do Sul', code: 'BR', timezone: 'America/Sao_Paulo' },
+  '1': { country: 'EUA/Canadá', region: 'América do Norte', code: 'US', timezone: 'America/New_York' },
+  '351': { country: 'Portugal', region: 'Europa', code: 'PT', timezone: 'Europe/Lisbon' },
+  '34': { country: 'Espanha', region: 'Europa', code: 'ES', timezone: 'Europe/Madrid' },
+  '44': { country: 'Reino Unido', region: 'Europa', code: 'GB', timezone: 'Europe/London' },
+  '52': { country: 'México', region: 'América do Norte', code: 'MX', timezone: 'America/Mexico_City' },
+  '54': { country: 'Argentina', region: 'América do Sul', code: 'AR', timezone: 'America/Argentina/Buenos_Aires' },
+  // Adicione mais conforme necessário
+};
+
+function getLocationFromPhone(phoneNumber) {
+  const cleaned = phoneNumber.replace(/\D/g, '');
+  
+  // Tentar códigos de 3 dígitos primeiro, depois 2, depois 1
+  for (let len = 3; len >= 1; len--) {
+    const code = cleaned.substring(0, len);
+    if (countryCodes[code]) {
+      return {
+        ...countryCodes[code],
+        phone_code: code,
+        full_number: phoneNumber
+      };
+    }
+  }
+  
+  return {
+    country: 'Desconhecido',
+    region: 'Desconhecida',
+    code: null,
+    timezone: 'UTC',
+    phone_code: null,
+    full_number: phoneNumber
+  };
+}
+
+module.exports = { getLocationFromPhone };
+```
+
+#### Usar no webhook nfm_reply:
+
+```javascript
+const { getLocationFromPhone } = require('./utils/location-helper');
+
+app.post('/webhook', async (req, res) => {
+  const message = req.body.entry[0].changes[0].value.messages[0];
+  
+  if (message.type === 'interactive' && message.interactive.type === 'nfm_reply') {
+    const phoneNumber = message.from;
+    const location = getLocationFromPhone(phoneNumber);
+    
+    console.log('📍 Localização estimada:', location);
+    
+    // Salvar no Google Calendar ou banco de dados
+    const eventData = {
+      ...responseJson,
+      estimated_location: location,
+      timestamp: new Date().toISOString()
+    };
+    
+    // Criar evento com metadados
+    await calendar.events.insert({
+      calendarId: CALENDAR_ID,
+      resource: {
+        summary: `Agendamento - ${responseJson.client_name}`,
+        description: `
+          País: ${location.country}
+          Código: ${location.code}
+          Telefone: ${phoneNumber}
+          ...
+        `,
+        // ... resto do evento
+      }
+    });
+  }
+  
+  res.sendStatus(200);
+});
+```
+
+---
+
+### **Opção 3: Híbrida (Manual + Automática)** ⭐⭐
+
+Combine as duas abordagens: capture o country code automaticamente E peça para o usuário confirmar/especificar a cidade.
+
+#### Fluxo:
+1. Capture automaticamente o código do país
+2. Se Brasil (55), mostre dropdown de cidades brasileiras
+3. Se outro país, apenas salve o país estimado
+
+```javascript
+// No endpoint handleInit ou handleSelectService
+async function handleInit(decryptedData) {
+  const phoneNumber = decryptedData.flow_token || '55...'; // Assumindo que flow_token contém o número
+  const location = getLocationFromPhone(phoneNumber);
+  
+  let cities = [];
+  if (location.code === 'BR') {
+    // Se for Brasil, oferecer cidades brasileiras
+    cities = [
+      { id: "sao_paulo", title: "São Paulo", description: "SP" },
+      { id: "rio_janeiro", title: "Rio de Janeiro", description: "RJ" },
+      { id: "brasilia", title: "Brasília", description: "DF" },
+      { id: "salvador", title: "Salvador", description: "BA" },
+      { id: "fortaleza", title: "Fortaleza", description: "CE" },
+      { id: "belo_horizonte", title: "Belo Horizonte", description: "MG" },
+      { id: "curitiba", title: "Curitiba", description: "PR" },
+      { id: "porto_alegre", title: "Porto Alegre", description: "RS" },
+      { id: "other", title: "Outra cidade", description: "" }
+    ];
+  } else {
+    // Se outro país, não precisa perguntar cidade
+    cities = [
+      { id: location.country.toLowerCase().replace(/\s/g, '_'), title: location.country, description: location.code }
+    ];
+  }
+  
+  return {
+    version: '3.0',
+    screen: location.code === 'BR' ? 'CITY_SELECTION' : 'SERVICE_SELECTION',
+    data: {
+      estimated_country: location.country,
+      estimated_code: location.code,
+      cities: cities
+    }
+  };
+}
+```
+
+---
+
+## 📊 Salvando Dados para KPIs
+
+### Estrutura Recomendada no Google Calendar:
+
+```javascript
+// Ao criar evento no Calendar
+const eventDescription = `
+🏪 AGENDAMENTO
+📞 Telefone: ${phoneNumber}
+📍 Localização Estimada:
+   - País: ${location.country}
+   - Código: ${location.code}
+   - Região: ${location.region}
+   - Cidade: ${selectedCity || 'Não informada'}
+   
+✂️ Serviço: ${service_name}
+💰 Valor: ${service_price}
+👨‍💼 Barbeiro: ${barber_name}
+📅 Data: ${formatted_date}
+🕐 Horário: ${selected_time}
+👤 Cliente: ${client_name}
+`;
+
+await calendar.events.insert({
+  calendarId: CALENDAR_ID,
+  resource: {
+    summary: `${service_name} - ${client_name}`,
+    description: eventDescription,
+    start: { dateTime: startTime },
+    end: { dateTime: endTime },
+    extendedProperties: {
+      private: {
+        country_code: location.code,
+        country_name: location.country,
+        city: selectedCity,
+        phone_country_code: location.phone_code,
+        client_phone: phoneNumber
+      }
+    }
+  }
+});
+```
+
+### Análise de KPIs:
+
+```javascript
+// Script para extrair dados de localização dos eventos
+async function analyzeLocationKPIs() {
+  const events = await calendar.events.list({
+    calendarId: CALENDAR_ID,
+    timeMin: new Date('2025-01-01').toISOString(),
+    timeMax: new Date('2025-12-31').toISOString(),
+    singleEvents: true
+  });
+  
+  const locationData = {};
+  
+  events.data.items.forEach(event => {
+    const country = event.extendedProperties?.private?.country_name || 'Desconhecido';
+    const city = event.extendedProperties?.private?.city || 'Não informada';
+    
+    if (!locationData[country]) {
+      locationData[country] = { total: 0, cities: {} };
+    }
+    
+    locationData[country].total++;
+    
+    if (!locationData[country].cities[city]) {
+      locationData[country].cities[city] = 0;
+    }
+    
+    locationData[country].cities[city]++;
+  });
+  
+  console.log('📊 KPIs de Localização:', JSON.stringify(locationData, null, 2));
+  
+  // Resultado exemplo:
+  // {
+  //   "Brasil": {
+  //     "total": 150,
+  //     "cities": {
+  //       "São Paulo": 80,
+  //       "Rio de Janeiro": 45,
+  //       "Belo Horizonte": 25
+  //     }
+  //   }
+  // }
+}
+```
+
+---
+
+## 🎯 Recomendação Final para Seu Projeto
+
+Para o seu caso de **agendamento de barbearia**, recomendo:
+
+### **Implementação Ideal:**
+
+1. **Adicione tela de seleção de cidade** no início do Flow (Opção 1)
+   - Coloque **ANTES** da seleção de serviço
+   - Use Dropdown com principais cidades brasileiras
+   - Torne **opcional** (não required) para não criar fricção
+
+2. **Capture country code automaticamente** (Opção 2)
+   - Salve como metadado no Google Calendar
+   - Use como fallback se usuário pular a seleção de cidade
+
+3. **Analytics Dashboard**
+   - Crie script mensal para extrair KPIs de localização
+   - Visualize em planilha ou dashboard simples
+
+### **Prioridades:**
+
+```
+Alta Prioridade (implementar agora):
+✅ Adicionar tela de seleção de cidade no Flow
+✅ Salvar cidade escolhida no Calendar
+
+Média Prioridade (implementar depois):
+⚠️ Capturar country code automaticamente
+⚠️ Script de análise de KPIs
+
+Baixa Prioridade (nice-to-have):
+💡 Dashboard visual de analytics
+💡 Exportação de relatórios
+```
+
+---
+
+## 📝 Exemplo Completo de Implementação
+
+### 1. Adicionar no Flow JSON (antes de SERVICE_SELECTION):
+
+```json
+{
+  "id": "CITY_SELECTION",
+  "title": "Sua Localização",
+  "terminal": false,
+  "data": {
+    "cities": {
+      "type": "array",
+      "items": { "type": "object" },
+      "__example__": [
+        { "id": "sp", "title": "São Paulo", "description": "SP" },
+        { "id": "rj", "title": "Rio de Janeiro", "description": "RJ" }
+      ]
+    }
+  },
+  "layout": {
+    "type": "SingleColumnLayout",
+    "children": [
+      {
+        "type": "TextHeading",
+        "text": "📍 De onde você é?"
+      },
+      {
+        "type": "TextBody",
+        "text": "Nos ajude a entender melhor nossos clientes!"
+      },
+      {
+        "type": "Form",
+        "name": "city_form",
+        "children": [
+          {
+            "type": "Dropdown",
+            "name": "city",
+            "label": "Cidade",
+            "required": false,
+            "data-source": "${data.cities}"
+          }
+        ]
+      },
+      {
+        "type": "Footer",
+        "label": "Continuar",
+        "on-click-action": {
+          "name": "data_exchange",
+          "payload": {
+            "action_type": "SELECT_CITY",
+            "city": "${city_form.city}"
+          }
+        }
+      }
+    ]
+  }
+}
+```
+
+### 2. Handler no Endpoint:
+
+```javascript
+async function handleSelectCity(decryptedData) {
+  const { city } = decryptedData.data;
+  
+  console.log('📍 Cidade selecionada:', city || 'Não informada');
+  
+  // Retornar para próxima tela com lista de serviços
+  return {
+    version: '3.0',
+    screen: 'SERVICE_SELECTION',
+    data: {
+      selected_city: city,
+      services: [
+        { id: "corte", title: "Corte Masculino", description: "R$ 45 • 45 min" },
+        // ... seus serviços
+      ]
+    }
+  };
+}
+```
+
+### 3. Salvar no Calendar:
+
+```javascript
+// No handleSubmitDetails ou no webhook nfm_reply
+const phoneNumber = message.from;
+const location = getLocationFromPhone(phoneNumber);
+
+await calendar.events.insert({
+  calendarId: CALENDAR_ID,
+  resource: {
+    summary: `${service_name} - ${client_name}`,
+    description: `
+      📍 Localização:
+      - País: ${location.country}
+      - Cidade: ${selected_city || 'Não informada'}
+      - Telefone: ${phoneNumber}
+      
+      ${/* resto da descrição */}
+    `,
+    extendedProperties: {
+      private: {
+        country_code: location.code,
+        city: selected_city,
+        phone: phoneNumber,
+        timezone: location.timezone
+      }
+    }
+  }
+});
+```
+
+---
+
+## ✅ Checklist de Implementação
+
+- [ ] Criar arquivo `location-helper.js` com mapeamento de country codes
+- [ ] Adicionar tela `CITY_SELECTION` no Flow JSON
+- [ ] Atualizar `routing_model` para incluir nova tela
+- [ ] Criar handler `handleSelectCity` no endpoint
+- [ ] Modificar `handleInit` para retornar lista de cidades
+- [ ] Atualizar criação de eventos no Calendar para incluir localização
+- [ ] Adicionar `extendedProperties` com dados de localização
+- [ ] Testar Flow completo com nova tela
+- [ ] Criar script de análise de KPIs
+- [ ] Documentar processo de extração de dados
+
+---
+
+## 🚀 Conclusão
+
+Embora não seja possível capturar automaticamente a localização GPS real do usuário no WhatsApp Flow, você pode:
+
+1. ✅ Pedir para o usuário **selecionar a cidade manualmente** (melhor UX)
+2. ✅ Capturar o **código do país** do número de telefone (automático)
+3. ✅ Salvar tudo no Google Calendar para **análise de KPIs**
+
+A combinação dessas abordagens vai te dar dados suficientes para entender de onde seus clientes estão vindo e tomar decisões estratégicas! 🎯
+
+/**
+ * location-helper.js
+ * Helper para extrair localização aproximada baseada no código do país do telefone
+ * 
+ * USO:
+ * const { getLocationFromPhone } = require('./location-helper');
+ * const location = getLocationFromPhone('+5511999999999');
+ * console.log(location); // { country: 'Brasil', code: 'BR', ... }
+ */
+
+// Mapeamento de códigos de país para informações de localização
+const countryCodes = {
+  // América do Sul
+  '55': { 
+    country: 'Brasil', 
+    region: 'América do Sul', 
+    code: 'BR', 
+    timezone: 'America/Sao_Paulo',
+    currency: 'BRL'
+  },
+  '54': { 
+    country: 'Argentina', 
+    region: 'América do Sul', 
+    code: 'AR', 
+    timezone: 'America/Argentina/Buenos_Aires',
+    currency: 'ARS'
+  },
+  '56': { 
+    country: 'Chile', 
+    region: 'América do Sul', 
+    code: 'CL', 
+    timezone: 'America/Santiago',
+    currency: 'CLP'
+  },
+  '57': { 
+    country: 'Colômbia', 
+    region: 'América do Sul', 
+    code: 'CO', 
+    timezone: 'America/Bogota',
+    currency: 'COP'
+  },
+  '58': { 
+    country: 'Venezuela', 
+    region: 'América do Sul', 
+    code: 'VE', 
+    timezone: 'America/Caracas',
+    currency: 'VES'
+  },
+  '51': { 
+    country: 'Peru', 
+    region: 'América do Sul', 
+    code: 'PE', 
+    timezone: 'America/Lima',
+    currency: 'PEN'
+  },
+  '595': { 
+    country: 'Paraguai', 
+    region: 'América do Sul', 
+    code: 'PY', 
+    timezone: 'America/Asuncion',
+    currency: 'PYG'
+  },
+  '598': { 
+    country: 'Uruguai', 
+    region: 'América do Sul', 
+    code: 'UY', 
+    timezone: 'America/Montevideo',
+    currency: 'UYU'
+  },
+  '593': { 
+    country: 'Equador', 
+    region: 'América do Sul', 
+    code: 'EC', 
+    timezone: 'America/Guayaquil',
+    currency: 'USD'
+  },
+  '591': { 
+    country: 'Bolívia', 
+    region: 'América do Sul', 
+    code: 'BO', 
+    timezone: 'America/La_Paz',
+    currency: 'BOB'
+  },
+  
+  // América do Norte
+  '1': { 
+    country: 'EUA/Canadá', 
+    region: 'América do Norte', 
+    code: 'US', 
+    timezone: 'America/New_York',
+    currency: 'USD'
+  },
+  '52': { 
+    country: 'México', 
+    region: 'América do Norte', 
+    code: 'MX', 
+    timezone: 'America/Mexico_City',
+    currency: 'MXN'
+  },
+  
+  // América Central e Caribe
+  '53': { 
+    country: 'Cuba', 
+    region: 'Caribe', 
+    code: 'CU', 
+    timezone: 'America/Havana',
+    currency: 'CUP'
+  },
+  '507': { 
+    country: 'Panamá', 
+    region: 'América Central', 
+    code: 'PA', 
+    timezone: 'America/Panama',
+    currency: 'PAB'
+  },
+  '506': { 
+    country: 'Costa Rica', 
+    region: 'América Central', 
+    code: 'CR', 
+    timezone: 'America/Costa_Rica',
+    currency: 'CRC'
+  },
+  
+  // Europa
+  '351': { 
+    country: 'Portugal', 
+    region: 'Europa', 
+    code: 'PT', 
+    timezone: 'Europe/Lisbon',
+    currency: 'EUR'
+  },
+  '34': { 
+    country: 'Espanha', 
+    region: 'Europa', 
+    code: 'ES', 
+    timezone: 'Europe/Madrid',
+    currency: 'EUR'
+  },
+  '44': { 
+    country: 'Reino Unido', 
+    region: 'Europa', 
+    code: 'GB', 
+    timezone: 'Europe/London',
+    currency: 'GBP'
+  },
+  '33': { 
+    country: 'França', 
+    region: 'Europa', 
+    code: 'FR', 
+    timezone: 'Europe/Paris',
+    currency: 'EUR'
+  },
+  '39': { 
+    country: 'Itália', 
+    region: 'Europa', 
+    code: 'IT', 
+    timezone: 'Europe/Rome',
+    currency: 'EUR'
+  },
+  '49': { 
+    country: 'Alemanha', 
+    region: 'Europa', 
+    code: 'DE', 
+    timezone: 'Europe/Berlin',
+    currency: 'EUR'
+  },
+  '41': { 
+    country: 'Suíça', 
+    region: 'Europa', 
+    code: 'CH', 
+    timezone: 'Europe/Zurich',
+    currency: 'CHF'
+  },
+  '31': { 
+    country: 'Holanda', 
+    region: 'Europa', 
+    code: 'NL', 
+    timezone: 'Europe/Amsterdam',
+    currency: 'EUR'
+  },
+  
+  // África
+  '27': { 
+    country: 'África do Sul', 
+    region: 'África', 
+    code: 'ZA', 
+    timezone: 'Africa/Johannesburg',
+    currency: 'ZAR'
+  },
+  '234': { 
+    country: 'Nigéria', 
+    region: 'África', 
+    code: 'NG', 
+    timezone: 'Africa/Lagos',
+    currency: 'NGN'
+  },
+  '20': { 
+    country: 'Egito', 
+    region: 'África', 
+    code: 'EG', 
+    timezone: 'Africa/Cairo',
+    currency: 'EGP'
+  },
+  '244': { 
+    country: 'Angola', 
+    region: 'África', 
+    code: 'AO', 
+    timezone: 'Africa/Luanda',
+    currency: 'AOA'
+  },
+  '258': { 
+    country: 'Moçambique', 
+    region: 'África', 
+    code: 'MZ', 
+    timezone: 'Africa/Maputo',
+    currency: 'MZN'
+  },
+  
+  // Ásia
+  '86': { 
+    country: 'China', 
+    region: 'Ásia', 
+    code: 'CN', 
+    timezone: 'Asia/Shanghai',
+    currency: 'CNY'
+  },
+  '91': { 
+    country: 'Índia', 
+    region: 'Ásia', 
+    code: 'IN', 
+    timezone: 'Asia/Kolkata',
+    currency: 'INR'
+  },
+  '81': { 
+    country: 'Japão', 
+    region: 'Ásia', 
+    code: 'JP', 
+    timezone: 'Asia/Tokyo',
+    currency: 'JPY'
+  },
+  '82': { 
+    country: 'Coreia do Sul', 
+    region: 'Ásia', 
+    code: 'KR', 
+    timezone: 'Asia/Seoul',
+    currency: 'KRW'
+  },
+  '971': { 
+    country: 'Emirados Árabes', 
+    region: 'Oriente Médio', 
+    code: 'AE', 
+    timezone: 'Asia/Dubai',
+    currency: 'AED'
+  },
+  
+  // Oceania
+  '61': { 
+    country: 'Austrália', 
+    region: 'Oceania', 
+    code: 'AU', 
+    timezone: 'Australia/Sydney',
+    currency: 'AUD'
+  },
+  '64': { 
+    country: 'Nova Zelândia', 
+    region: 'Oceania', 
+    code: 'NZ', 
+    timezone: 'Pacific/Auckland',
+    currency: 'NZD'
+  }
+};
+
+// Lista de cidades brasileiras principais para dropdown
+const brazilianCities = [
+  { id: 'sao_paulo', title: 'São Paulo', description: 'SP', state: 'São Paulo' },
+  { id: 'rio_janeiro', title: 'Rio de Janeiro', description: 'RJ', state: 'Rio de Janeiro' },
+  { id: 'brasilia', title: 'Brasília', description: 'DF', state: 'Distrito Federal' },
+  { id: 'salvador', title: 'Salvador', description: 'BA', state: 'Bahia' },
+  { id: 'fortaleza', title: 'Fortaleza', description: 'CE', state: 'Ceará' },
+  { id: 'belo_horizonte', title: 'Belo Horizonte', description: 'MG', state: 'Minas Gerais' },
+  { id: 'manaus', title: 'Manaus', description: 'AM', state: 'Amazonas' },
+  { id: 'curitiba', title: 'Curitiba', description: 'PR', state: 'Paraná' },
+  { id: 'recife', title: 'Recife', description: 'PE', state: 'Pernambuco' },
+  { id: 'goiania', title: 'Goiânia', description: 'GO', state: 'Goiás' },
+  { id: 'porto_alegre', title: 'Porto Alegre', description: 'RS', state: 'Rio Grande do Sul' },
+  { id: 'belem', title: 'Belém', description: 'PA', state: 'Pará' },
+  { id: 'guarulhos', title: 'Guarulhos', description: 'SP', state: 'São Paulo' },
+  { id: 'campinas', title: 'Campinas', description: 'SP', state: 'São Paulo' },
+  { id: 'sao_goncalo', title: 'São Gonçalo', description: 'RJ', state: 'Rio de Janeiro' },
+  { id: 'maceio', title: 'Maceió', description: 'AL', state: 'Alagoas' },
+  { id: 'duque_caxias', title: 'Duque de Caxias', description: 'RJ', state: 'Rio de Janeiro' },
+  { id: 'natal', title: 'Natal', description: 'RN', state: 'Rio Grande do Norte' },
+  { id: 'teresina', title: 'Teresina', description: 'PI', state: 'Piauí' },
+  { id: 'campo_grande', title: 'Campo Grande', description: 'MS', state: 'Mato Grosso do Sul' },
+  { id: 'other', title: 'Outra cidade', description: '', state: '' }
+];
+
+/**
+ * Extrai informações de localização baseado no número de telefone
+ * @param {string} phoneNumber - Número de telefone com ou sem formatação
+ * @returns {Object} Objeto com informações de localização
+ */
+function getLocationFromPhone(phoneNumber) {
+  if (!phoneNumber) {
+    return {
+      country: 'Desconhecido',
+      region: 'Desconhecida',
+      code: null,
+      timezone: 'UTC',
+      currency: null,
+      phone_code: null,
+      full_number: null,
+      valid: false
+    };
+  }
+  
+  // Remove todos os caracteres não numéricos
+  const cleaned = phoneNumber.replace(/\D/g, '');
+  
+  // Remove o + inicial se presente
+  const numberWithoutPlus = cleaned.startsWith('+') ? cleaned.substring(1) : cleaned;
+  
+  // Tentar encontrar o código mais longo que corresponda (máximo 3 dígitos)
+  for (let len = 3; len >= 1; len--) {
+    const code = numberWithoutPlus.substring(0, len);
+    if (countryCodes[code]) {
+      return {
+        ...countryCodes[code],
+        phone_code: code,
+        full_number: phoneNumber,
+        valid: true,
+        is_brazil: code === '55'
+      };
+    }
+  }
+  
+  // Se não encontrar, retorna desconhecido
+  return {
+    country: 'Desconhecido',
+    region: 'Desconhecida',
+    code: null,
+    timezone: 'UTC',
+    currency: null,
+    phone_code: null,
+    full_number: phoneNumber,
+    valid: false,
+    is_brazil: false
+  };
+}
+
+/**
+ * Retorna lista de cidades brasileiras para usar no dropdown
+ * @returns {Array} Lista de cidades formatada para WhatsApp Flow
+ */
+function getBrazilianCities() {
+  return brazilianCities;
+}
+
+/**
+ * Formata informações de localização para descrição de evento
+ * @param {Object} location - Objeto de localização retornado por getLocationFromPhone
+ * @param {string} selectedCity - Cidade selecionada pelo usuário (opcional)
+ * @returns {string} String formatada para descrição
+ */
+function formatLocationForDescription(location, selectedCity = null) {
+  if (!location.valid) {
+    return '📍 Localização: Desconhecida';
+  }
+  
+  let description = `📍 Localização:
+   - País: ${location.country}
+   - Região: ${location.region}
+   - Código: ${location.code}`;
+  
+  if (selectedCity) {
+    const cityInfo = brazilianCities.find(c => c.id === selectedCity);
+    if (cityInfo) {
+      description += `
+   - Cidade: ${cityInfo.title} (${cityInfo.description})`;
+    } else {
+      description += `
+   - Cidade: ${selectedCity}`;
+    }
+  }
+  
+  description += `
+   - Timezone: ${location.timezone}
+   - Moeda: ${location.currency}`;
+  
+  return description;
+}
+
+/**
+ * Cria objeto extendedProperties para Google Calendar
+ * @param {Object} location - Objeto de localização
+ * @param {string} selectedCity - Cidade selecionada (opcional)
+ * @param {string} phoneNumber - Número de telefone do cliente
+ * @returns {Object} Objeto formatado para extendedProperties
+ */
+function getCalendarExtendedProperties(location, selectedCity, phoneNumber) {
+  return {
+    private: {
+      country_code: location.code || 'UNKNOWN',
+      country_name: location.country || 'Desconhecido',
+      region: location.region || 'Desconhecida',
+      timezone: location.timezone || 'UTC',
+      currency: location.currency || null,
+      city_id: selectedCity || null,
+      city_name: brazilianCities.find(c => c.id === selectedCity)?.title || null,
+      phone_country_code: location.phone_code || null,
+      client_phone: phoneNumber,
+      location_valid: location.valid.toString()
+    }
+  };
+}
+
+/**
+ * Agrupa dados de localização para análise de KPIs
+ * @param {Array} events - Lista de eventos do Google Calendar
+ * @returns {Object} Dados agregados por país e cidade
+ */
+function aggregateLocationData(events) {
+  const locationData = {
+    total_events: 0,
+    by_country: {},
+    by_city: {},
+    unknown: 0
+  };
+  
+  events.forEach(event => {
+    locationData.total_events++;
+    
+    const props = event.extendedProperties?.private;
+    if (!props || props.location_valid !== 'true') {
+      locationData.unknown++;
+      return;
+    }
+    
+    const country = props.country_name || 'Desconhecido';
+    const city = props.city_name || 'Não informada';
+    
+    // Agregar por país
+    if (!locationData.by_country[country]) {
+      locationData.by_country[country] = {
+        total: 0,
+        code: props.country_code,
+        region: props.region,
+        cities: {}
+      };
+    }
+    locationData.by_country[country].total++;
+    
+    // Agregar por cidade dentro do país
+    if (!locationData.by_country[country].cities[city]) {
+      locationData.by_country[country].cities[city] = 0;
+    }
+    locationData.by_country[country].cities[city]++;
+    
+    // Agregar globalmente por cidade
+    if (!locationData.by_city[city]) {
+      locationData.by_city[city] = {
+        total: 0,
+        country: country
+      };
+    }
+    locationData.by_city[city].total++;
+  });
+  
+  return locationData;
+}
+
+/**
+ * Gera relatório formatado de KPIs de localização
+ * @param {Object} locationData - Dados agregados de aggregateLocationData
+ * @returns {string} Relatório formatado
+ */
+function generateLocationReport(locationData) {
+  let report = `📊 RELATÓRIO DE LOCALIZAÇÃO\n`;
+  report += `═══════════════════════════════\n\n`;
+  report += `Total de agendamentos: ${locationData.total_events}\n`;
+  report += `Localizações desconhecidas: ${locationData.unknown}\n\n`;
+  
+  report += `📍 POR PAÍS:\n`;
+  report += `───────────\n`;
+  
+  // Ordenar países por total (maior para menor)
+  const sortedCountries = Object.entries(locationData.by_country)
+    .sort((a, b) => b[1].total - a[1].total);
+  
+  sortedCountries.forEach(([country, data]) => {
+    const percentage = ((data.total / locationData.total_events) * 100).toFixed(1);
+    report += `\n${country} (${data.code}): ${data.total} agendamentos (${percentage}%)\n`;
+    
+    // Ordenar cidades dentro do país
+    const sortedCities = Object.entries(data.cities)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5); // Top 5 cidades
+    
+    if (sortedCities.length > 0) {
+      report += `  Principais cidades:\n`;
+      sortedCities.forEach(([city, count]) => {
+        const cityPercentage = ((count / data.total) * 100).toFixed(1);
+        report += `    • ${city}: ${count} (${cityPercentage}%)\n`;
+      });
+    }
+  });
+  
+  return report;
+}
+
+// Exportar funções
+module.exports = {
+  getLocationFromPhone,
+  getBrazilianCities,
+  formatLocationForDescription,
+  getCalendarExtendedProperties,
+  aggregateLocationData,
+  generateLocationReport,
+  countryCodes // Exportar para referência
+};
+
+
+/**
+ * Exemplo Completo: Como usar o location-helper.js no seu endpoint
+ * 
+ * Este arquivo mostra como integrar a captura de localização no seu endpoint
+ * atual de WhatsApp Flow
+ */
+
+const express = require('express');
+const { getLocationFromPhone, getBrazilianCities, formatLocationForDescription, getCalendarExtendedProperties } = require('./location-helper');
+const { google } = require('googleapis');
+
+// ============================================
+// EXEMPLO 1: Handler INIT com seleção de cidade
+// ============================================
+
+async function handleInit(decryptedData) {
+  console.log('🚀 INIT - Iniciando Flow');
+  
+  // Tentar obter número de telefone do flow_token ou de outra fonte
+  const phoneNumber = decryptedData.flow_token; // Ou de onde você obtém o número
+  
+  // Detectar localização automaticamente
+  const location = getLocationFromPhone(phoneNumber);
+  console.log('📍 Localização detectada:', location);
+  
+  // Se for Brasil, oferecer lista de cidades
+  let cities = [];
+  if (location.is_brazil) {
+    cities = getBrazilianCities();
+    console.log('🇧🇷 É do Brasil! Oferecendo lista de cidades brasileiras');
+  } else {
+    // Se outro país, criar cidade única com o nome do país
+    cities = [
+      {
+        id: location.code?.toLowerCase() || 'other',
+        title: location.country,
+        description: location.code || ''
+      }
+    ];
+    console.log(`🌍 País: ${location.country} - Sem lista de cidades`);
+  }
+  
+  return {
+    version: '3.0',
+    screen: 'CITY_SELECTION', // Vai para tela de seleção de cidade
+    data: {
+      estimated_country: location.country,
+      estimated_code: location.code,
+      is_brazil: location.is_brazil,
+      cities: cities
+    }
+  };
+}
+
+// ============================================
+// EXEMPLO 2: Handler SELECT_CITY
+// ============================================
+
+async function handleSelectCity(decryptedData) {
+  const { city } = decryptedData.data;
+  
+  console.log('📍 SELECT_CITY - Cidade escolhida:', city || 'Não informada');
+  
+  // Buscar serviços disponíveis
+  const services = [
+    { id: 'corte_masculino', title: 'Corte Masculino', description: 'R$ 45 • 45 min' },
+    { id: 'barba', title: 'Barba', description: 'R$ 30 • 30 min' },
+    { id: 'corte_barba', title: 'Corte + Barba', description: 'R$ 65 • 60 min' }
+  ];
+  
+  return {
+    version: '3.0',
+    screen: 'SERVICE_SELECTION',
+    data: {
+      selected_city: city, // Passa a cidade para as próximas telas
+      services: services
+    }
+  };
+}
+
+// ============================================
+// EXEMPLO 3: Handler SUBMIT_DETAILS com localização
+// ============================================
+
+async function handleSubmitDetails(decryptedData) {
+  const { 
+    selected_service, 
+    selected_date, 
+    selected_barber, 
+    selected_time,
+    client_name, 
+    client_phone, 
+    client_email, 
+    notes,
+    service_name, 
+    service_price, 
+    barber_name, 
+    formatted_date,
+    selected_city // ← Cidade selecionada vindo das telas anteriores
+  } = decryptedData.data;
+  
+  // Gerar booking_id
+  const booking_id = `AGD-${Math.floor(Math.random() * 999999)}`;
+  
+  // Detectar localização do número do cliente
+  const location = getLocationFromPhone(client_phone);
+  
+  console.log('📤 SUBMIT_DETAILS');
+  console.log('📍 Localização:', location);
+  console.log('🏙️ Cidade selecionada:', selected_city);
+  
+  return {
+    version: '3.0',
+    screen: 'CONFIRMATION_PREP',
+    data: {
+      booking_id,
+      selected_service,
+      selected_date,
+      selected_barber,
+      selected_time,
+      client_name,
+      client_phone,
+      client_email: client_email || '',
+      notes: notes || '',
+      service_name,
+      service_price,
+      barber_name,
+      formatted_date,
+      selected_city, // Inclui cidade na resposta
+      estimated_country: location.country // Inclui país estimado
+    }
+  };
+}
+
+// ============================================
+// EXEMPLO 4: Webhook nfm_reply - Salvar no Calendar com localização
+// ============================================
+
+async function handleWebhookNfmReply(req, res) {
+  const message = req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
+  
+  if (!message || message.type !== 'interactive' || message.interactive.type !== 'nfm_reply') {
+    return res.sendStatus(200);
+  }
+  
+  const responseJson = JSON.parse(message.interactive.nfm_reply.response_json);
+  const phoneNumber = message.from;
+  
+  console.log('✅ Flow concluído! Criando agendamento...');
+  console.log('📱 Telefone:', phoneNumber);
+  
+  // Detectar localização automaticamente do número
+  const location = getLocationFromPhone(phoneNumber);
+  console.log('📍 Localização detectada:', location);
+  
+  // Extrair cidade selecionada do response_json
+  const selectedCity = responseJson.selected_city || null;
+  
+  // Formatar descrição com localização
+  const locationDescription = formatLocationForDescription(location, selectedCity);
+  
+  // Criar descrição completa do evento
+  const eventDescription = `
+🏪 AGENDAMENTO DE BARBEARIA
+
+${locationDescription}
+
+✂️ Serviço: ${responseJson.service_name}
+💰 Valor: ${responseJson.service_price}
+👨‍💼 Barbeiro: ${responseJson.barber_name}
+📅 Data: ${responseJson.formatted_date}
+🕐 Horário: ${responseJson.selected_time}
+
+👤 DADOS DO CLIENTE
+   - Nome: ${responseJson.client_name}
+   - Telefone: ${phoneNumber}
+   - Email: ${responseJson.client_email || 'Não informado'}
+
+📝 Observações: ${responseJson.notes || 'Nenhuma'}
+
+🔖 Código do agendamento: ${responseJson.booking_id}
+`;
+  
+  // Configurar Google Calendar
+  const auth = new google.auth.GoogleAuth({
+    credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY),
+    scopes: ['https://www.googleapis.com/auth/calendar']
+  });
+  
+  const calendar = google.calendar({ version: 'v3', auth });
+  
+  // Calcular horários
+  const [hour, minute] = responseJson.selected_time.split(':');
+  const startDateTime = new Date(responseJson.selected_date);
+  startDateTime.setHours(parseInt(hour), parseInt(minute), 0);
+  
+  const endDateTime = new Date(startDateTime);
+  endDateTime.setMinutes(endDateTime.getMinutes() + 45); // Duração padrão
+  
+  try {
+    // Criar evento no Calendar com dados de localização
+    const event = await calendar.events.insert({
+      calendarId: process.env.GOOGLE_CALENDAR_EMAIL,
+      requestBody: {
+        summary: `${responseJson.service_name} - ${responseJson.client_name}`,
+        description: eventDescription,
+        start: {
+          dateTime: startDateTime.toISOString(),
+          timeZone: location.timezone || 'America/Sao_Paulo'
+        },
+        end: {
+          dateTime: endDateTime.toISOString(),
+          timeZone: location.timezone || 'America/Sao_Paulo'
+        },
+        attendees: [
+          { email: responseJson.client_email }
+        ],
+        reminders: {
+          useDefault: false,
+          overrides: [
+            { method: 'email', minutes: 24 * 60 }, // 1 dia antes
+            { method: 'popup', minutes: 60 }       // 1 hora antes
+          ]
+        },
+        // ✨ IMPORTANTE: Salvar dados estruturados para KPIs
+        extendedProperties: getCalendarExtendedProperties(
+          location, 
+          selectedCity, 
+          phoneNumber
+        )
+      }
+    });
+    
+    console.log('✅ Evento criado no Calendar:', event.data.id);
+    console.log('📊 Dados de localização salvos para KPIs');
+    
+  } catch (error) {
+    console.error('❌ Erro ao criar evento:', error);
+  }
+  
+  res.sendStatus(200);
+}
+
+// ============================================
+// EXEMPLO 5: Script para Análise de KPIs
+// ============================================
+
+const { aggregateLocationData, generateLocationReport } = require('./location-helper');
+
+async function analyzeLocationKPIs() {
+  console.log('📊 Analisando KPIs de Localização...\n');
+  
+  // Configurar Google Calendar
+  const auth = new google.auth.GoogleAuth({
+    credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY),
+    scopes: ['https://www.googleapis.com/auth/calendar']
+  });
+  
+  const calendar = google.calendar({ version: 'v3', auth });
+  
+  // Buscar eventos dos últimos 30 dias
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  
+  try {
+    const response = await calendar.events.list({
+      calendarId: process.env.GOOGLE_CALENDAR_EMAIL,
+      timeMin: thirtyDaysAgo.toISOString(),
+      timeMax: new Date().toISOString(),
+      singleEvents: true,
+      orderBy: 'startTime'
+    });
+    
+    const events = response.data.items || [];
+    console.log(`📅 Total de eventos encontrados: ${events.length}\n`);
+    
+    // Agregar dados de localização
+    const locationData = aggregateLocationData(events);
+    
+    // Gerar relatório
+    const report = generateLocationReport(locationData);
+    console.log(report);
+    
+    // Também pode salvar em arquivo ou enviar por email
+    const fs = require('fs');
+    const reportFilename = `location_report_${new Date().toISOString().split('T')[0]}.txt`;
+    fs.writeFileSync(reportFilename, report);
+    console.log(`\n💾 Relatório salvo em: ${reportFilename}`);
+    
+    // Retornar dados brutos para processamento adicional
+    return locationData;
+    
+  } catch (error) {
+    console.error('❌ Erro ao buscar eventos:', error);
+    throw error;
+  }
+}
+
+// ============================================
+// EXEMPLO 6: Endpoint para Dashboard de KPIs (opcional)
+// ============================================
+
+// Adicione este endpoint ao seu Express app para acessar via web
+app.get('/api/location-kpis', async (req, res) => {
+  try {
+    const locationData = await analyzeLocationKPIs();
+    
+    res.json({
+      success: true,
+      data: locationData,
+      generated_at: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// ============================================
+// EXEMPLO 7: Teste Rápido do Location Helper
+// ============================================
+
+function testLocationHelper() {
+  console.log('🧪 Testando Location Helper...\n');
+  
+  const testNumbers = [
+    '+55 11 99999-9999',  // Brasil
+    '+1 555 123 4567',     // EUA
+    '+351 912 345 678',    // Portugal
+    '+34 612 345 678',     // Espanha
+    '5511999999999',       // Brasil sem formatação
+    'invalid'              // Inválido
+  ];
+  
+  testNumbers.forEach(number => {
+    const location = getLocationFromPhone(number);
+    console.log(`📞 ${number}`);
+    console.log(`   País: ${location.country}`);
+    console.log(`   Código: ${location.code || 'N/A'}`);
+    console.log(`   Válido: ${location.valid ? '✅' : '❌'}`);
+    console.log('');
+  });
+  
+  console.log('🇧🇷 Cidades brasileiras disponíveis:', getBrazilianCities().length);
+}
+
+// ============================================
+// EXEMPLO 8: Integração Completa no Main Router
+// ============================================
+
+app.post('/webhook/whatsapp-flow', async (req, res) => {
+  try {
+    // ... seu código de descriptografia ...
+    
+    const { action, screen, data } = decryptedData;
+    
+    let response;
+    
+    switch (action) {
+      case 'INIT':
+        response = await handleInit(decryptedData);
+        break;
+        
+      case 'data_exchange':
+        const actionType = data.action_type;
+        
+        if (actionType === 'SELECT_CITY') {
+          response = await handleSelectCity(decryptedData);
+        } else if (actionType === 'SELECT_SERVICE') {
+          // ... seu handler existente
+        } else if (actionType === 'SUBMIT_DETAILS') {
+          response = await handleSubmitDetails(decryptedData);
+        }
+        // ... outros handlers
+        break;
+        
+      default:
+        response = { version: '3.0', data: {} };
+    }
+    
+    // ... seu código de criptografia e resposta ...
+    
+  } catch (error) {
+    console.error('Erro:', error);
+    res.sendStatus(500);
+  }
+});
+
+// Webhook para mensagens (nfm_reply)
+app.post('/webhook', async (req, res) => {
+  const message = req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
+  
+  if (message?.type === 'interactive' && message.interactive.type === 'nfm_reply') {
+    await handleWebhookNfmReply(req, res);
+  } else {
+    res.sendStatus(200);
+  }
+});
+
+// ============================================
+// EXPORTAR FUNÇÕES
+// ============================================
+
+module.exports = {
+  handleInit,
+  handleSelectCity,
+  handleSubmitDetails,
+  handleWebhookNfmReply,
+  analyzeLocationKPIs,
+  testLocationHelper
+};
+
+// ============================================
+// EXECUTAR TESTE (se rodar diretamente)
+// ============================================
+
+if (require.main === module) {
+  console.log('🚀 Executando testes...\n');
+  testLocationHelper();
+}
+
+{
+  "version": "7.3",
+  "data_api_version": "3.0",
+  "routing_model": {
+    "WELCOME": ["CITY_SELECTION"],
+    "CITY_SELECTION": ["SERVICE_SELECTION"],
+    "SERVICE_SELECTION": ["DATE_SELECTION"],
+    "DATE_SELECTION": ["BARBER_SELECTION"],
+    "BARBER_SELECTION": ["TIME_SELECTION"],
+    "TIME_SELECTION": ["DETAILS"],
+    "DETAILS": ["CONFIRMATION"],
+    "CONFIRMATION": []
+  },
+  "screens": [
+    {
+      "id": "WELCOME",
+      "title": "Bem-vindo",
+      "terminal": false,
+      "data": {},
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "Image",
+            "src": "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=800&auto=format&fit=crop",
+            "height": 180,
+            "scale-type": "cover",
+            "aspect-ratio": 2.5,
+            "alt-text": "Barbearia - Ambiente moderno"
+          },
+          {
+            "type": "TextHeading",
+            "text": "💈 Agende seu horário"
+          },
+          {
+            "type": "TextBody",
+            "text": "Olá! Agende seu atendimento de forma rápida e prática. Em poucos passos você escolhe o serviço, data, barbeiro e horário."
+          },
+          {
+            "type": "TextCaption",
+            "text": "⏱️ Leva menos de 1 minuto"
+          },
+          {
+            "type": "Footer",
+            "label": "Começar agendamento",
+            "on-click-action": {
+              "name": "data_exchange",
+              "payload": {
+                "action_type": "INIT"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "CITY_SELECTION",
+      "title": "Localização",
+      "terminal": false,
+      "data": {
+        "estimated_country": {
+          "type": "string",
+          "__example__": "Brasil"
+        },
+        "estimated_code": {
+          "type": "string",
+          "__example__": "BR"
+        },
+        "is_brazil": {
+          "type": "boolean",
+          "__example__": true
+        },
+        "cities": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "title": { "type": "string" },
+              "description": { "type": "string" }
+            }
+          },
+          "__example__": [
+            { "id": "sao_paulo", "title": "São Paulo", "description": "SP" },
+            { "id": "rio_janeiro", "title": "Rio de Janeiro", "description": "RJ" },
+            { "id": "belo_horizonte", "title": "Belo Horizonte", "description": "MG" },
+            { "id": "other", "title": "Outra cidade", "description": "" }
+          ]
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "📍 De onde você está nos acessando?"
+          },
+          {
+            "type": "TextBody",
+            "text": "Detectamos que você está no ${data.estimated_country}. Nos ajude a melhorar nosso serviço informando sua cidade!"
+          },
+          {
+            "type": "TextCaption",
+            "text": "✨ Isso não afeta seu agendamento"
+          },
+          {
+            "type": "Form",
+            "name": "city_form",
+            "children": [
+              {
+                "type": "Dropdown",
+                "name": "selected_city",
+                "label": "Selecione sua cidade",
+                "required": false,
+                "data-source": "${data.cities}"
+              }
+            ]
+          },
+          {
+            "type": "Footer",
+            "label": "Continuar",
+            "on-click-action": {
+              "name": "data_exchange",
+              "payload": {
+                "action_type": "SELECT_CITY",
+                "selected_city": "${city_form.selected_city}",
+                "estimated_country": "${data.estimated_country}",
+                "estimated_code": "${data.estimated_code}"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "SERVICE_SELECTION",
+      "title": "Escolha o Serviço",
+      "terminal": false,
+      "data": {
+        "selected_city": {
+          "type": "string",
+          "__example__": "sao_paulo"
+        },
+        "services": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "title": { "type": "string" },
+              "description": { "type": "string" }
+            }
+          },
+          "__example__": [
+            { "id": "corte_masculino", "title": "Corte Masculino", "description": "R$ 45 • 45 min" }
+          ]
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Qual serviço você deseja?"
+          },
+          {
+            "type": "TextCaption",
+            "text": "Selecione uma opção abaixo"
+          },
+          {
+            "type": "Form",
+            "name": "service_form",
+            "children": [
+              {
+                "type": "RadioButtonsGroup",
+                "name": "selected_service",
+                "label": "Serviços disponíveis",
+                "required": true,
+                "data-source": "${data.services}"
+              }
+            ]
+          },
+          {
+            "type": "Footer",
+            "label": "Escolher data",
+            "on-click-action": {
+              "name": "data_exchange",
+              "payload": {
+                "action_type": "SELECT_SERVICE",
+                "selected_service": "${service_form.selected_service}",
+                "selected_city": "${data.selected_city}"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "DATE_SELECTION",
+      "title": "Escolha a Data",
+      "terminal": false,
+      "data": {
+        "selected_city": {
+          "type": "string",
+          "__example__": "sao_paulo"
+        },
+        "selected_service": {
+          "type": "string",
+          "__example__": "corte_masculino"
+        },
+        "service_name": {
+          "type": "string",
+          "__example__": "Corte Masculino"
+        },
+        "service_price": {
+          "type": "string",
+          "__example__": "R$ 45"
+        },
+        "min_date": {
+          "type": "string",
+          "__example__": "2025-01-01"
+        },
+        "max_date": {
+          "type": "string",
+          "__example__": "2025-12-31"
+        },
+        "unavailable_dates": {
+          "type": "array",
+          "items": { "type": "string" },
+          "__example__": ["2025-12-25"]
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Quando você quer vir?"
+          },
+          {
+            "type": "TextBody",
+            "text": "${data.service_name}"
+          },
+          {
+            "type": "TextCaption",
+            "text": "${data.service_price}"
+          },
+          {
+            "type": "Form",
+            "name": "date_form",
+            "children": [
+              {
+                "type": "DatePicker",
+                "name": "selected_date",
+                "label": "Selecione a data",
+                "required": true,
+                "min-date": "${data.min_date}",
+                "max-date": "${data.max_date}",
+                "unavailable-dates": "${data.unavailable_dates}"
+              }
+            ]
+          },
+          {
+            "type": "Footer",
+            "label": "Ver barbeiros disponíveis",
+            "on-click-action": {
+              "name": "data_exchange",
+              "payload": {
+                "action_type": "SELECT_DATE",
+                "selected_city": "${data.selected_city}",
+                "selected_service": "${data.selected_service}",
+                "selected_date": "${date_form.selected_date}"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "BARBER_SELECTION",
+      "title": "Escolha o Barbeiro",
+      "terminal": false,
+      "data": {
+        "selected_city": {
+          "type": "string",
+          "__example__": "sao_paulo"
+        },
+        "selected_service": {
+          "type": "string",
+          "__example__": "corte_masculino"
+        },
+        "selected_date": {
+          "type": "string",
+          "__example__": "2025-01-15"
+        },
+        "service_name": {
+          "type": "string",
+          "__example__": "Corte Masculino"
+        },
+        "service_price": {
+          "type": "string",
+          "__example__": "R$ 45"
+        },
+        "formatted_date": {
+          "type": "string",
+          "__example__": "15/01/2025"
+        },
+        "barbers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "title": { "type": "string" },
+              "description": { "type": "string" }
+            }
+          },
+          "__example__": [
+            { "id": "joao", "title": "João Silva", "description": "Disponível" }
+          ]
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Quem vai te atender?"
+          },
+          {
+            "type": "TextCaption",
+            "text": "${data.service_name}"
+          },
+          {
+            "type": "TextCaption",
+            "text": "${data.formatted_date}"
+          },
+          {
+            "type": "Form",
+            "name": "barber_form",
+            "children": [
+              {
+                "type": "RadioButtonsGroup",
+                "name": "selected_barber",
+                "label": "Barbeiros disponíveis",
+                "required": true,
+                "data-source": "${data.barbers}"
+              }
+            ]
+          },
+          {
+            "type": "Footer",
+            "label": "Ver horários",
+            "on-click-action": {
+              "name": "data_exchange",
+              "payload": {
+                "action_type": "SELECT_BARBER",
+                "selected_city": "${data.selected_city}",
+                "selected_service": "${data.selected_service}",
+                "selected_date": "${data.selected_date}",
+                "selected_barber": "${barber_form.selected_barber}"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "TIME_SELECTION",
+      "title": "Escolha o Horário",
+      "terminal": false,
+      "data": {
+        "selected_city": {
+          "type": "string",
+          "__example__": "sao_paulo"
+        },
+        "selected_service": {
+          "type": "string",
+          "__example__": "corte_masculino"
+        },
+        "selected_date": {
+          "type": "string",
+          "__example__": "2025-01-15"
+        },
+        "selected_barber": {
+          "type": "string",
+          "__example__": "joao"
+        },
+        "service_name": {
+          "type": "string",
+          "__example__": "Corte Masculino"
+        },
+        "service_price": {
+          "type": "string",
+          "__example__": "R$ 45"
+        },
+        "barber_name": {
+          "type": "string",
+          "__example__": "João Silva"
+        },
+        "formatted_date": {
+          "type": "string",
+          "__example__": "15/01/2025"
+        },
+        "available_times": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "title": { "type": "string" },
+              "description": { "type": "string" }
+            }
+          },
+          "__example__": [
+            { "id": "09:00", "title": "09:00", "description": "Disponível" }
+          ]
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Horários disponíveis"
+          },
+          {
+            "type": "TextCaption",
+            "text": "${data.barber_name}"
+          },
+          {
+            "type": "TextCaption",
+            "text": "${data.formatted_date}"
+          },
+          {
+            "type": "TextCaption",
+            "text": "⏰ Horários em tempo real"
+          },
+          {
+            "type": "Form",
+            "name": "time_form",
+            "children": [
+              {
+                "type": "RadioButtonsGroup",
+                "name": "selected_time",
+                "label": "Selecione um horário",
+                "required": true,
+                "data-source": "${data.available_times}"
+              }
+            ]
+          },
+          {
+            "type": "Footer",
+            "label": "Continuar",
+            "on-click-action": {
+              "name": "data_exchange",
+              "payload": {
+                "action_type": "SELECT_TIME",
+                "selected_city": "${data.selected_city}",
+                "selected_service": "${data.selected_service}",
+                "selected_date": "${data.selected_date}",
+                "selected_barber": "${data.selected_barber}",
+                "selected_time": "${time_form.selected_time}"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "DETAILS",
+      "title": "Seus Dados",
+      "terminal": false,
+      "data": {
+        "selected_city": {
+          "type": "string",
+          "__example__": "sao_paulo"
+        },
+        "selected_service": {
+          "type": "string",
+          "__example__": "corte_masculino"
+        },
+        "selected_date": {
+          "type": "string",
+          "__example__": "2025-01-15"
+        },
+        "selected_barber": {
+          "type": "string",
+          "__example__": "joao"
+        },
+        "selected_time": {
+          "type": "string",
+          "__example__": "09:00"
+        },
+        "service_name": {
+          "type": "string",
+          "__example__": "Corte Masculino"
+        },
+        "service_price": {
+          "type": "string",
+          "__example__": "R$ 45"
+        },
+        "barber_name": {
+          "type": "string",
+          "__example__": "João Silva"
+        },
+        "formatted_date": {
+          "type": "string",
+          "__example__": "15/01/2025"
+        },
+        "booking_id": {
+          "type": "string",
+          "__example__": ""
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "Quase lá! Seus dados"
+          },
+          {
+            "type": "TextBody",
+            "text": "Resumo do agendamento:"
+          },
+          {
+            "type": "TextCaption",
+            "text": "${data.service_name}"
+          },
+          {
+            "type": "TextCaption",
+            "text": "${data.service_price}"
+          },
+          {
+            "type": "TextCaption",
+            "text": "${data.barber_name}"
+          },
+          {
+            "type": "TextCaption",
+            "text": "${data.formatted_date}"
+          },
+          {
+            "type": "TextCaption",
+            "text": "${data.selected_time}"
+          },
+          {
+            "type": "Form",
+            "name": "details_form",
+            "children": [
+              {
+                "type": "TextInput",
+                "name": "client_name",
+                "label": "Seu nome completo",
+                "required": true,
+                "input-type": "text"
+              },
+              {
+                "type": "TextInput",
+                "name": "client_phone",
+                "label": "WhatsApp para contato",
+                "required": true,
+                "input-type": "phone"
+              },
+              {
+                "type": "TextInput",
+                "name": "client_email",
+                "label": "E-mail (opcional)",
+                "required": false,
+                "input-type": "email"
+              },
+              {
+                "type": "TextArea",
+                "name": "notes",
+                "label": "Observações (opcional)",
+                "required": false
+              }
+            ]
+          },
+          {
+            "type": "If",
+            "condition": "${data.booking_id}",
+            "then": {
+              "type": "TextBody",
+              "text": "✅ Dados validados! Código: ${data.booking_id}"
+            }
+          },
+          {
+            "type": "If",
+            "condition": "${data.booking_id}",
+            "then": {
+              "type": "Footer",
+              "label": "Confirmar agendamento",
+              "on-click-action": {
+                "name": "navigate",
+                "next": {
+                  "type": "screen",
+                  "name": "CONFIRMATION"
+                },
+                "payload": {
+                  "booking_id": "${data.booking_id}",
+                  "selected_city": "${data.selected_city}",
+                  "selected_service": "${data.selected_service}",
+                  "selected_date": "${data.selected_date}",
+                  "selected_barber": "${data.selected_barber}",
+                  "selected_time": "${data.selected_time}",
+                  "client_name": "${details_form.client_name}",
+                  "client_phone": "${details_form.client_phone}",
+                  "client_email": "${details_form.client_email}",
+                  "notes": "${details_form.notes}",
+                  "service_name": "${data.service_name}",
+                  "service_price": "${data.service_price}",
+                  "barber_name": "${data.barber_name}",
+                  "formatted_date": "${data.formatted_date}"
+                }
+              }
+            },
+            "else": {
+              "type": "Footer",
+              "label": "Revisar agendamento",
+              "on-click-action": {
+                "name": "data_exchange",
+                "payload": {
+                  "action_type": "SUBMIT_DETAILS",
+                  "selected_city": "${data.selected_city}",
+                  "selected_service": "${data.selected_service}",
+                  "selected_date": "${data.selected_date}",
+                  "selected_barber": "${data.selected_barber}",
+                  "selected_time": "${data.selected_time}",
+                  "client_name": "${details_form.client_name}",
+                  "client_phone": "${details_form.client_phone}",
+                  "client_email": "${details_form.client_email}",
+                  "notes": "${details_form.notes}",
+                  "service_name": "${data.service_name}",
+                  "service_price": "${data.service_price}",
+                  "barber_name": "${data.barber_name}",
+                  "formatted_date": "${data.formatted_date}"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "CONFIRMATION",
+      "title": "Detalhes",
+      "terminal": true,
+      "success": true,
+      "data": {
+        "booking_id": {
+          "type": "string",
+          "__example__": "AGD-12345"
+        },
+        "selected_city": {
+          "type": "string",
+          "__example__": "sao_paulo"
+        },
+        "selected_service": {
+          "type": "string",
+          "__example__": "corte_masculino"
+        },
+        "selected_date": {
+          "type": "string",
+          "__example__": "2025-01-15"
+        },
+        "selected_barber": {
+          "type": "string",
+          "__example__": "joao"
+        },
+        "selected_time": {
+          "type": "string",
+          "__example__": "09:00"
+        },
+        "client_name": {
+          "type": "string",
+          "__example__": "João Cliente"
+        },
+        "client_phone": {
+          "type": "string",
+          "__example__": "+55 11 99999-9999"
+        },
+        "client_email": {
+          "type": "string",
+          "__example__": "cliente@email.com"
+        },
+        "notes": {
+          "type": "string",
+          "__example__": ""
+        },
+        "service_name": {
+          "type": "string",
+          "__example__": "Corte Masculino"
+        },
+        "service_price": {
+          "type": "string",
+          "__example__": "R$ 45"
+        },
+        "barber_name": {
+          "type": "string",
+          "__example__": "João Silva"
+        },
+        "formatted_date": {
+          "type": "string",
+          "__example__": "15/01/2025 (Quarta-feira)"
+        }
+      },
+      "layout": {
+        "type": "SingleColumnLayout",
+        "children": [
+          {
+            "type": "TextHeading",
+            "text": "✅ Agendamento confirmado!"
+          },
+          {
+            "type": "TextSubheading",
+            "text": "Código: ${data.booking_id}"
+          },
+          {
+            "type": "Form",
+            "name": "confirmation_form",
+            "children": [
+              {
+                "type": "TextBody",
+                "text": "Seu horário está reservado:"
+              },
+              {
+                "type": "TextBody",
+                "text": "💈 ${data.service_name}"
+              },
+              {
+                "type": "TextBody",
+                "text": "✂️ ${data.barber_name}"
+              },
+              {
+                "type": "TextBody",
+                "text": "📅 ${data.formatted_date}"
+              },
+              {
+                "type": "TextBody",
+                "text": "🕐 ${data.selected_time}"
+              },
+              {
+                "type": "TextBody",
+                "text": "💰 ${data.service_price}"
+              },
+              {
+                "type": "TextBody",
+                "text": "👤 ${data.client_name}"
+              },
+              {
+                "type": "TextCaption",
+                "text": "📲 Você receberá confirmação e lembrete"
+              },
+              {
+                "type": "TextCaption",
+                "text": "⚠️ Para cancelar, informe o código ${data.booking_id}"
+              },
+              {
+                "type": "Footer",
+                "label": "Concluir",
+                "on-click-action": {
+                  "name": "complete",
+                  "payload": {
+                    "booking_id": "${data.booking_id}",
+                    "selected_city": "${data.selected_city}",
+                    "selected_service": "${data.selected_service}",
+                    "selected_date": "${data.selected_date}",
+                    "selected_barber": "${data.selected_barber}",
+                    "selected_time": "${data.selected_time}",
+                    "client_name": "${data.client_name}",
+                    "client_phone": "${data.client_phone}",
+                    "client_email": "${data.client_email}",
+                    "notes": "${data.notes}",
+                    "service_name": "${data.service_name}",
+                    "service_price": "${data.service_price}",
+                    "barber_name": "${data.barber_name}",
+                    "formatted_date": "${data.formatted_date}",
+                    "status": "confirmed"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

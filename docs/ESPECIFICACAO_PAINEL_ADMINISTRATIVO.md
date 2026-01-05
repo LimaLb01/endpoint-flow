@@ -533,3 +533,4 @@ https://seu-dominio.com/api/admin
 
 Se precisar de mais detalhes sobre algum endpoint ou funcionalidade, me avise!
 
+

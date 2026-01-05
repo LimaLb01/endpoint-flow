@@ -1,0 +1,27 @@
+Olá! Preciso de ajuda com WhatsApp Flow v3.0.
+
+PROBLEMA: Não consigo capturar a localização geográfica (cidade/região) dos usuários que acessam meu Flow. Quando tento obter o IP do cliente, recebo o IP do servidor da Meta (ex: Hillsboro, Oregon) ao invés do IP real do usuário (ex: São Paulo, Brasil).
+
+PERGUNTA: Existe alguma forma de obter a localização geográfica dos usuários no WhatsApp Flow? Por exemplo:
+- Campo no payload do Flow com dados de localização?
+- Header HTTP especial com IP real ou localização?
+- API para consultar localização usando wa_id?
+- Permissão de localização dentro do Flow?
+- Dados de localização nos webhooks?
+
+CONTEXTO: Estou desenvolvendo um sistema de agendamento e preciso dessa informação para análise de KPIs (entender de quais cidades nossos clientes estão acessando).
+
+TÉCNICO: WhatsApp Business API, Flow v3.0, data_exchange criptografado. Headers testados (x-forwarded-for, x-real-ip, req.ip) retornam IP do servidor.
+
+DADOS NECESSÁRIOS: 
+{
+  "location": {
+    "city": "São Paulo",
+    "region": "SP",
+    "country": "Brasil"
+  }
+}
+
+Estamos comprometidos com privacidade (LGPD). Agradeço qualquer orientação!
+
+
