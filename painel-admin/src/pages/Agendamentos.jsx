@@ -3,14 +3,28 @@ import { api, utils } from '../utils/api';
 import Layout from '../components/Layout';
 
 export default function Agendamentos() {
+  // Função helper para formatar data no formato YYYY-MM-DD usando fuso horário local
+  const formatarDataLocal = (data) => {
+    const ano = data.getFullYear();
+    const mes = String(data.getMonth() + 1).padStart(2, '0');
+    const dia = String(data.getDate()).padStart(2, '0');
+    return `${ano}-${mes}-${dia}`;
+  };
+
+  // Calcular datas iniciais
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  const proximos30 = new Date(hoje);
+  proximos30.setDate(hoje.getDate() + 30);
+
   const [agendamentos, setAgendamentos] = useState([]);
   const [agendamentosFiltrados, setAgendamentosFiltrados] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [barbeiros, setBarbeiros] = useState([]);
   const [filtros, setFiltros] = useState({
-    startDate: new Date().toISOString().split('T')[0],
-    endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    startDate: formatarDataLocal(hoje),
+    endDate: formatarDataLocal(proximos30),
     barberId: '',
     buscaCliente: '',
     status: ''
@@ -134,34 +148,42 @@ export default function Agendamentos() {
     
     switch (tipo) {
       case 'hoje':
-        startDate = hoje.toISOString().split('T')[0];
-        endDate = hoje.toISOString().split('T')[0];
+        startDate = formatarDataLocal(hoje);
+        endDate = formatarDataLocal(hoje);
         break;
       case 'esta_semana':
         // Esta Semana: Domingo a Sábado da semana atual (pode incluir dias passados)
         const inicioSemana = new Date(hoje);
         inicioSemana.setDate(hoje.getDate() - hoje.getDay()); // Domingo da semana atual
+        inicioSemana.setHours(0, 0, 0, 0);
         const fimSemana = new Date(inicioSemana);
         fimSemana.setDate(inicioSemana.getDate() + 6); // Sábado da semana atual
-        startDate = inicioSemana.toISOString().split('T')[0];
-        endDate = fimSemana.toISOString().split('T')[0];
+        fimSemana.setHours(23, 59, 59, 999);
+        startDate = formatarDataLocal(inicioSemana);
+        endDate = formatarDataLocal(fimSemana);
         break;
       case 'este_mes':
-        startDate = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().split('T')[0];
-        endDate = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).toISOString().split('T')[0];
+        const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+        inicioMes.setHours(0, 0, 0, 0);
+        const fimMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
+        fimMes.setHours(23, 59, 59, 999);
+        startDate = formatarDataLocal(inicioMes);
+        endDate = formatarDataLocal(fimMes);
         break;
       case 'proximos_7_dias':
         // Próximos 7 Dias: De hoje até 7 dias à frente (sempre futuro, sem dias passados)
-        startDate = hoje.toISOString().split('T')[0];
+        startDate = formatarDataLocal(hoje);
         const proximos7 = new Date(hoje);
         proximos7.setDate(hoje.getDate() + 7);
-        endDate = proximos7.toISOString().split('T')[0];
+        proximos7.setHours(23, 59, 59, 999);
+        endDate = formatarDataLocal(proximos7);
         break;
       case 'proximos_30_dias':
-        startDate = hoje.toISOString().split('T')[0];
+        startDate = formatarDataLocal(hoje);
         const proximos30 = new Date(hoje);
         proximos30.setDate(hoje.getDate() + 30);
-        endDate = proximos30.toISOString().split('T')[0];
+        proximos30.setHours(23, 59, 59, 999);
+        endDate = formatarDataLocal(proximos30);
         break;
       default:
         return;
@@ -173,12 +195,13 @@ export default function Agendamentos() {
 
   const limparFiltros = () => {
     const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
     const proximos30 = new Date(hoje);
     proximos30.setDate(hoje.getDate() + 30);
     
     setFiltros({
-      startDate: hoje.toISOString().split('T')[0],
-      endDate: proximos30.toISOString().split('T')[0],
+      startDate: formatarDataLocal(hoje),
+      endDate: formatarDataLocal(proximos30),
       barberId: '',
       buscaCliente: '',
       status: ''
@@ -190,7 +213,7 @@ export default function Agendamentos() {
   useEffect(() => {
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
-    const hojeStr = hoje.toISOString().split('T')[0];
+    const hojeStr = formatarDataLocal(hoje);
     
     // Se as datas mudarem manualmente, verificar se corresponde a algum filtro rápido
     if (filtros.startDate === hojeStr && filtros.endDate === hojeStr) {
@@ -201,28 +224,30 @@ export default function Agendamentos() {
         // Verificar se corresponde a algum filtro rápido
         const inicioSemana = new Date(hoje);
         inicioSemana.setDate(hoje.getDate() - hoje.getDay());
+        inicioSemana.setHours(0, 0, 0, 0);
         const fimSemana = new Date(inicioSemana);
         fimSemana.setDate(inicioSemana.getDate() + 6);
         
-        if (filtros.startDate === inicioSemana.toISOString().split('T')[0] && 
-            filtros.endDate === fimSemana.toISOString().split('T')[0]) {
+        if (filtros.startDate === formatarDataLocal(inicioSemana) && 
+            filtros.endDate === formatarDataLocal(fimSemana)) {
           setFiltroRapidoAtivo('esta_semana');
         } else {
           const proximos7 = new Date(hoje);
           proximos7.setDate(hoje.getDate() + 7);
           if (filtros.startDate === hojeStr && 
-              filtros.endDate === proximos7.toISOString().split('T')[0]) {
+              filtros.endDate === formatarDataLocal(proximos7)) {
             setFiltroRapidoAtivo('proximos_7_dias');
           } else {
             const proximos30 = new Date(hoje);
             proximos30.setDate(hoje.getDate() + 30);
             if (filtros.startDate === hojeStr && 
-                filtros.endDate === proximos30.toISOString().split('T')[0]) {
+                filtros.endDate === formatarDataLocal(proximos30)) {
               setFiltroRapidoAtivo('proximos_30_dias');
             } else {
-              const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().split('T')[0];
-              const fimMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).toISOString().split('T')[0];
-              if (filtros.startDate === inicioMes && filtros.endDate === fimMes) {
+              const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+              const fimMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
+              if (filtros.startDate === formatarDataLocal(inicioMes) && 
+                  filtros.endDate === formatarDataLocal(fimMes)) {
                 setFiltroRapidoAtivo('este_mes');
               } else {
                 setFiltroRapidoAtivo(null);
