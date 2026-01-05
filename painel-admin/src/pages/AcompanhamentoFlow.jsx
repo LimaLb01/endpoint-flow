@@ -269,31 +269,49 @@ export default function AcompanhamentoFlow() {
 
   // Excluir interações selecionadas
   const handleDeleteSelected = async () => {
-    if (selectedIds.size === 0) return;
+    if (selectedIds.size === 0) {
+      console.warn('Nenhuma interação selecionada');
+      return;
+    }
     
     const count = selectedIds.size;
+    const selectedIdsArray = Array.from(selectedIds);
+    console.log('🗑️ Iniciando exclusão múltipla:', {
+      count,
+      ids: selectedIdsArray
+    });
+    
     if (!window.confirm(`Tem certeza que deseja excluir ${count} interação(ões) do flow?`)) {
       return;
     }
 
     setIsDeletingMultiple(true);
     try {
+      console.log('📤 Enviando requisições de exclusão...');
       const results = await Promise.allSettled(
-        Array.from(selectedIds).map(id => 
-          api.excluirFlowInteraction(id)
-        )
+        selectedIdsArray.map(id => {
+          console.log(`📤 Excluindo interação ${id}...`);
+          return api.excluirFlowInteraction(id);
+        })
       );
+      
+      console.log('📥 Resultados recebidos:', results);
       
       // Contar sucessos e falhas
       const successful = results.filter(r => r.status === 'fulfilled' && r.value).length;
       const failed = results.filter(r => r.status === 'rejected' || !r.value).length;
       
+      console.log('📊 Resumo:', { successful, failed, total: results.length });
+      
       // Log de erros
       results.forEach((result, index) => {
+        const id = selectedIdsArray[index];
         if (result.status === 'rejected') {
-          console.error(`Erro ao excluir interação ${Array.from(selectedIds)[index]}:`, result.reason);
+          console.error(`❌ Erro ao excluir interação ${id}:`, result.reason);
         } else if (!result.value) {
-          console.warn(`Interação ${Array.from(selectedIds)[index]} não foi excluída (não encontrada ou erro silencioso)`);
+          console.warn(`⚠️ Interação ${id} não foi excluída (retornou false)`);
+        } else {
+          console.log(`✅ Interação ${id} excluída com sucesso`);
         }
       });
       
@@ -307,7 +325,9 @@ export default function AcompanhamentoFlow() {
       setSelectedIds(new Set());
       
       // Recarregar lista
+      console.log('🔄 Recarregando lista de interações...');
       await loadInteractions();
+      console.log('✅ Lista recarregada');
       
       if (successful > 0) {
         if (failed > 0) {
@@ -319,7 +339,7 @@ export default function AcompanhamentoFlow() {
         alert('Nenhuma interação foi excluída. Verifique se os IDs são válidos.');
       }
     } catch (error) {
-      console.error('Erro ao excluir interações:', error);
+      console.error('❌ Erro ao excluir interações:', error);
       alert('Erro ao excluir interações. Verifique o console para mais detalhes.');
     } finally {
       setIsDeletingMultiple(false);

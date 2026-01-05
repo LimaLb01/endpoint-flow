@@ -290,9 +290,17 @@ export const api = {
    * Excluir uma interação do flow
    */
   excluirFlowInteraction: async (interactionId) => {
-    return apiRequest(`/admin/flow/interactions/${interactionId}`, {
-      method: 'DELETE'
-    });
+    console.log(`🔗 Chamando API para excluir interação ${interactionId}...`);
+    try {
+      const result = await apiRequest(`/admin/flow/interactions/${interactionId}`, {
+        method: 'DELETE'
+      });
+      console.log(`📥 Resposta da API para ${interactionId}:`, result);
+      return result;
+    } catch (error) {
+      console.error(`❌ Erro na API ao excluir ${interactionId}:`, error);
+      throw error;
+    }
   },
 
   /**
