@@ -298,20 +298,28 @@ export default function AcompanhamentoFlow() {
       console.log('📥 Resultados recebidos:', results);
       
       // Contar sucessos e falhas
-      const successful = results.filter(r => r.status === 'fulfilled' && r.value).length;
-      const failed = results.filter(r => r.status === 'rejected' || !r.value).length;
+      // Considerar sucesso apenas se retornou true explicitamente
+      const successful = results.filter(r => {
+        if (r.status === 'fulfilled') {
+          // Verificar se retornou true (sucesso) ou false/undefined (falha)
+          return r.value === true;
+        }
+        return false;
+      }).length;
+      
+      const failed = results.length - successful;
       
       console.log('📊 Resumo:', { successful, failed, total: results.length });
       
-      // Log de erros
+      // Log detalhado de cada resultado
       results.forEach((result, index) => {
         const id = selectedIdsArray[index];
         if (result.status === 'rejected') {
           console.error(`❌ Erro ao excluir interação ${id}:`, result.reason);
-        } else if (!result.value) {
-          console.warn(`⚠️ Interação ${id} não foi excluída (retornou false)`);
-        } else {
+        } else if (result.value === true) {
           console.log(`✅ Interação ${id} excluída com sucesso`);
+        } else {
+          console.warn(`⚠️ Interação ${id} não foi excluída (retornou ${result.value}) - pode não existir mais no banco`);
         }
       });
       
