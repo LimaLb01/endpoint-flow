@@ -58,10 +58,22 @@ async function apiRequest(endpoint, options = {}) {
     // Se erro, lançar exceção
     if (!response.ok) {
       const error = await response.json().catch(() => ({ message: 'Erro na requisição' }));
-      throw new Error(error.message || `Erro ${response.status}`);
+      throw new Error(error.message || error.error || `Erro ${response.status}`);
     }
     
-    return await response.json();
+    // Se não tem conteúdo (204 No Content), retornar true para DELETE
+    if (response.status === 204 || response.headers.get('content-length') === '0') {
+      return true;
+    }
+    
+    const data = await response.json();
+    
+    // Para DELETE, verificar se retornou success
+    if (options.method === 'DELETE' && data.success !== undefined) {
+      return data.success;
+    }
+    
+    return data;
   } catch (error) {
     console.error('Erro na requisição:', error);
     // Se for erro de rede, retornar null em vez de lançar exceção
