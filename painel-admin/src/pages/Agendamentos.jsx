@@ -369,29 +369,53 @@ export default function Agendamentos() {
               <label className="block text-sm font-medium text-[#8c8b5f] dark:text-[#a3a272] mb-2">
                 Data Inicial
               </label>
-              <input
-                type="date"
-                value={filtros.startDate}
-                onChange={(e) => {
-                  setFiltros({ ...filtros, startDate: e.target.value });
-                  setTimeout(validarDatas, 100);
-                }}
-                className="w-full h-10 px-4 rounded-full bg-neutral-light dark:bg-[#2e2d1a] border-none text-sm focus:ring-2 focus:ring-primary"
-              />
+              <div className="relative">
+                <input
+                  type="date"
+                  value={filtros.startDate}
+                  onChange={(e) => {
+                    setFiltros({ ...filtros, startDate: e.target.value });
+                    setTimeout(validarDatas, 100);
+                  }}
+                  lang="pt-BR"
+                  className="w-full h-10 px-4 pr-24 rounded-full bg-neutral-light dark:bg-[#2e2d1a] border-none text-sm focus:ring-2 focus:ring-primary"
+                  style={{ colorScheme: 'light' }}
+                />
+                {filtros.startDate && (
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-medium text-neutral-dark dark:text-white pointer-events-none">
+                    {(() => {
+                      const [ano, mes, dia] = filtros.startDate.split('-');
+                      return `${dia}/${mes}/${ano}`;
+                    })()}
+                  </span>
+                )}
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-[#8c8b5f] dark:text-[#a3a272] mb-2">
                 Data Final
               </label>
-              <input
-                type="date"
-                value={filtros.endDate}
-                onChange={(e) => {
-                  setFiltros({ ...filtros, endDate: e.target.value });
-                  setTimeout(validarDatas, 100);
-                }}
-                className="w-full h-10 px-4 rounded-full bg-neutral-light dark:bg-[#2e2d1a] border-none text-sm focus:ring-2 focus:ring-primary"
-              />
+              <div className="relative">
+                <input
+                  type="date"
+                  value={filtros.endDate}
+                  onChange={(e) => {
+                    setFiltros({ ...filtros, endDate: e.target.value });
+                    setTimeout(validarDatas, 100);
+                  }}
+                  lang="pt-BR"
+                  className="w-full h-10 px-4 pr-24 rounded-full bg-neutral-light dark:bg-[#2e2d1a] border-none text-sm focus:ring-2 focus:ring-primary"
+                  style={{ colorScheme: 'light' }}
+                />
+                {filtros.endDate && (
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-medium text-neutral-dark dark:text-white pointer-events-none">
+                    {(() => {
+                      const [ano, mes, dia] = filtros.endDate.split('-');
+                      return `${dia}/${mes}/${ano}`;
+                    })()}
+                  </span>
+                )}
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-[#8c8b5f] dark:text-[#a3a272] mb-2">
