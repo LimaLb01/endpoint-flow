@@ -16,6 +16,7 @@ const { getFlowInteractions, getFlowTimeline, getAbandonmentStats, getFlowAnalyt
 const { listAppointments, cancelAppointment } = require('../services/calendar-service');
 const { getAllBarbers } = require('../config/branches');
 const { getAdminNotifications } = require('../services/admin-notifications-service');
+const { getFinancialReport, exportCustomers, exportPayments, getSubscriptionsReport, getAppointmentsReport } = require('../services/reports-service');
 
 /**
  * GET /api/admin/customers
@@ -1393,6 +1394,195 @@ router.get('/notifications', requireAuth, async (req, res) => {
     });
     return res.status(500).json({
       error: 'Erro ao buscar notificações',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/admin/reports/financial
+ * Gera relatório financeiro (mensal ou anual)
+ */
+router.get('/reports/financial', requireAuth, async (req, res) => {
+  const logger = req.requestId ? createRequestLogger(req.requestId) : globalLogger;
+  
+  try {
+    const { period = 'month', month, year } = req.query;
+    
+    if (!year) {
+      return res.status(400).json({
+        error: 'Ano é obrigatório'
+      });
+    }
+    
+    if (period === 'month' && !month) {
+      return res.status(400).json({
+        error: 'Mês é obrigatório para relatório mensal'
+      });
+    }
+    
+    const report = await getFinancialReport({
+      period,
+      month: month ? parseInt(month) : null,
+      year: parseInt(year)
+    });
+    
+    logger.info('Relatório financeiro gerado', {
+      period,
+      month,
+      year
+    });
+    
+    return res.json({
+      success: true,
+      report
+    });
+  } catch (error) {
+    logger.error('Erro ao gerar relatório financeiro', {
+      error: error.message
+    });
+    return res.status(500).json({
+      error: 'Erro ao gerar relatório financeiro',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/admin/reports/customers/export
+ * Exporta clientes (CSV/Excel)
+ */
+router.get('/reports/customers/export', requireAuth, async (req, res) => {
+  const logger = req.requestId ? createRequestLogger(req.requestId) : globalLogger;
+  
+  try {
+    const { startDate, endDate } = req.query;
+    
+    const customers = await exportCustomers({
+      startDate,
+      endDate
+    });
+    
+    logger.info('Clientes exportados', {
+      total: customers.length
+    });
+    
+    return res.json({
+      success: true,
+      customers,
+      total: customers.length
+    });
+  } catch (error) {
+    logger.error('Erro ao exportar clientes', {
+      error: error.message
+    });
+    return res.status(500).json({
+      error: 'Erro ao exportar clientes',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/admin/reports/payments/export
+ * Exporta pagamentos (CSV/Excel)
+ */
+router.get('/reports/payments/export', requireAuth, async (req, res) => {
+  const logger = req.requestId ? createRequestLogger(req.requestId) : globalLogger;
+  
+  try {
+    const { startDate, endDate } = req.query;
+    
+    const payments = await exportPayments({
+      startDate,
+      endDate
+    });
+    
+    logger.info('Pagamentos exportados', {
+      total: payments.length
+    });
+    
+    return res.json({
+      success: true,
+      payments,
+      total: payments.length
+    });
+  } catch (error) {
+    logger.error('Erro ao exportar pagamentos', {
+      error: error.message
+    });
+    return res.status(500).json({
+      error: 'Erro ao exportar pagamentos',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/admin/reports/subscriptions
+ * Gera relatório de assinaturas
+ */
+router.get('/reports/subscriptions', requireAuth, async (req, res) => {
+  const logger = req.requestId ? createRequestLogger(req.requestId) : globalLogger;
+  
+  try {
+    const { status, startDate, endDate } = req.query;
+    
+    const report = await getSubscriptionsReport({
+      status,
+      startDate,
+      endDate
+    });
+    
+    logger.info('Relatório de assinaturas gerado', {
+      total: report.stats.total
+    });
+    
+    return res.json({
+      success: true,
+      report
+    });
+  } catch (error) {
+    logger.error('Erro ao gerar relatório de assinaturas', {
+      error: error.message
+    });
+    return res.status(500).json({
+      error: 'Erro ao gerar relatório de assinaturas',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/admin/reports/appointments
+ * Gera relatório de agendamentos
+ */
+router.get('/reports/appointments', requireAuth, async (req, res) => {
+  const logger = req.requestId ? createRequestLogger(req.requestId) : globalLogger;
+  
+  try {
+    const { startDate, endDate, barberId } = req.query;
+    
+    const report = await getAppointmentsReport({
+      startDate,
+      endDate,
+      barberId
+    });
+    
+    logger.info('Relatório de agendamentos gerado', {
+      total: report.stats.total
+    });
+    
+    return res.json({
+      success: true,
+      report
+    });
+  } catch (error) {
+    logger.error('Erro ao gerar relatório de agendamentos', {
+      error: error.message
+    });
+    return res.status(500).json({
+      error: 'Erro ao gerar relatório de agendamentos',
       message: error.message
     });
   }

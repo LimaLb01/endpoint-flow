@@ -105,6 +105,17 @@ export default function Layout({ children }) {
                   <span className="material-symbols-outlined">event</span>
                   <span className={`text-sm ${isActive('/agendamentos') ? 'font-semibold' : 'font-medium'}`}>Appointments</span>
                 </button>
+                <button
+                  onClick={() => navigate('/relatorios')}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-full text-left transition-colors cursor-pointer ${
+                    isActive('/relatorios')
+                      ? 'bg-primary text-neutral-dark shadow-sm'
+                      : 'hover:bg-neutral-light dark:hover:bg-[#2e2d1a] text-neutral-dark dark:text-[#d1d0c5]'
+                  }`}
+                >
+                  <span className="material-symbols-outlined">assessment</span>
+                  <span className={`text-sm ${isActive('/relatorios') ? 'font-semibold' : 'font-medium'}`}>Relatórios</span>
+                </button>
               </nav>
             </div>
             <div className="px-2 pb-2">
@@ -158,6 +169,7 @@ export default function Layout({ children }) {
                        location.pathname === '/pagamentos/registrar' ? 'Registrar Pagamento' :
                        location.pathname === '/planos' ? 'Planos' :
                        location.pathname === '/agendamentos' ? 'Agendamentos' :
+                       location.pathname === '/relatorios' ? 'Relatórios' :
                        'Dashboard'}
                     </h2>
                     <p className="text-xs text-[#8c8b5f] dark:text-[#a3a272] hidden sm:block">Management Panel</p>

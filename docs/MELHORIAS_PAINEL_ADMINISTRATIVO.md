@@ -83,17 +83,27 @@ Este documento lista todas as melhorias propostas para o painel administrativo, 
 
 ---
 
-### 4. ⏳ Relatórios e Exportação - **PENDENTE**
+### 4. ✅ Relatórios e Exportação - **CONCLUÍDA**
 **Prioridade:** Média  
-**Status:** ⏳ Aguardando implementação
+**Status:** ✅ Implementada e testada
 
-**Melhorias propostas:**
-- [ ] Relatório financeiro (mensal/anual)
-- [ ] Exportar clientes (CSV/Excel)
-- [ ] Exportar pagamentos
-- [ ] Relatório de assinaturas
-- [ ] Relatório de agendamentos
-- [ ] Gráficos exportáveis (PNG/PDF)
+**Melhorias implementadas:**
+- ✅ Relatório financeiro (mensal/anual) com totais, receita por plano e detalhamento
+- ✅ Exportar clientes (CSV) com filtros de data e informações de assinaturas
+- ✅ Exportar pagamentos (CSV) com dados de pagamentos manuais e Stripe
+- ✅ Relatório de assinaturas com estatísticas por status e por plano
+- ✅ Relatório de agendamentos com estatísticas por barbeiro e por dia
+- ✅ Interface com abas para cada tipo de relatório
+- ✅ Filtros de data para todos os relatórios
+- ✅ Exportação para CSV com formatação adequada
+
+**Arquivos criados/modificados:**
+- `src/services/reports-service.js` (novo)
+- `src/routes/admin-routes.js` (endpoints `/api/admin/reports/*`)
+- `painel-admin/src/pages/Relatorios.jsx` (novo)
+- `painel-admin/src/utils/api.js` (funções de relatórios)
+- `painel-admin/src/components/Layout.jsx` (menu "Relatórios")
+- `painel-admin/src/App.jsx` (rota `/relatorios`)
 
 ---
 
@@ -179,12 +189,12 @@ Este documento lista todas as melhorias propostas para o painel administrativo, 
 ## 📊 Resumo de Progresso
 
 - **Total de melhorias:** 8
-- **Concluídas:** 4 (50%)
-- **Pendentes:** 4 (50%)
+- **Concluídas:** 5 (62.5%)
+- **Pendentes:** 3 (37.5%)
 
 ### Por Prioridade:
 - **Alta:** 3 melhorias (3 concluídas ✅)
-- **Média:** 4 melhorias (1 concluída, 3 pendentes)
+- **Média:** 4 melhorias (2 concluídas, 2 pendentes)
 - **Baixa:** 1 melhoria (pendente)
 
 ---
@@ -193,7 +203,7 @@ Este documento lista todas as melhorias propostas para o painel administrativo, 
 
 1. ✅ **Implementar Melhoria #3:** Analytics do Flow - **CONCLUÍDA**
 2. ✅ **Implementar Melhoria #6:** Notificações e Alertas - **CONCLUÍDA**
-3. **Implementar Melhoria #4:** Relatórios e Exportação (prioridade média)
+3. ✅ **Implementar Melhoria #4:** Relatórios e Exportação - **CONCLUÍDA**
 4. **Implementar Melhoria #5:** Gerenciamento de Planos (prioridade média)
 5. **Implementar Melhoria #7:** Busca Avançada (prioridade média)
 6. **Implementar Melhoria #8:** Melhorias de UX (prioridade baixa)

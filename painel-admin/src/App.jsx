@@ -9,6 +9,7 @@ import DetalhesAssinatura from './pages/DetalhesAssinatura';
 import Planos from './pages/Planos';
 import AcompanhamentoFlow from './pages/AcompanhamentoFlow';
 import Agendamentos from './pages/Agendamentos';
+import Relatorios from './pages/Relatorios';
 
 function App() {
   return (
@@ -76,6 +77,14 @@ function App() {
           element={
             <ProtectedRoute>
               <Agendamentos />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/relatorios"
+          element={
+            <ProtectedRoute>
+              <Relatorios />
             </ProtectedRoute>
           }
         />

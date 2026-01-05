@@ -440,6 +440,57 @@ export const utils = {
   validarEmail: (email) => {
     const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return regex.test(email);
+  },
+
+  /**
+   * Obter relatório financeiro
+   */
+  obterRelatorioFinanceiro: async (period, month, year) => {
+    const params = new URLSearchParams({ period, year });
+    if (month) params.append('month', month);
+    return await apiRequest(`/admin/reports/financial?${params.toString()}`);
+  },
+
+  /**
+   * Exportar clientes
+   */
+  exportarClientes: async (startDate, endDate) => {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    return await apiRequest(`/admin/reports/customers/export?${params.toString()}`);
+  },
+
+  /**
+   * Exportar pagamentos
+   */
+  exportarPagamentos: async (startDate, endDate) => {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    return await apiRequest(`/admin/reports/payments/export?${params.toString()}`);
+  },
+
+  /**
+   * Obter relatório de assinaturas
+   */
+  obterRelatorioAssinaturas: async (status, startDate, endDate) => {
+    const params = new URLSearchParams();
+    if (status) params.append('status', status);
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    return await apiRequest(`/admin/reports/subscriptions?${params.toString()}`);
+  },
+
+  /**
+   * Obter relatório de agendamentos
+   */
+  obterRelatorioAgendamentos: async (startDate, endDate, barberId) => {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    if (barberId) params.append('barberId', barberId);
+    return await apiRequest(`/admin/reports/appointments?${params.toString()}`);
   }
 };
 
