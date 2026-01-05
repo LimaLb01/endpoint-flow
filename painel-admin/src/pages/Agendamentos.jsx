@@ -17,6 +17,7 @@ export default function Agendamentos() {
   });
   const [agendamentoSelecionado, setAgendamentoSelecionado] = useState(null);
   const [mostrarModal, setMostrarModal] = useState(false);
+  const [filtroRapidoAtivo, setFiltroRapidoAtivo] = useState(null);
 
   // Carregar barbeiros ao montar
   useEffect(() => {
@@ -137,10 +138,11 @@ export default function Agendamentos() {
         endDate = hoje.toISOString().split('T')[0];
         break;
       case 'esta_semana':
+        // Esta Semana: Domingo a Sábado da semana atual (pode incluir dias passados)
         const inicioSemana = new Date(hoje);
-        inicioSemana.setDate(hoje.getDate() - hoje.getDay()); // Domingo
+        inicioSemana.setDate(hoje.getDate() - hoje.getDay()); // Domingo da semana atual
         const fimSemana = new Date(inicioSemana);
-        fimSemana.setDate(inicioSemana.getDate() + 6); // Sábado
+        fimSemana.setDate(inicioSemana.getDate() + 6); // Sábado da semana atual
         startDate = inicioSemana.toISOString().split('T')[0];
         endDate = fimSemana.toISOString().split('T')[0];
         break;
@@ -149,6 +151,7 @@ export default function Agendamentos() {
         endDate = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).toISOString().split('T')[0];
         break;
       case 'proximos_7_dias':
+        // Próximos 7 Dias: De hoje até 7 dias à frente (sempre futuro, sem dias passados)
         startDate = hoje.toISOString().split('T')[0];
         const proximos7 = new Date(hoje);
         proximos7.setDate(hoje.getDate() + 7);
@@ -165,6 +168,7 @@ export default function Agendamentos() {
     }
     
     setFiltros({ ...filtros, startDate, endDate });
+    setFiltroRapidoAtivo(tipo); // Marcar como ativo
   };
 
   const limparFiltros = () => {
@@ -179,7 +183,58 @@ export default function Agendamentos() {
       buscaCliente: '',
       status: ''
     });
+    setFiltroRapidoAtivo(null); // Limpar seleção de filtro rápido
   };
+
+  // Verificar se um filtro rápido está ativo baseado nas datas
+  useEffect(() => {
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    const hojeStr = hoje.toISOString().split('T')[0];
+    
+    // Se as datas mudarem manualmente, verificar se corresponde a algum filtro rápido
+    if (filtros.startDate === hojeStr && filtros.endDate === hojeStr) {
+      setFiltroRapidoAtivo('hoje');
+    } else {
+      // Verificar outros filtros apenas se não houver busca ou outros filtros ativos
+      if (!filtros.buscaCliente && !filtros.barberId && !filtros.status) {
+        // Verificar se corresponde a algum filtro rápido
+        const inicioSemana = new Date(hoje);
+        inicioSemana.setDate(hoje.getDate() - hoje.getDay());
+        const fimSemana = new Date(inicioSemana);
+        fimSemana.setDate(inicioSemana.getDate() + 6);
+        
+        if (filtros.startDate === inicioSemana.toISOString().split('T')[0] && 
+            filtros.endDate === fimSemana.toISOString().split('T')[0]) {
+          setFiltroRapidoAtivo('esta_semana');
+        } else {
+          const proximos7 = new Date(hoje);
+          proximos7.setDate(hoje.getDate() + 7);
+          if (filtros.startDate === hojeStr && 
+              filtros.endDate === proximos7.toISOString().split('T')[0]) {
+            setFiltroRapidoAtivo('proximos_7_dias');
+          } else {
+            const proximos30 = new Date(hoje);
+            proximos30.setDate(hoje.getDate() + 30);
+            if (filtros.startDate === hojeStr && 
+                filtros.endDate === proximos30.toISOString().split('T')[0]) {
+              setFiltroRapidoAtivo('proximos_30_dias');
+            } else {
+              const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().split('T')[0];
+              const fimMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).toISOString().split('T')[0];
+              if (filtros.startDate === inicioMes && filtros.endDate === fimMes) {
+                setFiltroRapidoAtivo('este_mes');
+              } else {
+                setFiltroRapidoAtivo(null);
+              }
+            }
+          }
+        }
+      } else {
+        setFiltroRapidoAtivo(null);
+      }
+    }
+  }, [filtros.startDate, filtros.endDate, filtros.buscaCliente, filtros.barberId, filtros.status]);
 
   // Validar datas
   const validarDatas = () => {
@@ -231,31 +286,53 @@ export default function Agendamentos() {
           <div className="mb-4 flex flex-wrap gap-2">
             <button
               onClick={() => aplicarFiltroRapido('hoje')}
-              className="px-4 h-9 rounded-full bg-neutral-light dark:bg-[#2e2d1a] text-[#8c8b5f] dark:text-[#a3a272] text-sm font-medium hover:bg-primary hover:text-neutral-dark dark:hover:text-white transition-colors"
+              className={`px-4 h-9 rounded-full text-sm font-medium transition-colors ${
+                filtroRapidoAtivo === 'hoje'
+                  ? 'bg-primary text-neutral-dark dark:text-white shadow-md'
+                  : 'bg-neutral-light dark:bg-[#2e2d1a] text-[#8c8b5f] dark:text-[#a3a272] hover:bg-primary hover:text-neutral-dark dark:hover:text-white'
+              }`}
             >
               Hoje
             </button>
             <button
               onClick={() => aplicarFiltroRapido('esta_semana')}
-              className="px-4 h-9 rounded-full bg-neutral-light dark:bg-[#2e2d1a] text-[#8c8b5f] dark:text-[#a3a272] text-sm font-medium hover:bg-primary hover:text-neutral-dark dark:hover:text-white transition-colors"
+              className={`px-4 h-9 rounded-full text-sm font-medium transition-colors ${
+                filtroRapidoAtivo === 'esta_semana'
+                  ? 'bg-primary text-neutral-dark dark:text-white shadow-md'
+                  : 'bg-neutral-light dark:bg-[#2e2d1a] text-[#8c8b5f] dark:text-[#a3a272] hover:bg-primary hover:text-neutral-dark dark:hover:text-white'
+              }`}
+              title="Domingo a Sábado da semana atual"
             >
               Esta Semana
             </button>
             <button
               onClick={() => aplicarFiltroRapido('este_mes')}
-              className="px-4 h-9 rounded-full bg-neutral-light dark:bg-[#2e2d1a] text-[#8c8b5f] dark:text-[#a3a272] text-sm font-medium hover:bg-primary hover:text-neutral-dark dark:hover:text-white transition-colors"
+              className={`px-4 h-9 rounded-full text-sm font-medium transition-colors ${
+                filtroRapidoAtivo === 'este_mes'
+                  ? 'bg-primary text-neutral-dark dark:text-white shadow-md'
+                  : 'bg-neutral-light dark:bg-[#2e2d1a] text-[#8c8b5f] dark:text-[#a3a272] hover:bg-primary hover:text-neutral-dark dark:hover:text-white'
+              }`}
             >
               Este Mês
             </button>
             <button
               onClick={() => aplicarFiltroRapido('proximos_7_dias')}
-              className="px-4 h-9 rounded-full bg-neutral-light dark:bg-[#2e2d1a] text-[#8c8b5f] dark:text-[#a3a272] text-sm font-medium hover:bg-primary hover:text-neutral-dark dark:hover:text-white transition-colors"
+              className={`px-4 h-9 rounded-full text-sm font-medium transition-colors ${
+                filtroRapidoAtivo === 'proximos_7_dias'
+                  ? 'bg-primary text-neutral-dark dark:text-white shadow-md'
+                  : 'bg-neutral-light dark:bg-[#2e2d1a] text-[#8c8b5f] dark:text-[#a3a272] hover:bg-primary hover:text-neutral-dark dark:hover:text-white'
+              }`}
+              title="De hoje até 7 dias à frente (apenas futuro)"
             >
               Próximos 7 Dias
             </button>
             <button
               onClick={() => aplicarFiltroRapido('proximos_30_dias')}
-              className="px-4 h-9 rounded-full bg-neutral-light dark:bg-[#2e2d1a] text-[#8c8b5f] dark:text-[#a3a272] text-sm font-medium hover:bg-primary hover:text-neutral-dark dark:hover:text-white transition-colors"
+              className={`px-4 h-9 rounded-full text-sm font-medium transition-colors ${
+                filtroRapidoAtivo === 'proximos_30_dias'
+                  ? 'bg-primary text-neutral-dark dark:text-white shadow-md'
+                  : 'bg-neutral-light dark:bg-[#2e2d1a] text-[#8c8b5f] dark:text-[#a3a272] hover:bg-primary hover:text-neutral-dark dark:hover:text-white'
+              }`}
             >
               Próximos 30 Dias
             </button>
