@@ -49,3 +49,23 @@
 .dark .timeline-scroll::-webkit-scrollbar-thumb {
   background-color: #3a3928;
 }
+
+/* Esconder texto padrão do input date para exibir apenas data formatada */
+input[type="date"]::-webkit-datetime-edit {
+  display: none !important;
+}
+input[type="date"]::-webkit-datetime-edit-fields-wrapper {
+  display: none !important;
+}
+input[type="date"]::-webkit-datetime-edit-text {
+  display: none !important;
+}
+input[type="date"]::-webkit-datetime-edit-month-field {
+  display: none !important;
+}
+input[type="date"]::-webkit-datetime-edit-day-field {
+  display: none !important;
+}
+input[type="date"]::-webkit-datetime-edit-year-field {
+  display: none !important;
+}
