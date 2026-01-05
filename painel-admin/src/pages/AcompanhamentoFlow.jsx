@@ -278,14 +278,24 @@ export default function AcompanhamentoFlow() {
 
     setIsDeletingMultiple(true);
     try {
-      const deletePromises = Array.from(selectedIds).map(id => 
-        api.excluirFlowInteraction(id).catch(error => {
-          console.error(`Erro ao excluir interação ${id}:`, error);
-          return null;
-        })
+      const results = await Promise.allSettled(
+        Array.from(selectedIds).map(id => 
+          api.excluirFlowInteraction(id)
+        )
       );
       
-      await Promise.all(deletePromises);
+      // Contar sucessos e falhas
+      const successful = results.filter(r => r.status === 'fulfilled' && r.value).length;
+      const failed = results.filter(r => r.status === 'rejected' || !r.value).length;
+      
+      // Log de erros
+      results.forEach((result, index) => {
+        if (result.status === 'rejected') {
+          console.error(`Erro ao excluir interação ${Array.from(selectedIds)[index]}:`, result.reason);
+        } else if (!result.value) {
+          console.warn(`Interação ${Array.from(selectedIds)[index]} não foi excluída (não encontrada ou erro silencioso)`);
+        }
+      });
       
       // Se alguma interação excluída era a selecionada, limpar seleção
       if (selectedInteraction && selectedIds.has(selectedInteraction.id)) {
@@ -299,10 +309,18 @@ export default function AcompanhamentoFlow() {
       // Recarregar lista
       await loadInteractions();
       
-      alert(`${count} interação(ões) excluída(s) com sucesso!`);
+      if (successful > 0) {
+        if (failed > 0) {
+          alert(`${successful} interação(ões) excluída(s) com sucesso, ${failed} falharam.`);
+        } else {
+          alert(`${successful} interação(ões) excluída(s) com sucesso!`);
+        }
+      } else {
+        alert('Nenhuma interação foi excluída. Verifique se os IDs são válidos.');
+      }
     } catch (error) {
       console.error('Erro ao excluir interações:', error);
-      alert('Erro ao excluir algumas interações. Verifique o console para mais detalhes.');
+      alert('Erro ao excluir interações. Verifique o console para mais detalhes.');
     } finally {
       setIsDeletingMultiple(false);
     }

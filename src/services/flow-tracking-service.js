@@ -608,15 +608,25 @@ async function deleteFlowInteraction(interactionId) {
   }
 
   try {
-    const { error } = await supabaseAdmin
+    const { data, error } = await supabaseAdmin
       .from('flow_interactions')
       .delete()
-      .eq('id', interactionId);
+      .eq('id', interactionId)
+      .select();
 
     if (error) throw error;
 
+    // Verificar se realmente deletou algo
+    if (!data || data.length === 0) {
+      globalLogger.warn('Interação do flow não encontrada para exclusão', {
+        interactionId
+      });
+      return false;
+    }
+
     globalLogger.info('Interação do flow excluída', {
-      interactionId
+      interactionId,
+      deletedCount: data.length
     });
 
     return true;
