@@ -604,7 +604,7 @@ async function listAppointments(options = {}) {
     const end = endDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
     // Se especificou barbeiro, usar calendário específico, senão buscar em todos
-    const calendarsToSearch = barberId 
+    let calendarsToSearch = barberId 
       ? [{ id: barberId, calendarId: BARBER_CALENDARS[barberId] || 'primary' }]
       : Object.entries(BARBER_CALENDARS).map(([id, calId]) => ({ id, calendarId: calId }));
 
@@ -612,6 +612,19 @@ async function listAppointments(options = {}) {
     if (calendarsToSearch.length === 0) {
       calendarsToSearch.push({ id: 'default', calendarId: 'primary' });
     }
+
+    // Remover calendários duplicados (mesmo calendarId)
+    const uniqueCalendars = [];
+    const seenCalendarIds = new Set();
+    
+    for (const cal of calendarsToSearch) {
+      if (!seenCalendarIds.has(cal.calendarId)) {
+        seenCalendarIds.add(cal.calendarId);
+        uniqueCalendars.push(cal);
+      }
+    }
+    
+    calendarsToSearch = uniqueCalendars;
 
     const allAppointments = [];
 
@@ -676,20 +689,41 @@ async function listAppointments(options = {}) {
       }
     }
 
+    // Remover duplicatas (mesmo event.id)
+    const uniqueAppointments = [];
+    const seenIds = new Set();
+    
+    for (const appointment of allAppointments) {
+      // Usar ID do evento como chave única
+      const uniqueKey = `${appointment.id}-${appointment.start}`;
+      
+      if (!seenIds.has(uniqueKey)) {
+        seenIds.add(uniqueKey);
+        uniqueAppointments.push(appointment);
+      } else {
+        logger.debug('Agendamento duplicado removido', {
+          id: appointment.id,
+          start: appointment.start,
+          title: appointment.title
+        });
+      }
+    }
+
     // Ordenar por data de início
-    allAppointments.sort((a, b) => {
+    uniqueAppointments.sort((a, b) => {
       const dateA = new Date(a.start);
       const dateB = new Date(b.start);
       return dateA - dateB;
     });
 
     logger.info('Agendamentos listados', {
-      total: allAppointments.length,
+      total: uniqueAppointments.length,
+      duplicadosRemovidos: allAppointments.length - uniqueAppointments.length,
       startDate,
       endDate: end
     });
 
-    return allAppointments;
+    return uniqueAppointments;
 
   } catch (error) {
     logger.error('Erro ao listar agendamentos', {
