@@ -43,6 +43,8 @@ export default function AcompanhamentoFlow() {
     total: 0
   });
   const [deletingId, setDeletingId] = useState(null);
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [isDeletingMultiple, setIsDeletingMultiple] = useState(false);
 
   // Mapeamento de telas para nomes amigáveis
   const screenNames = {
@@ -634,6 +636,25 @@ export default function AcompanhamentoFlow() {
             </div>
           </div>
           <div className="flex gap-2">
+            {selectedIds.size > 0 && (
+              <button
+                onClick={handleDeleteSelected}
+                disabled={isDeletingMultiple}
+                className="flex items-center gap-2 px-4 h-10 rounded-lg bg-accent-red text-white font-medium hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isDeletingMultiple ? (
+                  <>
+                    <span className="material-symbols-outlined text-lg animate-spin">hourglass_empty</span>
+                    Excluindo...
+                  </>
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined text-lg">delete</span>
+                    Excluir Selecionados ({selectedIds.size})
+                  </>
+                )}
+              </button>
+            )}
             <button
               onClick={loadInteractions}
               className="flex items-center justify-center size-10 rounded-lg bg-neutral-light dark:bg-[#2e2d1a] text-neutral-dark dark:text-white hover:bg-[#e5e5dc] dark:hover:bg-[#3a3928] transition-colors"
@@ -685,12 +706,22 @@ export default function AcompanhamentoFlow() {
                       const accessDate = formatAccessDate(metadata, interaction.created_at);
                       const accessTime = formatAccessTime(metadata, interaction.created_at);
                       
+                      const isChecked = selectedIds.has(interaction.id);
+                      
                       return (
                         <tr
                           key={interaction.id}
-                          className={`${isSelected ? 'bg-primary/5 dark:bg-primary/5 border-l-4 border-l-primary' : 'hover:bg-neutral-light/50 dark:hover:bg-[#2e2d1a]/50 border-l-4 border-l-transparent'} transition-colors cursor-pointer`}
+                          className={`${isSelected ? 'bg-primary/5 dark:bg-primary/5 border-l-4 border-l-primary' : isChecked ? 'bg-primary/10 dark:bg-primary/10 border-l-4 border-l-primary' : 'hover:bg-neutral-light/50 dark:hover:bg-[#2e2d1a]/50 border-l-4 border-l-transparent'} transition-colors cursor-pointer`}
                           onClick={() => handleSelectInteraction(interaction)}
                         >
+                          <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={(e) => handleToggleSelection(interaction.id, e)}
+                              className="size-4 rounded border-[#8c8b5f] text-primary focus:ring-2 focus:ring-primary cursor-pointer"
+                            />
+                          </td>
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-3">
                               {customerName ? (
