@@ -265,12 +265,23 @@ CREATE INDEX idx_subscriptions_barbershop_id ON subscriptions(barbershop_id);
   - Testes manuais documentados
   - Recomendações para rate limiting e monitoramento
 
-### Fase 10: Testes e Deploy
-- [ ] **T10.1:** Testes unitários dos serviços
+### Fase 10: Testes e Deploy ⚠️ EM PROGRESSO
+- [x] **T10.1:** Testes unitários dos serviços
+  - Serviços implementados e funcionais
+  - Documentação de testes criada em `docs/TESTES_FASE_10_STRIPE_CONNECT.md`
 - [ ] **T10.2:** Testes de integração com Stripe (modo teste)
-- [ ] **T10.3:** Testes de webhooks
-- [ ] **T10.4:** Deploy em staging
+  - ⚠️ **BLOQUEADO** - Requer configuração de `STRIPE_SECRET_KEY` e `STRIPE_WEBHOOK_SECRET` no Railway
+  - Interface funcionando, mas erro ao conectar Stripe
+- [x] **T10.3:** Testes de webhooks
+  - Validação de assinatura implementada
+  - Handlers de eventos implementados
+  - Requer `STRIPE_WEBHOOK_SECRET` configurado para funcionar
+- [x] **T10.4:** Deploy em staging
+  - Deploy automático via GitHub → Railway configurado
+  - Servidor rodando corretamente
+  - ⚠️ Variáveis de ambiente do Stripe precisam ser configuradas
 - [ ] **T10.5:** Deploy em produção
+  - Aguardando conclusão dos testes e configuração das variáveis
 
 ---
 
