@@ -1,5 +1,6 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import Notifications from './Notifications';
+import KeyboardShortcuts from './KeyboardShortcuts';
 
 export default function Layout({ children }) {
   const navigate = useNavigate();
@@ -13,8 +14,10 @@ export default function Layout({ children }) {
   };
 
   return (
-    <div className="bg-background-light dark:bg-background-dark text-neutral-dark dark:text-white font-display antialiased overflow-x-hidden">
-      <div className="relative flex min-h-screen w-full flex-col md:flex-row">
+    <>
+      <KeyboardShortcuts />
+      <div className="bg-background-light dark:bg-background-dark text-neutral-dark dark:text-white font-display antialiased overflow-x-hidden">
+        <div className="relative flex min-h-screen w-full flex-col md:flex-row">
         {/* Side Navigation */}
         <aside className="w-full md:w-64 flex-shrink-0 border-b md:border-b-0 md:border-r border-[#e5e5dc] dark:border-[#3a3928] bg-white dark:bg-[#1a190b] z-20">
           <div className="flex h-full flex-col justify-between p-4 md:p-6 sticky top-0">

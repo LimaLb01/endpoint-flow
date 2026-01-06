@@ -1,6 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute';
-import KeyboardShortcuts from './components/KeyboardShortcuts';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import BuscarCliente from './pages/BuscarCliente';
@@ -15,7 +14,6 @@ import Relatorios from './pages/Relatorios';
 function App() {
   return (
     <BrowserRouter>
-      <KeyboardShortcuts />
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route
