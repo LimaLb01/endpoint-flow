@@ -221,29 +221,34 @@ curl -X POST http://localhost:3000/api/webhooks/stripe \
 
 ## 🐛 Problemas Encontrados
 
-### Problema 1: Variáveis de Ambiente do Stripe não configuradas no Railway ⚠️ CRÍTICO
+### Problema 1: Variáveis de Ambiente do Stripe não configuradas no Railway ✅ RESOLVIDO
 **Descrição:** 
-- `STRIPE_SECRET_KEY` não está configurada no Railway
-- `STRIPE_WEBHOOK_SECRET` não está configurada no Railway
+- `STRIPE_SECRET_KEY` não estava configurada no Railway
+- `STRIPE_PUBLISHABLE_KEY` não estava configurada no Railway
 - Erro no console: "Stripe não configurado. Configure STRIPE_SECRET_KEY"
 - Erro ao clicar em "Conectar Pagamento": "Erro ao criar conta Stripe Connect"
 
 **Solução:** 
-1. Obter chaves do Stripe:
-   - Acessar https://dashboard.stripe.com/apikeys
-   - Copiar `Secret key` (sk_test_... ou sk_live_...)
-   - Acessar https://dashboard.stripe.com/webhooks
-   - Copiar `Signing secret` (whsec_...)
+1. ✅ Variáveis configuradas no Railway:
+   - `STRIPE_SECRET_KEY=sk_test_...` (configurada)
+   - `STRIPE_PUBLISHABLE_KEY=pk_test_...` (configurada)
 
-2. Configurar no Railway:
-   ```bash
-   # Via Railway CLI ou painel web
-   railway variables set STRIPE_SECRET_KEY=sk_test_...
-   railway variables set STRIPE_WEBHOOK_SECRET=whsec_...
-   railway variables set FRONTEND_URL=https://seu-frontend-url.com
-   ```
+**Status:** ✅ **RESOLVIDO** - Variáveis configuradas, servidor reiniciado
 
-**Status:** ⚠️ **BLOQUEANTE** - Sistema não funciona sem essas variáveis
+### Problema 1.1: Stripe Connect não habilitado na conta Stripe ⚠️ CRÍTICO
+**Descrição:** 
+- Erro no log do Railway: "You can only create new accounts if you've signed up for Connect"
+- A conta Stripe não tem o Stripe Connect habilitado
+- Não é possível criar contas Connect Express sem habilitar o Connect primeiro
+
+**Solução:** 
+1. Acessar https://dashboard.stripe.com/connect/overview
+2. Clicar em "Get started" ou "Enable Connect"
+3. Seguir o processo de habilitação do Stripe Connect
+4. Escolher o tipo de conta (Express Accounts recomendado para marketplace)
+5. Após habilitação, testar novamente o onboarding
+
+**Status:** ⚠️ **BLOQUEANTE** - Não é possível criar contas Connect sem habilitar o Connect na conta Stripe
 
 ### Problema 2: Plano sem `stripe_price_id`
 **Descrição:** Planos no banco não têm `stripe_price_id` configurado  
