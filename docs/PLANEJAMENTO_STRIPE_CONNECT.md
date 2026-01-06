@@ -209,12 +209,15 @@ CREATE INDEX idx_subscriptions_barbershop_id ON subscriptions(barbershop_id);
 - [x] **T6.5:** Melhorar tratamento de erros
 - [x] **T6.6:** Configurar URLs dinâmicos baseados no ambiente
 
-### Fase 7: Frontend - Cadastro de Cartão (Redirecionamento)
-- [ ] **T7.1:** Usar Stripe Checkout (redirecionamento) ao invés de Elements
-- [ ] **T7.2:** Criar sessão de checkout no backend
-- [ ] **T7.3:** Redirecionar para Stripe Checkout
-- [ ] **T7.4:** Implementar callback após checkout (retorno ao painel)
-- [ ] **T7.5:** Criar assinatura após checkout bem-sucedido
+### Fase 7: Frontend - Cadastro de Cartão (Redirecionamento) ✅ CONCLUÍDA
+- [x] **T7.1:** Usar Stripe Checkout (redirecionamento) ao invés de Elements
+- [x] **T7.2:** Criar sessão de checkout no backend
+- [x] **T7.3:** Redirecionar para Stripe Checkout
+- [x] **T7.4:** Implementar callback após checkout (retorno ao painel)
+- [x] **T7.5:** Criar assinatura após checkout bem-sucedido
+- [x] **T7.6:** Adicionar modal de seleção de planos
+- [x] **T7.7:** Adicionar botão "Criar Assinatura" quando não houver assinatura ativa
+- [x] **T7.8:** Melhorar tratamento de erros e loading states
 
 ### Fase 8: Frontend - Gerenciamento de Assinatura
 - [ ] **T8.1:** Mostrar status da assinatura na tela "Pagamentos"
