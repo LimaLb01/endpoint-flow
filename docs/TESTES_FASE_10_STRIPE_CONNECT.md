@@ -235,20 +235,23 @@ curl -X POST http://localhost:3000/api/webhooks/stripe \
 
 **Status:** ✅ **RESOLVIDO** - Variáveis configuradas, servidor reiniciado
 
-### Problema 1.1: Stripe Connect não habilitado na conta Stripe ⚠️ CRÍTICO
+### Problema 1.1: Stripe Connect não habilitado na conta Stripe ⏳ EM PROGRESSO
 **Descrição:** 
 - Erro no log do Railway: "You can only create new accounts if you've signed up for Connect"
 - A conta Stripe não tem o Stripe Connect habilitado
 - Não é possível criar contas Connect Express sem habilitar o Connect primeiro
 
 **Solução:** 
-1. Acessar https://dashboard.stripe.com/connect/overview
-2. Clicar em "Get started" ou "Enable Connect"
-3. Seguir o processo de habilitação do Stripe Connect
-4. Escolher o tipo de conta (Express Accounts recomendado para marketplace)
-5. Após habilitação, testar novamente o onboarding
+1. ✅ Acessar https://dashboard.stripe.com/connect/overview
+2. ✅ Clicar em "Get started" ou "Enable Connect"
+3. ⏳ **SELECIONAR MODELO DE NEGÓCIO:**
+   - **ESCOLHER: "Marketplace"** (NÃO "Plataforma")
+   - Motivo: A plataforma recebe pagamentos e repassa para barbearias
+   - Permite cobrar `application_fee` automaticamente
+4. ⏳ Escolher o tipo de conta (Express Accounts recomendado para marketplace)
+5. ⏳ Após habilitação, testar novamente o onboarding
 
-**Status:** ⚠️ **BLOQUEANTE** - Não é possível criar contas Connect sem habilitar o Connect na conta Stripe
+**Status:** ⏳ **EM PROGRESSO** - Usuário está no processo de habilitação, aguardando seleção do modelo
 
 ### Problema 2: Plano sem `stripe_price_id`
 **Descrição:** Planos no banco não têm `stripe_price_id` configurado  
