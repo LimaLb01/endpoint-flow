@@ -182,8 +182,12 @@ export const api = {
    */
   listarPlanos: async (active) => {
     const params = new URLSearchParams();
-    if (active !== undefined) params.append('active', active);
-    const data = await apiRequest(`/admin/plans?${params.toString()}`);
+    if (active !== undefined && active !== null) {
+      params.append('active', active);
+    }
+    const queryString = params.toString();
+    const url = queryString ? `/admin/plans?${queryString}` : '/admin/plans';
+    const data = await apiRequest(url);
     return data?.plans || [];
   },
 
@@ -547,6 +551,34 @@ export const utils = {
     if (endDate) params.append('endDate', endDate);
     if (barberId) params.append('barberId', barberId);
     return await apiRequest(`/admin/reports/appointments?${params.toString()}`);
+  },
+
+  /**
+   * Busca global em clientes, assinaturas e pagamentos
+   * @param {Object} filters - Filtros de busca
+   * @param {string} filters.query - Texto de busca (nome, CPF, email)
+   * @param {string} filters.type - Tipo: 'all', 'customers', 'subscriptions', 'payments'
+   * @param {string} filters.status - Status (para assinaturas)
+   * @param {string} filters.startDate - Data inicial (ISO)
+   * @param {string} filters.endDate - Data final (ISO)
+   * @param {number} filters.minAmount - Valor mínimo (para pagamentos)
+   * @param {number} filters.maxAmount - Valor máximo (para pagamentos)
+   * @param {number} filters.limit - Limite de resultados
+   * @param {number} filters.offset - Offset para paginação
+   */
+  buscarGlobal: async (filters = {}) => {
+    const params = new URLSearchParams();
+    if (filters.query) params.append('query', filters.query);
+    if (filters.type) params.append('type', filters.type);
+    if (filters.status) params.append('status', filters.status);
+    if (filters.startDate) params.append('startDate', filters.startDate);
+    if (filters.endDate) params.append('endDate', filters.endDate);
+    if (filters.minAmount !== undefined) params.append('minAmount', filters.minAmount.toString());
+    if (filters.maxAmount !== undefined) params.append('maxAmount', filters.maxAmount.toString());
+    if (filters.limit) params.append('limit', filters.limit.toString());
+    if (filters.offset) params.append('offset', filters.offset.toString());
+    
+    return await apiRequest(`/admin/search?${params.toString()}`);
   }
 };
 

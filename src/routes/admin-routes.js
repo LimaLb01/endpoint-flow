@@ -1803,5 +1803,228 @@ router.get('/reports/appointments', requireAuth, async (req, res) => {
   }
 });
 
+/**
+ * GET /api/admin/search
+ * Busca global em clientes, assinaturas e pagamentos
+ * Filtros: query (texto), type (customers|subscriptions|payments|all), status, startDate, endDate, minAmount, maxAmount
+ */
+router.get('/search', requireAuth, async (req, res) => {
+  const logger = req.requestId ? createRequestLogger(req.requestId) : globalLogger;
+  
+  try {
+    const { 
+      query: searchQuery = '', 
+      type = 'all', // 'all', 'customers', 'subscriptions', 'payments'
+      status,
+      startDate,
+      endDate,
+      minAmount,
+      maxAmount,
+      limit = 50,
+      offset = 0
+    } = req.query;
+
+    const results = {
+      customers: [],
+      subscriptions: [],
+      payments: [],
+      total: 0
+    };
+
+    // Buscar clientes
+    if (type === 'all' || type === 'customers') {
+      let customerQuery = supabaseAdmin
+        .from('customers')
+        .select('*', { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
+
+      if (searchQuery) {
+        const searchTerm = searchQuery.replace(/\D/g, '');
+        if (searchTerm.length === 11) {
+          // Busca por CPF
+          customerQuery = customerQuery.eq('cpf', searchTerm);
+        } else {
+          // Busca por nome ou email
+          customerQuery = customerQuery.or(`name.ilike.%${searchQuery}%,email.ilike.%${searchQuery}%`);
+        }
+      }
+
+      if (startDate) {
+        customerQuery = customerQuery.gte('created_at', startDate);
+      }
+      if (endDate) {
+        customerQuery = customerQuery.lte('created_at', endDate);
+      }
+
+      const { data: customers, error: customersError, count: customersCount } = await customerQuery;
+      
+      if (customersError) {
+        logger.warn('Erro ao buscar clientes', { error: customersError.message });
+      } else {
+        results.customers = customers || [];
+        results.total += customersCount || 0;
+      }
+    }
+
+    // Buscar assinaturas
+    if (type === 'all' || type === 'subscriptions') {
+      let subscriptionQuery = supabaseAdmin
+        .from('subscriptions')
+        .select(`
+          *,
+          customer:customers(*),
+          plan:plans(*)
+        `, { count: 'exact' })
+        .order('created_at', { ascending: false })
+        .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
+
+      if (status) {
+        subscriptionQuery = subscriptionQuery.eq('status', status);
+      }
+
+      if (searchQuery) {
+        // Buscar por nome do cliente ou ID da assinatura
+        const searchTerm = searchQuery.replace(/\D/g, '');
+        if (searchTerm.length === 11) {
+          // Buscar por CPF do cliente
+          const { data: customerByCpf } = await supabaseAdmin
+            .from('customers')
+            .select('id')
+            .eq('cpf', searchTerm)
+            .single();
+          
+          if (customerByCpf) {
+            subscriptionQuery = subscriptionQuery.eq('customer_id', customerByCpf.id);
+          } else {
+            // Se não encontrar cliente, retornar vazio
+            subscriptionQuery = subscriptionQuery.eq('id', '00000000-0000-0000-0000-000000000000');
+          }
+        } else {
+          // Buscar por nome do cliente via join
+          const { data: customersByName } = await supabaseAdmin
+            .from('customers')
+            .select('id')
+            .ilike('name', `%${searchQuery}%`);
+          
+          if (customersByName && customersByName.length > 0) {
+            const customerIds = customersByName.map(c => c.id);
+            subscriptionQuery = subscriptionQuery.in('customer_id', customerIds);
+          } else {
+            subscriptionQuery = subscriptionQuery.eq('id', '00000000-0000-0000-0000-000000000000');
+          }
+        }
+      }
+
+      if (startDate) {
+        subscriptionQuery = subscriptionQuery.gte('created_at', startDate);
+      }
+      if (endDate) {
+        subscriptionQuery = subscriptionQuery.lte('created_at', endDate);
+      }
+
+      const { data: subscriptions, error: subscriptionsError, count: subscriptionsCount } = await subscriptionQuery;
+      
+      if (subscriptionsError) {
+        logger.warn('Erro ao buscar assinaturas', { error: subscriptionsError.message });
+      } else {
+        results.subscriptions = subscriptions || [];
+        results.total += subscriptionsCount || 0;
+      }
+    }
+
+    // Buscar pagamentos
+    if (type === 'all' || type === 'payments') {
+      let paymentQuery = supabaseAdmin
+        .from('manual_payments')
+        .select(`
+          *,
+          customer:customers(*),
+          plan:plans(*)
+        `, { count: 'exact' })
+        .eq('status', 'confirmed')
+        .order('payment_date', { ascending: false })
+        .range(parseInt(offset), parseInt(offset) + parseInt(limit) - 1);
+
+      if (searchQuery) {
+        const searchTerm = searchQuery.replace(/\D/g, '');
+        if (searchTerm.length === 11) {
+          // Buscar por CPF do cliente
+          const { data: customerByCpf } = await supabaseAdmin
+            .from('customers')
+            .select('id')
+            .eq('cpf', searchTerm)
+            .single();
+          
+          if (customerByCpf) {
+            paymentQuery = paymentQuery.eq('customer_id', customerByCpf.id);
+          } else {
+            paymentQuery = paymentQuery.eq('id', '00000000-0000-0000-0000-000000000000');
+          }
+        } else {
+          // Buscar por nome do cliente
+          const { data: customersByName } = await supabaseAdmin
+            .from('customers')
+            .select('id')
+            .ilike('name', `%${searchQuery}%`);
+          
+          if (customersByName && customersByName.length > 0) {
+            const customerIds = customersByName.map(c => c.id);
+            paymentQuery = paymentQuery.in('customer_id', customerIds);
+          } else {
+            paymentQuery = paymentQuery.eq('id', '00000000-0000-0000-0000-000000000000');
+          }
+        }
+      }
+
+      if (minAmount) {
+        paymentQuery = paymentQuery.gte('amount', parseFloat(minAmount));
+      }
+      if (maxAmount) {
+        paymentQuery = paymentQuery.lte('amount', parseFloat(maxAmount));
+      }
+
+      if (startDate) {
+        paymentQuery = paymentQuery.gte('payment_date', startDate);
+      }
+      if (endDate) {
+        paymentQuery = paymentQuery.lte('payment_date', endDate);
+      }
+
+      const { data: payments, error: paymentsError, count: paymentsCount } = await paymentQuery;
+      
+      if (paymentsError) {
+        logger.warn('Erro ao buscar pagamentos', { error: paymentsError.message });
+      } else {
+        results.payments = payments || [];
+        results.total += paymentsCount || 0;
+      }
+    }
+
+    logger.info('Busca global realizada', {
+      query: searchQuery,
+      type,
+      total: results.total
+    });
+
+    return res.json({
+      success: true,
+      results,
+      query: searchQuery,
+      type,
+      limit: parseInt(limit),
+      offset: parseInt(offset)
+    });
+  } catch (error) {
+    logger.error('Erro ao realizar busca global', {
+      error: error.message
+    });
+    return res.status(500).json({
+      error: 'Erro ao realizar busca global',
+      message: error.message
+    });
+  }
+});
+
 module.exports = router;
 

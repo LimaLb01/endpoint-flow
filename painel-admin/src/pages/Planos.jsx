@@ -29,10 +29,12 @@ export default function Planos() {
     setLoading(true);
     try {
       const listaPlanos = await api.listarPlanos(filterActive);
-      setPlanos(listaPlanos);
+      console.log('📋 Planos carregados:', listaPlanos);
+      setPlanos(listaPlanos || []);
     } catch (error) {
       console.error('Erro ao carregar planos:', error);
       alert('Erro ao carregar planos: ' + (error.message || 'Erro desconhecido'));
+      setPlanos([]);
     } finally {
       setLoading(false);
     }

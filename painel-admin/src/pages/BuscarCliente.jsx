@@ -41,6 +41,22 @@ export default function BuscarCliente() {
   const [carregandoLista, setCarregandoLista] = useState(false);
   const [totalClientes, setTotalClientes] = useState(0);
 
+  // Estados para busca global
+  const [modoBusca, setModoBusca] = useState('cpf'); // 'cpf' ou 'global'
+  const [buscaGlobal, setBuscaGlobal] = useState('');
+  const [tipoBusca, setTipoBusca] = useState('all'); // 'all', 'customers', 'subscriptions', 'payments'
+  const [filtrosAvancados, setFiltrosAvancados] = useState({
+    status: '',
+    startDate: '',
+    endDate: '',
+    minAmount: '',
+    maxAmount: ''
+  });
+  const [mostrarFiltros, setMostrarFiltros] = useState(false);
+  const [resultadosBusca, setResultadosBusca] = useState(null);
+  const [carregandoBusca, setCarregandoBusca] = useState(false);
+  const [historicoBuscas, setHistoricoBuscas] = useState([]);
+
   const buscar = async (cpfParaBuscar = null) => {
     const cpfBuscar = cpfParaBuscar || cpf;
     const cpfLimpo = cpfBuscar.replace(/\D/g, '');
@@ -209,10 +225,81 @@ export default function BuscarCliente() {
     }
   };
 
+  // Carregar histórico de buscas do localStorage
+  useEffect(() => {
+    const historico = localStorage.getItem('historicoBuscas');
+    if (historico) {
+      try {
+        setHistoricoBuscas(JSON.parse(historico));
+      } catch (err) {
+        console.error('Erro ao carregar histórico de buscas:', err);
+      }
+    }
+  }, []);
+
+  // Salvar busca no histórico
+  const salvarNoHistorico = (query, type) => {
+    if (!query || query.trim().length === 0) return;
+    
+    const novaBusca = {
+      query: query.trim(),
+      type,
+      timestamp: new Date().toISOString()
+    };
+    
+    const novoHistorico = [
+      novaBusca,
+      ...historicoBuscas.filter(b => b.query !== novaBusca.query || b.type !== novaBusca.type)
+    ].slice(0, 10); // Manter apenas as últimas 10 buscas
+    
+    setHistoricoBuscas(novoHistorico);
+    localStorage.setItem('historicoBuscas', JSON.stringify(novoHistorico));
+  };
+
+  // Busca global
+  const realizarBuscaGlobal = async () => {
+    if (!buscaGlobal.trim() && tipoBusca === 'all') {
+      setError('Digite um termo de busca ou selecione um tipo específico');
+      return;
+    }
+
+    setCarregandoBusca(true);
+    setError('');
+    
+    try {
+      const filters = {
+        query: buscaGlobal.trim(),
+        type: tipoBusca,
+        limit: 50,
+        offset: 0
+      };
+
+      if (filtrosAvancados.status) filters.status = filtrosAvancados.status;
+      if (filtrosAvancados.startDate) filters.startDate = filtrosAvancados.startDate;
+      if (filtrosAvancados.endDate) filters.endDate = filtrosAvancados.endDate;
+      if (filtrosAvancados.minAmount) filters.minAmount = parseFloat(filtrosAvancados.minAmount);
+      if (filtrosAvancados.maxAmount) filters.maxAmount = parseFloat(filtrosAvancados.maxAmount);
+
+      const data = await api.buscarGlobal(filters);
+      
+      if (data && data.results) {
+        setResultadosBusca(data.results);
+        salvarNoHistorico(buscaGlobal, tipoBusca);
+      } else {
+        setResultadosBusca({ customers: [], subscriptions: [], payments: [], total: 0 });
+      }
+    } catch (err) {
+      setError(err.message || 'Erro ao realizar busca');
+      setResultadosBusca(null);
+    } finally {
+      setCarregandoBusca(false);
+    }
+  };
+
   // Carregar lista de clientes ao montar o componente
   useEffect(() => {
     const carregarListaClientes = async () => {
-      if (modo !== 'buscar' || cliente || mostrarDetalhes) return;
+      if (modo !== 'buscar' || cliente || mostrarDetalhes || modoBusca === 'global') return;
       
       setCarregandoLista(true);
       try {
@@ -230,14 +317,14 @@ export default function BuscarCliente() {
     };
 
     carregarListaClientes();
-  }, [modo, cliente, mostrarDetalhes]);
+  }, [modo, cliente, mostrarDetalhes, modoBusca]);
 
   return (
     <Layout>
       <header className="flex items-center justify-between border-b border-[#e5e5dc] dark:border-[#3a3928] bg-white/80 dark:bg-[#1a190b]/80 backdrop-blur-sm px-6 py-4 md:px-10 sticky top-0 z-10">
         <div className="flex items-center gap-4">
           <h2 className="text-neutral-dark dark:text-white text-xl md:text-2xl font-bold leading-tight tracking-tight">
-            {modo === 'buscar' ? 'Buscar Cliente' : 'Criar Cliente'}
+            {modo === 'buscar' ? 'Buscar' : 'Criar Cliente'}
           </h2>
         </div>
         {modo === 'buscar' && (
@@ -840,7 +927,197 @@ export default function BuscarCliente() {
           </>
         ) : (
           <>
-            {/* Search Section */}
+            {/* Tabs de Modo de Busca */}
+            <div className="flex gap-2 border-b border-[#e6e6db] dark:border-[#3a392a]">
+              <button
+                onClick={() => {
+                  setModoBusca('cpf');
+                  setResultadosBusca(null);
+                  setBuscaGlobal('');
+                  setError('');
+                }}
+                className={`px-6 py-3 font-semibold text-sm transition-colors border-b-2 ${
+                  modoBusca === 'cpf'
+                    ? 'border-primary text-[#181811] dark:text-white'
+                    : 'border-transparent text-[#8c8b5f] dark:text-[#a3a272] hover:text-[#181811] dark:hover:text-white'
+                }`}
+              >
+                <span className="material-symbols-outlined text-lg align-middle mr-2">id_card</span>
+                Busca por CPF
+              </button>
+              <button
+                onClick={() => {
+                  setModoBusca('global');
+                  setCliente(null);
+                  setCpf('');
+                  setError('');
+                }}
+                className={`px-6 py-3 font-semibold text-sm transition-colors border-b-2 ${
+                  modoBusca === 'global'
+                    ? 'border-primary text-[#181811] dark:text-white'
+                    : 'border-transparent text-[#8c8b5f] dark:text-[#a3a272] hover:text-[#181811] dark:hover:text-white'
+                }`}
+              >
+                <span className="material-symbols-outlined text-lg align-middle mr-2">search</span>
+                Busca Avançada
+              </button>
+            </div>
+
+            {/* Busca Global */}
+            {modoBusca === 'global' ? (
+              <div className="bg-white dark:bg-[#1a190b] rounded-lg shadow-sm border border-[#e6e6db] dark:border-[#3a392a] p-6">
+                <div className="flex flex-col gap-4">
+                  {/* Barra de Busca */}
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <div className="flex-1 flex items-center rounded-full bg-[#f8f8f5] dark:bg-[#23220f] border border-[#e6e6db] dark:border-[#3a392a] focus-within:border-primary transition-all h-12 px-4">
+                      <span className="material-symbols-outlined text-[#8c8b5f] dark:text-[#a3a272] mr-2">search</span>
+                      <input
+                        type="text"
+                        value={buscaGlobal}
+                        onChange={(e) => setBuscaGlobal(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && realizarBuscaGlobal()}
+                        className="flex-1 bg-transparent border-none text-[#181811] dark:text-white placeholder:text-[#8c8b5f]/60 focus:ring-0 h-full"
+                        placeholder="Buscar por nome, CPF, email..."
+                      />
+                    </div>
+                    <select
+                      value={tipoBusca}
+                      onChange={(e) => setTipoBusca(e.target.value)}
+                      className="h-12 px-4 rounded-full bg-[#f8f8f5] dark:bg-[#23220f] border border-[#e6e6db] dark:border-[#3a392a] text-[#181811] dark:text-white focus:border-primary focus:ring-0"
+                    >
+                      <option value="all">Todos</option>
+                      <option value="customers">Clientes</option>
+                      <option value="subscriptions">Assinaturas</option>
+                      <option value="payments">Pagamentos</option>
+                    </select>
+                    <button
+                      onClick={realizarBuscaGlobal}
+                      disabled={carregandoBusca}
+                      className="h-12 px-6 rounded-full bg-primary text-[#181811] font-bold hover:brightness-95 transition-all flex items-center justify-center gap-2"
+                    >
+                      {carregandoBusca ? (
+                        <>
+                          <span className="material-symbols-outlined animate-spin">refresh</span>
+                          Buscando...
+                        </>
+                      ) : (
+                        <>
+                          <span className="material-symbols-outlined">search</span>
+                          Buscar
+                        </>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => setMostrarFiltros(!mostrarFiltros)}
+                      className={`h-12 px-4 rounded-full border font-medium transition-all flex items-center justify-center gap-2 ${
+                        mostrarFiltros
+                          ? 'bg-primary text-[#181811] border-primary'
+                          : 'bg-white dark:bg-[#1a190b] text-[#181811] dark:text-white border-[#e6e6db] dark:border-[#3a392a]'
+                      }`}
+                    >
+                      <span className="material-symbols-outlined">tune</span>
+                      Filtros
+                    </button>
+                  </div>
+
+                  {/* Filtros Avançados */}
+                  {mostrarFiltros && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4 bg-[#f8f8f5] dark:bg-[#23220f] rounded-lg border border-[#e6e6db] dark:border-[#3a392a]">
+                      {tipoBusca === 'subscriptions' || tipoBusca === 'all' ? (
+                        <div className="flex flex-col gap-2">
+                          <label className="text-sm font-semibold text-[#181811] dark:text-white">Status</label>
+                          <select
+                            value={filtrosAvancados.status}
+                            onChange={(e) => setFiltrosAvancados({ ...filtrosAvancados, status: e.target.value })}
+                            className="h-10 px-3 rounded-lg bg-white dark:bg-[#1a190b] border border-[#e6e6db] dark:border-[#3a392a] text-[#181811] dark:text-white focus:border-primary focus:ring-0"
+                          >
+                            <option value="">Todos</option>
+                            <option value="active">Ativo</option>
+                            <option value="canceled">Cancelado</option>
+                            <option value="past_due">Vencido</option>
+                            <option value="unpaid">Não Pago</option>
+                          </select>
+                        </div>
+                      ) : null}
+                      <div className="flex flex-col gap-2">
+                        <label className="text-sm font-semibold text-[#181811] dark:text-white">Data Inicial</label>
+                        <input
+                          type="date"
+                          value={filtrosAvancados.startDate}
+                          onChange={(e) => setFiltrosAvancados({ ...filtrosAvancados, startDate: e.target.value })}
+                          className="h-10 px-3 rounded-lg bg-white dark:bg-[#1a190b] border border-[#e6e6db] dark:border-[#3a392a] text-[#181811] dark:text-white focus:border-primary focus:ring-0"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <label className="text-sm font-semibold text-[#181811] dark:text-white">Data Final</label>
+                        <input
+                          type="date"
+                          value={filtrosAvancados.endDate}
+                          onChange={(e) => setFiltrosAvancados({ ...filtrosAvancados, endDate: e.target.value })}
+                          className="h-10 px-3 rounded-lg bg-white dark:bg-[#1a190b] border border-[#e6e6db] dark:border-[#3a392a] text-[#181811] dark:text-white focus:border-primary focus:ring-0"
+                        />
+                      </div>
+                      {(tipoBusca === 'payments' || tipoBusca === 'all') && (
+                        <>
+                          <div className="flex flex-col gap-2">
+                            <label className="text-sm font-semibold text-[#181811] dark:text-white">Valor Mínimo</label>
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={filtrosAvancados.minAmount}
+                              onChange={(e) => setFiltrosAvancados({ ...filtrosAvancados, minAmount: e.target.value })}
+                              className="h-10 px-3 rounded-lg bg-white dark:bg-[#1a190b] border border-[#e6e6db] dark:border-[#3a392a] text-[#181811] dark:text-white focus:border-primary focus:ring-0"
+                              placeholder="0.00"
+                            />
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <label className="text-sm font-semibold text-[#181811] dark:text-white">Valor Máximo</label>
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={filtrosAvancados.maxAmount}
+                              onChange={(e) => setFiltrosAvancados({ ...filtrosAvancados, maxAmount: e.target.value })}
+                              className="h-10 px-3 rounded-lg bg-white dark:bg-[#1a190b] border border-[#e6e6db] dark:border-[#3a392a] text-[#181811] dark:text-white focus:border-primary focus:ring-0"
+                              placeholder="0.00"
+                            />
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Histórico de Buscas */}
+                  {historicoBuscas.length > 0 && !resultadosBusca && (
+                    <div className="flex flex-col gap-2">
+                      <p className="text-sm font-semibold text-[#8c8b5f] dark:text-[#a3a272]">Buscas Recentes</p>
+                      <div className="flex flex-wrap gap-2">
+                        {historicoBuscas.slice(0, 5).map((busca, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => {
+                              setBuscaGlobal(busca.query);
+                              setTipoBusca(busca.type);
+                              realizarBuscaGlobal();
+                            }}
+                            className="px-3 py-1.5 rounded-full bg-[#f8f8f5] dark:bg-[#23220f] border border-[#e6e6db] dark:border-[#3a392a] text-sm text-[#181811] dark:text-white hover:bg-primary hover:text-[#181811] transition-colors flex items-center gap-1"
+                          >
+                            <span className="material-symbols-outlined text-base">history</span>
+                            {busca.query}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {error && (
+                    <div className="text-red-600 dark:text-red-400 text-sm">{error}</div>
+                  )}
+                </div>
+              </div>
+            ) : null}
+
+            {/* Search Section - Busca por CPF */}
+            {modoBusca === 'cpf' && (
             <div className="bg-white rounded-lg shadow-sm border border-[#e6e6db] overflow-hidden">
               <div className="p-6 md:p-10 flex flex-col items-center text-center gap-6">
                 <div className="flex flex-col gap-2 max-w-lg">
@@ -902,9 +1179,188 @@ export default function BuscarCliente() {
                 )}
               </div>
             </div>
+            )}
+
+            {/* Resultados da Busca Global */}
+            {modoBusca === 'global' && resultadosBusca && (
+              <div className="flex flex-col gap-6">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-bold text-[#181811] dark:text-white">
+                    Resultados da Busca ({resultadosBusca.total})
+                  </h2>
+                  <button
+                    onClick={() => {
+                      setResultadosBusca(null);
+                      setBuscaGlobal('');
+                      setError('');
+                    }}
+                    className="text-sm text-[#8c8b5f] dark:text-[#a3a272] hover:text-[#181811] dark:hover:text-white transition-colors flex items-center gap-1"
+                  >
+                    <span className="material-symbols-outlined text-lg">close</span>
+                    Limpar
+                  </button>
+                </div>
+
+                {/* Clientes */}
+                {(tipoBusca === 'all' || tipoBusca === 'customers') && resultadosBusca.customers && resultadosBusca.customers.length > 0 && (
+                  <div className="bg-white dark:bg-[#1a190b] rounded-lg shadow-sm border border-[#e6e6db] dark:border-[#3a392a] p-6">
+                    <h3 className="text-lg font-bold text-[#181811] dark:text-white mb-4 flex items-center gap-2">
+                      <span className="material-symbols-outlined">people</span>
+                      Clientes ({resultadosBusca.customers.length})
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {resultadosBusca.customers.map((clienteItem) => {
+                        const iniciaisCliente = clienteItem.name
+                          ? clienteItem.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
+                          : '??';
+                        return (
+                          <div
+                            key={clienteItem.id}
+                            onClick={() => {
+                              setCpf(clienteItem.cpf);
+                              setModoBusca('cpf');
+                              buscar(clienteItem.cpf);
+                            }}
+                            className="bg-[#f8f8f5] dark:bg-[#23220f] rounded-lg p-4 border border-[#e6e6db] dark:border-[#3a392a] cursor-pointer hover:shadow-md transition-all"
+                          >
+                            <div className="flex items-center gap-4">
+                              <div className="size-12 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center text-lg font-bold text-primary flex-shrink-0">
+                                {iniciaisCliente}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h4 className="text-base font-bold text-[#181811] dark:text-white truncate">
+                                  {clienteItem.name || 'Sem nome'}
+                                </h4>
+                                <p className="text-sm text-[#8c8b5f] dark:text-[#a3a272] truncate">
+                                  {utils.aplicarMascaraCPF(clienteItem.cpf)}
+                                </p>
+                                {clienteItem.email && (
+                                  <p className="text-xs text-[#8c8b5f] dark:text-[#a3a272] truncate mt-1">
+                                    {clienteItem.email}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Assinaturas */}
+                {(tipoBusca === 'all' || tipoBusca === 'subscriptions') && resultadosBusca.subscriptions && resultadosBusca.subscriptions.length > 0 && (
+                  <div className="bg-white dark:bg-[#1a190b] rounded-lg shadow-sm border border-[#e6e6db] dark:border-[#3a392a] p-6">
+                    <h3 className="text-lg font-bold text-[#181811] dark:text-white mb-4 flex items-center gap-2">
+                      <span className="material-symbols-outlined">subscriptions</span>
+                      Assinaturas ({resultadosBusca.subscriptions.length})
+                    </h3>
+                    <div className="space-y-3">
+                      {resultadosBusca.subscriptions.map((sub) => (
+                        <div
+                          key={sub.id}
+                          onClick={() => {
+                            if (sub.customer?.cpf) {
+                              setCpf(sub.customer.cpf);
+                              setModoBusca('cpf');
+                              buscar(sub.customer.cpf);
+                            }
+                          }}
+                          className="flex items-center justify-between p-4 bg-[#f8f8f5] dark:bg-[#23220f] rounded-lg border border-[#e6e6db] dark:border-[#3a392a] cursor-pointer hover:shadow-md transition-all"
+                        >
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h4 className="font-bold text-[#181811] dark:text-white">
+                                {sub.customer?.name || 'Cliente desconhecido'}
+                              </h4>
+                              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                                sub.status === 'active' 
+                                  ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                                  : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                              }`}>
+                                {sub.status === 'active' ? 'Ativo' : sub.status}
+                              </span>
+                            </div>
+                            <p className="text-sm text-[#8c8b5f] dark:text-[#a3a272]">
+                              {sub.plan?.name || 'Plano desconhecido'} • {utils.formatarMoeda(parseFloat(sub.plan?.price || 0))}
+                            </p>
+                          </div>
+                          <span className="material-symbols-outlined text-[#8c8b5f] dark:text-[#a3a272]">chevron_right</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Pagamentos */}
+                {(tipoBusca === 'all' || tipoBusca === 'payments') && resultadosBusca.payments && resultadosBusca.payments.length > 0 && (
+                  <div className="bg-white dark:bg-[#1a190b] rounded-lg shadow-sm border border-[#e6e6db] dark:border-[#3a392a] p-6">
+                    <h3 className="text-lg font-bold text-[#181811] dark:text-white mb-4 flex items-center gap-2">
+                      <span className="material-symbols-outlined">payments</span>
+                      Pagamentos ({resultadosBusca.payments.length})
+                    </h3>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="border-b border-[#e6e6db] dark:border-[#3a392a]">
+                            <th className="py-3 px-4 text-xs font-bold uppercase tracking-wider text-[#8c8b5f] dark:text-gray-500">Cliente</th>
+                            <th className="py-3 px-4 text-xs font-bold uppercase tracking-wider text-[#8c8b5f] dark:text-gray-500">Data</th>
+                            <th className="py-3 px-4 text-xs font-bold uppercase tracking-wider text-[#8c8b5f] dark:text-gray-500">Plano</th>
+                            <th className="py-3 px-4 text-xs font-bold uppercase tracking-wider text-[#8c8b5f] dark:text-gray-500 text-right">Valor</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[#e6e6db] dark:divide-[#3a392a]">
+                          {resultadosBusca.payments.map((payment) => (
+                            <tr
+                              key={payment.id}
+                              onClick={() => {
+                                if (payment.customer?.cpf) {
+                                  setCpf(payment.customer.cpf);
+                                  setModoBusca('cpf');
+                                  buscar(payment.customer.cpf);
+                                }
+                              }}
+                              className="hover:bg-[#f8f8f5] dark:hover:bg-[#23220f] cursor-pointer transition-colors"
+                            >
+                              <td className="py-3 px-4">
+                                <p className="font-semibold text-[#181811] dark:text-white">
+                                  {payment.customer?.name || 'Cliente desconhecido'}
+                                </p>
+                                <p className="text-xs text-[#8c8b5f] dark:text-[#a3a272]">
+                                  {payment.customer?.cpf ? utils.aplicarMascaraCPF(payment.customer.cpf) : 'N/A'}
+                                </p>
+                              </td>
+                              <td className="py-3 px-4 text-sm text-[#8c8b5f] dark:text-[#a3a272]">
+                                {utils.formatarData(payment.payment_date)}
+                              </td>
+                              <td className="py-3 px-4 text-sm text-[#8c8b5f] dark:text-[#a3a272]">
+                                {payment.plan?.name || 'N/A'}
+                              </td>
+                              <td className="py-3 px-4 text-sm font-bold text-[#181811] dark:text-white text-right">
+                                {utils.formatarMoeda(parseFloat(payment.amount))}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* Nenhum resultado */}
+                {resultadosBusca.total === 0 && (
+                  <div className="bg-white dark:bg-[#1a190b] rounded-lg p-8 border border-[#e6e6db] dark:border-[#3a392a] text-center">
+                    <span className="material-symbols-outlined text-4xl text-[#8c8b5f] dark:text-[#a3a272] mb-2">
+                      search_off
+                    </span>
+                    <p className="text-[#8c8b5f] dark:text-[#a3a272]">Nenhum resultado encontrado</p>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Lista de Clientes */}
-            {!cliente && !mostrarDetalhes && (
+            {modoBusca === 'cpf' && !cliente && !mostrarDetalhes && (
               <div className="flex flex-col gap-6">
                 <div className="flex items-center justify-between">
                   <h2 className="text-xl font-bold text-[#181811] dark:text-white">
