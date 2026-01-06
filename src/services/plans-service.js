@@ -5,10 +5,12 @@
 
 const { supabaseAdmin, isAdminConfigured } = require('../config/supabase');
 const { globalLogger } = require('../utils/logger');
+const { createProductAndPriceFromPlan, isConfigured: isStripeConfigured } = require('./stripe-products-service');
 
 /**
  * Lista todos os planos (ativos e inativos)
  * @param {object} options - Opções de filtro
+ * @param {string} [options.barbershop_id] - Filtrar por barbearia
  * @returns {Promise<Array>} Lista de planos
  */
 async function getAllPlans(options = {}) {
@@ -21,6 +23,10 @@ async function getAllPlans(options = {}) {
       .from('plans')
       .select('*')
       .order('price', { ascending: true });
+
+    if (options.barbershop_id) {
+      query = query.eq('barbershop_id', options.barbershop_id);
+    }
 
     if (options.active !== undefined) {
       query = query.eq('active', options.active);
@@ -78,6 +84,7 @@ async function getPlanById(planId) {
 /**
  * Cria um novo plano
  * @param {object} planData - Dados do plano
+ * @param {string} planData.barbershop_id - ID da barbearia (obrigatório)
  * @returns {Promise<object>} Plano criado
  */
 async function createPlan(planData) {
@@ -86,9 +93,13 @@ async function createPlan(planData) {
   }
 
   try {
-    const { name, type, price, currency = 'BRL', description, active = true } = planData;
+    const { name, type, price, currency = 'BRL', description, active = true, stripe_price_id, barbershop_id } = planData;
 
     // Validações
+    if (!barbershop_id) {
+      throw new Error('barbershop_id é obrigatório');
+    }
+
     if (!name || !type || price === undefined) {
       throw new Error('Nome, tipo e preço são obrigatórios');
     }
@@ -101,15 +112,72 @@ async function createPlan(planData) {
       throw new Error('Preço não pode ser negativo');
     }
 
+    // Validar se barbearia tem conta Stripe Connect configurada
+    const { data: barbershop, error: barbershopError } = await supabaseAdmin
+      .from('barbershops')
+      .select('id, nome, stripe_account_id, stripe_onboarding_completed')
+      .eq('id', barbershop_id)
+      .single();
+
+    if (barbershopError || !barbershop) {
+      throw new Error('Barbearia não encontrada');
+    }
+
+    if (!barbershop.stripe_account_id) {
+      throw new Error('Antes de criar planos, conecte sua conta de pagamento (Stripe). Acesse a página "Pagamentos" e clique em "Conectar pagamentos".');
+    }
+
+    if (!barbershop.stripe_onboarding_completed) {
+      throw new Error('Onboarding do Stripe não foi concluído. Complete o processo de conexão na página "Pagamentos".');
+    }
+
+    // Criar produto e preço no Stripe automaticamente (se Stripe estiver configurado)
+    // Apenas se stripe_price_id não foi fornecido manualmente
+    let stripeProductId = null;
+    let stripePriceId = stripe_price_id || null;
+
+    if (!stripe_price_id && isStripeConfigured()) {
+      try {
+        const stripeResult = await createProductAndPriceFromPlan({
+          ...planData,
+          stripeAccount: barbershop.stripe_account_id, // Criar na conta Connect da barbearia
+        });
+
+        if (stripeResult && stripeResult.priceId) {
+          stripeProductId = stripeResult.productId;
+          stripePriceId = stripeResult.priceId;
+
+          globalLogger.info('Produto e preço criados automaticamente no Stripe Connect', {
+            barbershopId: barbershop_id,
+            barbershopName: barbershop.nome,
+            stripeAccountId: barbershop.stripe_account_id,
+            productId: stripeResult.productId,
+            priceId: stripeResult.priceId,
+          });
+        }
+      } catch (stripeError) {
+        // Falhar se não conseguir criar no Stripe (regra de negócio)
+        globalLogger.error('Erro ao criar produto no Stripe Connect', {
+          barbershopId: barbershop_id,
+          error: stripeError.message,
+        });
+        throw new Error(`Erro ao criar produto no Stripe: ${stripeError.message}`);
+      }
+    }
+
+    // Criar plano no banco
     const { data, error } = await supabaseAdmin
       .from('plans')
       .insert({
+        barbershop_id,
         name,
         type,
         price: parseFloat(price),
         currency,
         description: description || null,
-        active: active !== undefined ? active : true
+        active: active !== undefined ? active : true,
+        stripe_product_id: stripeProductId,
+        stripe_price_id: stripePriceId,
       })
       .select()
       .single();
@@ -120,7 +188,10 @@ async function createPlan(planData) {
 
     globalLogger.info('Plano criado com sucesso', {
       planId: data.id,
-      name: data.name
+      barbershopId: barbershop_id,
+      name: data.name,
+      stripe_product_id: data.stripe_product_id || 'não configurado',
+      stripe_price_id: data.stripe_price_id || 'não configurado',
     });
 
     return data;
@@ -169,6 +240,8 @@ async function updatePlan(planId, updates) {
     if (updates.currency !== undefined) updateData.currency = updates.currency;
     if (updates.description !== undefined) updateData.description = updates.description;
     if (updates.active !== undefined) updateData.active = updates.active;
+    if (updates.stripe_product_id !== undefined) updateData.stripe_product_id = updates.stripe_product_id || null;
+    if (updates.stripe_price_id !== undefined) updateData.stripe_price_id = updates.stripe_price_id || null;
 
     if (Object.keys(updateData).length === 0) {
       throw new Error('Nenhum campo para atualizar');
