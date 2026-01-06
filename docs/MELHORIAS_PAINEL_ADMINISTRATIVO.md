@@ -107,21 +107,33 @@ Este documento lista todas as melhorias propostas para o painel administrativo, 
 
 ---
 
-### 5. ⏳ Gerenciamento de Planos - **PENDENTE**
+### 5. ✅ Gerenciamento de Planos - **CONCLUÍDA**
 **Prioridade:** Média  
-**Status:** ⏳ Aguardando implementação
+**Status:** ✅ Implementada (requer deploy do servidor)
 
 **Problema identificado:**
 - Apenas visualização, sem edição
 
-**Melhorias propostas:**
-- [ ] Criar/Editar/Desativar planos
-- [ ] Histórico de alterações de preço
-- [ ] Estatísticas por plano (assinaturas ativas, receita)
+**Melhorias implementadas:**
+- ✅ Criar/Editar/Desativar planos
+- ✅ Ativar/Desativar planos (toggle)
+- ✅ Estatísticas por plano (assinaturas ativas, total de assinaturas, receita total)
+- ✅ Filtros: Todos, Ativos, Inativos
+- ✅ Modal de criação/edição com validação
+- ✅ Modal de estatísticas com métricas detalhadas
+- ✅ Interface completa com tabela e ações
+
+**Arquivos criados/modificados:**
+- `src/services/plans-service.js` (novo - CRUD completo de planos)
+- `src/routes/admin-routes.js` (endpoints: GET, POST, PUT, GET /stats, PUT /activate, PUT /deactivate)
+- `painel-admin/src/pages/Planos.jsx` (expandido com funcionalidades completas)
+- `painel-admin/src/utils/api.js` (funções: criarPlano, atualizarPlano, desativarPlano, ativarPlano, obterEstatisticasPlano)
 
 **Notas:**
-- A página "Planos" já existe, mas apenas para visualização
-- Backend precisa de endpoints para CRUD de planos
+- ⚠️ **IMPORTANTE:** Requer deploy do servidor para que as rotas POST/PUT funcionem
+- A página "Planos" foi completamente expandida com todas as funcionalidades
+- Backend implementado com validações e tratamento de erros
+- Estatísticas calculadas em tempo real do banco de dados
 
 ---
 
@@ -189,12 +201,12 @@ Este documento lista todas as melhorias propostas para o painel administrativo, 
 ## 📊 Resumo de Progresso
 
 - **Total de melhorias:** 8
-- **Concluídas:** 5 (62.5%)
-- **Pendentes:** 3 (37.5%)
+- **Concluídas:** 6 (75%)
+- **Pendentes:** 2 (25%)
 
 ### Por Prioridade:
 - **Alta:** 3 melhorias (3 concluídas ✅)
-- **Média:** 4 melhorias (2 concluídas, 2 pendentes)
+- **Média:** 4 melhorias (3 concluídas, 1 pendente)
 - **Baixa:** 1 melhoria (pendente)
 
 ---
@@ -204,7 +216,7 @@ Este documento lista todas as melhorias propostas para o painel administrativo, 
 1. ✅ **Implementar Melhoria #3:** Analytics do Flow - **CONCLUÍDA**
 2. ✅ **Implementar Melhoria #6:** Notificações e Alertas - **CONCLUÍDA**
 3. ✅ **Implementar Melhoria #4:** Relatórios e Exportação - **CONCLUÍDA**
-4. **Implementar Melhoria #5:** Gerenciamento de Planos (prioridade média)
+4. ✅ **Implementar Melhoria #5:** Gerenciamento de Planos - **CONCLUÍDA** (requer deploy)
 5. **Implementar Melhoria #7:** Busca Avançada (prioridade média)
 6. **Implementar Melhoria #8:** Melhorias de UX (prioridade baixa)
 

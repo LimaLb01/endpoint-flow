@@ -180,9 +180,65 @@ export const api = {
   /**
    * Listar planos
    */
-  listarPlanos: async () => {
-    const data = await apiRequest('/admin/plans');
-    return data.plans || [];
+  listarPlanos: async (active) => {
+    const params = new URLSearchParams();
+    if (active !== undefined) params.append('active', active);
+    const data = await apiRequest(`/admin/plans?${params.toString()}`);
+    return data?.plans || [];
+  },
+
+  /**
+   * Obter plano por ID
+   */
+  obterPlano: async (planId) => {
+    const data = await apiRequest(`/admin/plans/${planId}`);
+    return data?.plan || null;
+  },
+
+  /**
+   * Criar plano
+   */
+  criarPlano: async (dados) => {
+    return await apiRequest('/admin/plans', {
+      method: 'POST',
+      body: JSON.stringify(dados)
+    });
+  },
+
+  /**
+   * Atualizar plano
+   */
+  atualizarPlano: async (planId, dados) => {
+    return await apiRequest(`/admin/plans/${planId}`, {
+      method: 'PUT',
+      body: JSON.stringify(dados)
+    });
+  },
+
+  /**
+   * Desativar plano
+   */
+  desativarPlano: async (planId) => {
+    return await apiRequest(`/admin/plans/${planId}/deactivate`, {
+      method: 'PUT'
+    });
+  },
+
+  /**
+   * Ativar plano
+   */
+  ativarPlano: async (planId) => {
+    return await apiRequest(`/admin/plans/${planId}/activate`, {
+      method: 'PUT'
+    });
+  },
+
+  /**
+   * Obter estatísticas do plano
+   */
+  obterEstatisticasPlano: async (planId) => {
+    const data = await apiRequest(`/admin/plans/${planId}/stats`);
+    return data || null;
   },
   
   /**

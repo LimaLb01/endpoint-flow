@@ -1,0 +1,343 @@
+/**
+ * Serviço de Gerenciamento de Planos
+ * Gerencia operações CRUD de planos no Supabase
+ */
+
+const { supabaseAdmin, isAdminConfigured } = require('../config/supabase');
+const { globalLogger } = require('../utils/logger');
+
+/**
+ * Lista todos os planos (ativos e inativos)
+ * @param {object} options - Opções de filtro
+ * @returns {Promise<Array>} Lista de planos
+ */
+async function getAllPlans(options = {}) {
+  if (!isAdminConfigured()) {
+    throw new Error('Supabase Admin não configurado');
+  }
+
+  try {
+    let query = supabaseAdmin
+      .from('plans')
+      .select('*')
+      .order('price', { ascending: true });
+
+    if (options.active !== undefined) {
+      query = query.eq('active', options.active);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      throw error;
+    }
+
+    return data || [];
+  } catch (error) {
+    globalLogger.error('Erro ao listar planos', {
+      error: error.message
+    });
+    throw error;
+  }
+}
+
+/**
+ * Busca um plano por ID
+ * @param {string} planId - ID do plano
+ * @returns {Promise<object|null>} Plano encontrado ou null
+ */
+async function getPlanById(planId) {
+  if (!isAdminConfigured()) {
+    throw new Error('Supabase Admin não configurado');
+  }
+
+  try {
+    const { data, error } = await supabaseAdmin
+      .from('plans')
+      .select('*')
+      .eq('id', planId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return null;
+      }
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    globalLogger.error('Erro ao buscar plano', {
+      error: error.message,
+      planId
+    });
+    throw error;
+  }
+}
+
+/**
+ * Cria um novo plano
+ * @param {object} planData - Dados do plano
+ * @returns {Promise<object>} Plano criado
+ */
+async function createPlan(planData) {
+  if (!isAdminConfigured()) {
+    throw new Error('Supabase Admin não configurado');
+  }
+
+  try {
+    const { name, type, price, currency = 'BRL', description, active = true } = planData;
+
+    // Validações
+    if (!name || !type || price === undefined) {
+      throw new Error('Nome, tipo e preço são obrigatórios');
+    }
+
+    if (!['monthly', 'yearly', 'one_time'].includes(type)) {
+      throw new Error('Tipo inválido. Deve ser: monthly, yearly ou one_time');
+    }
+
+    if (parseFloat(price) < 0) {
+      throw new Error('Preço não pode ser negativo');
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from('plans')
+      .insert({
+        name,
+        type,
+        price: parseFloat(price),
+        currency,
+        description: description || null,
+        active: active !== undefined ? active : true
+      })
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    globalLogger.info('Plano criado com sucesso', {
+      planId: data.id,
+      name: data.name
+    });
+
+    return data;
+  } catch (error) {
+    globalLogger.error('Erro ao criar plano', {
+      error: error.message
+    });
+    throw error;
+  }
+}
+
+/**
+ * Atualiza um plano existente
+ * @param {string} planId - ID do plano
+ * @param {object} updates - Dados para atualizar
+ * @returns {Promise<object>} Plano atualizado
+ */
+async function updatePlan(planId, updates) {
+  if (!isAdminConfigured()) {
+    throw new Error('Supabase Admin não configurado');
+  }
+
+  try {
+    // Verificar se o plano existe
+    const existingPlan = await getPlanById(planId);
+    if (!existingPlan) {
+      throw new Error('Plano não encontrado');
+    }
+
+    // Preparar dados para atualização
+    const updateData = {};
+
+    if (updates.name !== undefined) updateData.name = updates.name;
+    if (updates.type !== undefined) {
+      if (!['monthly', 'yearly', 'one_time'].includes(updates.type)) {
+        throw new Error('Tipo inválido. Deve ser: monthly, yearly ou one_time');
+      }
+      updateData.type = updates.type;
+    }
+    if (updates.price !== undefined) {
+      if (parseFloat(updates.price) < 0) {
+        throw new Error('Preço não pode ser negativo');
+      }
+      updateData.price = parseFloat(updates.price);
+    }
+    if (updates.currency !== undefined) updateData.currency = updates.currency;
+    if (updates.description !== undefined) updateData.description = updates.description;
+    if (updates.active !== undefined) updateData.active = updates.active;
+
+    if (Object.keys(updateData).length === 0) {
+      throw new Error('Nenhum campo para atualizar');
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from('plans')
+      .update(updateData)
+      .eq('id', planId)
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    globalLogger.info('Plano atualizado com sucesso', {
+      planId,
+      updates: Object.keys(updateData)
+    });
+
+    return data;
+  } catch (error) {
+    globalLogger.error('Erro ao atualizar plano', {
+      error: error.message,
+      planId
+    });
+    throw error;
+  }
+}
+
+/**
+ * Desativa um plano (soft delete)
+ * @param {string} planId - ID do plano
+ * @returns {Promise<object>} Plano desativado
+ */
+async function deactivatePlan(planId) {
+  if (!isAdminConfigured()) {
+    throw new Error('Supabase Admin não configurado');
+  }
+
+  try {
+    return await updatePlan(planId, { active: false });
+  } catch (error) {
+    globalLogger.error('Erro ao desativar plano', {
+      error: error.message,
+      planId
+    });
+    throw error;
+  }
+}
+
+/**
+ * Ativa um plano
+ * @param {string} planId - ID do plano
+ * @returns {Promise<object>} Plano ativado
+ */
+async function activatePlan(planId) {
+  if (!isAdminConfigured()) {
+    throw new Error('Supabase Admin não configurado');
+  }
+
+  try {
+    return await updatePlan(planId, { active: true });
+  } catch (error) {
+    globalLogger.error('Erro ao ativar plano', {
+      error: error.message,
+      planId
+    });
+    throw error;
+  }
+}
+
+/**
+ * Obtém estatísticas de um plano
+ * @param {string} planId - ID do plano
+ * @returns {Promise<object>} Estatísticas do plano
+ */
+async function getPlanStats(planId) {
+  if (!isAdminConfigured()) {
+    throw new Error('Supabase Admin não configurado');
+  }
+
+  try {
+    // Buscar plano
+    const plan = await getPlanById(planId);
+    if (!plan) {
+      throw new Error('Plano não encontrado');
+    }
+
+    // Assinaturas ativas
+    const { count: activeSubscriptions, error: activeError } = await supabaseAdmin
+      .from('subscriptions')
+      .select('*', { count: 'exact', head: true })
+      .eq('plan_id', planId)
+      .eq('status', 'active');
+
+    if (activeError) {
+      throw activeError;
+    }
+
+    // Total de assinaturas (todas)
+    const { count: totalSubscriptions, error: totalError } = await supabaseAdmin
+      .from('subscriptions')
+      .select('*', { count: 'exact', head: true })
+      .eq('plan_id', planId);
+
+    if (totalError) {
+      throw totalError;
+    }
+
+    // Receita total (pagamentos confirmados)
+    const { data: payments, error: paymentsError } = await supabaseAdmin
+      .from('manual_payments')
+      .select('amount')
+      .eq('plan_id', planId)
+      .eq('status', 'confirmed');
+
+    const { data: stripePayments, error: stripeError } = await supabaseAdmin
+      .from('payments')
+      .select('amount')
+      .eq('status', 'succeeded');
+
+    // Filtrar pagamentos Stripe por assinatura do plano
+    let stripeRevenue = 0;
+    if (stripePayments && !stripeError) {
+      const { data: subscriptions } = await supabaseAdmin
+        .from('subscriptions')
+        .select('id')
+        .eq('plan_id', planId);
+
+      const subscriptionIds = subscriptions?.map(s => s.id) || [];
+      
+      for (const payment of stripePayments) {
+        if (subscriptionIds.includes(payment.subscription_id)) {
+          stripeRevenue += parseFloat(payment.amount || 0);
+        }
+      }
+    }
+
+    const manualRevenue = payments?.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0) || 0;
+    const totalRevenue = manualRevenue + stripeRevenue;
+
+    return {
+      plan,
+      stats: {
+        activeSubscriptions: activeSubscriptions || 0,
+        totalSubscriptions: totalSubscriptions || 0,
+        totalRevenue,
+        manualRevenue,
+        stripeRevenue
+      }
+    };
+  } catch (error) {
+    globalLogger.error('Erro ao obter estatísticas do plano', {
+      error: error.message,
+      planId
+    });
+    throw error;
+  }
+}
+
+module.exports = {
+  getAllPlans,
+  getPlanById,
+  createPlan,
+  updatePlan,
+  deactivatePlan,
+  activatePlan,
+  getPlanStats
+};
+

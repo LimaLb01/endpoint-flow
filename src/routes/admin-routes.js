@@ -17,6 +17,7 @@ const { listAppointments, cancelAppointment } = require('../services/calendar-se
 const { getAllBarbers } = require('../config/branches');
 const { getAdminNotifications } = require('../services/admin-notifications-service');
 const { getFinancialReport, exportCustomers, exportPayments, getSubscriptionsReport, getAppointmentsReport } = require('../services/reports-service');
+const { getAllPlans, getPlanById, createPlan, updatePlan, deactivatePlan, activatePlan, getPlanStats } = require('../services/plans-service');
 
 /**
  * GET /api/admin/customers
@@ -518,26 +519,240 @@ router.put('/subscriptions/:id/cancel', requireAuth, async (req, res) => {
 
 /**
  * GET /api/admin/plans
- * Lista planos disponíveis
+ * Lista planos disponíveis (ativos e inativos)
  */
 router.get('/plans', requireAuth, async (req, res) => {
+  const logger = req.requestId ? createRequestLogger(req.requestId) : globalLogger;
+  
   try {
-    const { data, error } = await supabaseAdmin
-      .from('plans')
-      .select('*')
-      .eq('active', true)
-      .order('price', { ascending: true });
+    const { active } = req.query;
+    const options = {};
+    if (active !== undefined) {
+      options.active = active === 'true';
+    }
     
-    if (error) {
-      throw error;
+    const plans = await getAllPlans(options);
+    
+    logger.info('Planos listados', {
+      total: plans.length,
+      active: options.active
+    });
+    
+    return res.json({
+      success: true,
+      plans
+    });
+  } catch (error) {
+    logger.error('Erro ao listar planos', {
+      error: error.message
+    });
+    return res.status(500).json({
+      error: 'Erro ao listar planos',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/admin/plans
+ * Cria um novo plano
+ */
+router.post('/plans', requireAuth, async (req, res) => {
+  const logger = req.requestId ? createRequestLogger(req.requestId) : globalLogger;
+  
+  try {
+    const { name, type, price, currency, description, active } = req.body;
+    
+    const plan = await createPlan({
+      name,
+      type,
+      price,
+      currency,
+      description,
+      active
+    });
+    
+    logger.info('Plano criado', {
+      planId: plan.id,
+      name: plan.name
+    });
+    
+    return res.status(201).json({
+      success: true,
+      plan
+    });
+  } catch (error) {
+    logger.error('Erro ao criar plano', {
+      error: error.message
+    });
+    return res.status(400).json({
+      error: 'Erro ao criar plano',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/admin/plans/:id/stats
+ * Obtém estatísticas de um plano
+ * IMPORTANTE: Esta rota deve vir ANTES de /plans/:id para evitar conflito
+ */
+router.get('/plans/:id/stats', requireAuth, async (req, res) => {
+  const logger = req.requestId ? createRequestLogger(req.requestId) : globalLogger;
+  
+  try {
+    const { id } = req.params;
+    
+    const result = await getPlanStats(id);
+    
+    logger.info('Estatísticas do plano obtidas', {
+      planId: id
+    });
+    
+    return res.json({
+      success: true,
+      ...result
+    });
+  } catch (error) {
+    logger.error('Erro ao obter estatísticas do plano', {
+      error: error.message,
+      planId: req.params.id
+    });
+    return res.status(400).json({
+      error: 'Erro ao obter estatísticas do plano',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * PUT /api/admin/plans/:id/deactivate
+ * Desativa um plano
+ * IMPORTANTE: Esta rota deve vir ANTES de /plans/:id para evitar conflito
+ */
+router.put('/plans/:id/deactivate', requireAuth, async (req, res) => {
+  const logger = req.requestId ? createRequestLogger(req.requestId) : globalLogger;
+  
+  try {
+    const { id } = req.params;
+    
+    const plan = await deactivatePlan(id);
+    
+    logger.info('Plano desativado', {
+      planId: id
+    });
+    
+    return res.json({
+      success: true,
+      plan
+    });
+  } catch (error) {
+    logger.error('Erro ao desativar plano', {
+      error: error.message,
+      planId: req.params.id
+    });
+    return res.status(400).json({
+      error: 'Erro ao desativar plano',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * PUT /api/admin/plans/:id/activate
+ * Ativa um plano
+ * IMPORTANTE: Esta rota deve vir ANTES de /plans/:id para evitar conflito
+ */
+router.put('/plans/:id/activate', requireAuth, async (req, res) => {
+  const logger = req.requestId ? createRequestLogger(req.requestId) : globalLogger;
+  
+  try {
+    const { id } = req.params;
+    
+    const plan = await activatePlan(id);
+    
+    logger.info('Plano ativado', {
+      planId: id
+    });
+    
+    return res.json({
+      success: true,
+      plan
+    });
+  } catch (error) {
+    logger.error('Erro ao ativar plano', {
+      error: error.message,
+      planId: req.params.id
+    });
+    return res.status(400).json({
+      error: 'Erro ao ativar plano',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/admin/plans/:id
+ * Obtém detalhes de um plano específico
+ */
+router.get('/plans/:id', requireAuth, async (req, res) => {
+  const logger = req.requestId ? createRequestLogger(req.requestId) : globalLogger;
+  
+  try {
+    const { id } = req.params;
+    const plan = await getPlanById(id);
+    
+    if (!plan) {
+      return res.status(404).json({
+        error: 'Plano não encontrado'
+      });
     }
     
     return res.json({
-      plans: data || []
+      success: true,
+      plan
     });
   } catch (error) {
+    logger.error('Erro ao buscar plano', {
+      error: error.message,
+      planId: req.params.id
+    });
     return res.status(500).json({
-      error: 'Erro ao listar planos',
+      error: 'Erro ao buscar plano',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * PUT /api/admin/plans/:id
+ * Atualiza um plano existente
+ */
+router.put('/plans/:id', requireAuth, async (req, res) => {
+  const logger = req.requestId ? createRequestLogger(req.requestId) : globalLogger;
+  
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+    
+    const plan = await updatePlan(id, updates);
+    
+    logger.info('Plano atualizado', {
+      planId: id,
+      updates: Object.keys(updates)
+    });
+    
+    return res.json({
+      success: true,
+      plan
+    });
+  } catch (error) {
+    logger.error('Erro ao atualizar plano', {
+      error: error.message,
+      planId: req.params.id
+    });
+    return res.status(400).json({
+      error: 'Erro ao atualizar plano',
       message: error.message
     });
   }
