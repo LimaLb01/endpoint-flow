@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api, utils } from '../utils/api';
 import Layout from '../components/Layout';
@@ -44,6 +44,7 @@ export default function BuscarCliente() {
   // Estados para busca global
   const [modoBusca, setModoBusca] = useState('cpf'); // 'cpf' ou 'global'
   const [buscaGlobal, setBuscaGlobal] = useState('');
+  const buscaGlobalInputRef = useRef(null); // Ref para acessar o valor atual do input
   const [tipoBusca, setTipoBusca] = useState('all'); // 'all', 'customers', 'subscriptions', 'payments'
   const [filtrosAvancados, setFiltrosAvancados] = useState({
     status: '',
@@ -258,9 +259,16 @@ export default function BuscarCliente() {
 
   // Busca global
   const realizarBuscaGlobal = async () => {
-    console.log('🔍 Iniciando busca global:', { buscaGlobal: buscaGlobal, tipoBusca: tipoBusca, buscaGlobalLength: buscaGlobal?.length });
+    // Usar ref para obter o valor atual do input (evita problemas de closure)
+    const valorAtual = buscaGlobalInputRef.current?.value || buscaGlobal;
+    console.log('🔍 Iniciando busca global:', { 
+      buscaGlobal: buscaGlobal, 
+      valorAtual: valorAtual,
+      tipoBusca: tipoBusca, 
+      buscaGlobalLength: buscaGlobal?.length 
+    });
     
-    if (!buscaGlobal || (!buscaGlobal.trim() && tipoBusca === 'all')) {
+    if (!valorAtual || (!valorAtual.trim() && tipoBusca === 'all')) {
       console.warn('⚠️ Validação falhou: buscaGlobal vazio e tipoBusca é "all"');
       setError('Digite um termo de busca ou selecione um tipo específico');
       return;
@@ -273,7 +281,7 @@ export default function BuscarCliente() {
     
     try {
       const filters = {
-        query: buscaGlobal.trim(),
+        query: valorAtual.trim(),
         type: tipoBusca,
         limit: 50,
         offset: 0
@@ -291,7 +299,7 @@ export default function BuscarCliente() {
       
       if (data && data.results) {
         setResultadosBusca(data.results);
-        salvarNoHistorico(buscaGlobal, tipoBusca);
+        salvarNoHistorico(valorAtual, tipoBusca);
       } else {
         setResultadosBusca({ customers: [], subscriptions: [], payments: [], total: 0 });
       }
@@ -954,10 +962,12 @@ export default function BuscarCliente() {
               </button>
               <button
                 onClick={() => {
+                  console.log('🔄 Mudando para modo global, buscaGlobal atual:', buscaGlobal);
                   setModoBusca('global');
                   setCliente(null);
                   setCpf('');
                   setError('');
+                  // Não resetar buscaGlobal aqui para manter o valor digitado
                 }}
                 className={`px-6 py-3 font-semibold text-sm transition-colors border-b-2 ${
                   modoBusca === 'global'
@@ -979,10 +989,19 @@ export default function BuscarCliente() {
                     <div className="flex-1 flex items-center rounded-full bg-[#f8f8f5] dark:bg-[#23220f] border border-[#e6e6db] dark:border-[#3a392a] focus-within:border-primary transition-all h-12 px-4">
                       <span className="material-symbols-outlined text-[#8c8b5f] dark:text-[#a3a272] mr-2">search</span>
                       <input
+                        ref={buscaGlobalInputRef}
                         type="text"
                         value={buscaGlobal}
-                        onChange={(e) => setBuscaGlobal(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && realizarBuscaGlobal()}
+                        onChange={(e) => {
+                          console.log('📝 Input onChange:', e.target.value);
+                          setBuscaGlobal(e.target.value);
+                        }}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            console.log('⌨️ Enter pressionado, valor do input:', buscaGlobalInputRef.current?.value);
+                            realizarBuscaGlobal();
+                          }
+                        }}
                         className="flex-1 bg-transparent border-none text-[#181811] dark:text-white placeholder:text-[#8c8b5f]/60 focus:ring-0 h-full"
                         placeholder="Buscar por nome, CPF, email..."
                       />
@@ -998,7 +1017,10 @@ export default function BuscarCliente() {
                       <option value="payments">Pagamentos</option>
                     </select>
                     <button
-                      onClick={realizarBuscaGlobal}
+                      onClick={() => {
+                        console.log('🖱️ Botão clicado, valor do input:', buscaGlobalInputRef.current?.value);
+                        realizarBuscaGlobal();
+                      }}
                       disabled={carregandoBusca}
                       className="h-12 px-6 rounded-full bg-primary text-[#181811] font-bold hover:brightness-95 transition-all flex items-center justify-center gap-2"
                     >
