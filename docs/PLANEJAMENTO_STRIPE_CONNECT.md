@@ -219,17 +219,17 @@ CREATE INDEX idx_subscriptions_barbershop_id ON subscriptions(barbershop_id);
 - [x] **T7.7:** Adicionar botão "Criar Assinatura" quando não houver assinatura ativa
 - [x] **T7.8:** Melhorar tratamento de erros e loading states
 
-### Fase 8: Frontend - Gerenciamento de Assinatura
-- [ ] **T8.1:** Mostrar status da assinatura na tela "Pagamentos"
-- [ ] **T8.2:** Mostrar próxima cobrança
-- [ ] **T8.3:** Botão "Gerenciar pagamento" → Redireciona para Stripe Customer Portal
-- [ ] **T8.4:** Aviso: "Pagamentos processados pelo Stripe"
+### Fase 8: Frontend - Gerenciamento de Assinatura ✅ CONCLUÍDA
+- [x] **T8.1:** Mostrar status da assinatura na tela "Pagamentos"
+- [x] **T8.2:** Mostrar próxima cobrança
+- [x] **T8.3:** Botão "Gerenciar pagamento" → Redireciona para Stripe Customer Portal
+- [x] **T8.4:** Aviso: "Pagamentos processados pelo Stripe"
 
-### Fase 8: Regras de Negócio
-- [ ] **T8.1:** Implementar lógica de `past_due` após falha
-- [ ] **T8.2:** Suspender automações após X dias sem pagamento
-- [ ] **T8.3:** Reativar automaticamente quando pagamento normalizar
-- [ ] **T8.4:** Sincronizar cancelamento do Stripe com painel
+### Fase 8: Regras de Negócio ✅ CONCLUÍDA
+- [x] **T8.1:** Implementar lógica de `past_due` após falha
+- [x] **T8.2:** Suspender automações após X dias sem pagamento (configurável via `DAYS_TO_SUSPEND_BARBERSHOP`, padrão: 7 dias)
+- [x] **T8.3:** Reativar automaticamente quando pagamento normalizar
+- [x] **T8.4:** Sincronizar cancelamento do Stripe com painel
 
 ### Fase 9: Segurança e Validações
 - [ ] **T9.1:** Validar assinatura do webhook Stripe

@@ -378,6 +378,11 @@ async function handleSubscriptionUpdated(stripeSubscription, customerId = null, 
       }
       
       await updateSubscription(subscription.id, updateData);
+      
+      // Verificar e atualizar status da barbearia baseado no status da assinatura
+      if (barbershopId) {
+        await checkAndUpdateBarbershopStatus(barbershopId, updateData.status);
+      }
     }
 
     return { success: true, subscriptionId: subscription?.id };
@@ -401,6 +406,11 @@ async function handleSubscriptionDeleted(stripeSubscription) {
       await updateSubscription(subscription.id, {
         status: 'canceled'
       });
+      
+      // Se for Stripe Connect, verificar se deve suspender barbearia
+      if (subscription.barbershop_id) {
+        await checkAndUpdateBarbershopStatus(subscription.barbershop_id, 'canceled');
+      }
       
       // Buscar dados do cliente e plano para notificação
       const { data: customer } = await supabaseAdmin
@@ -445,6 +455,18 @@ async function handlePaymentSucceeded(invoice) {
       const subscription = await getSubscriptionByStripeId(invoice.subscription);
       
       if (subscription) {
+        // Atualizar status da assinatura para 'active' se estava 'past_due'
+        if (subscription.status === 'past_due' || subscription.status === 'unpaid') {
+          await updateSubscription(subscription.id, {
+            status: 'active'
+          });
+        }
+        
+        // Se for Stripe Connect, verificar se deve reativar barbearia
+        if (subscription.barbershop_id) {
+          await checkAndUpdateBarbershopStatus(subscription.barbershop_id, 'active');
+        }
+        
         // Buscar dados do cliente e plano
         const { data: customer } = await supabaseAdmin
           .from('customers')
@@ -490,6 +512,116 @@ async function handlePaymentSucceeded(invoice) {
 }
 
 /**
+ * Verifica e aplica suspensão/reativação de barbearia baseado no status da assinatura
+ * @param {string} barbershopId - ID da barbearia
+ * @param {string} subscriptionStatus - Status da assinatura
+ * @returns {Promise<void>}
+ */
+async function checkAndUpdateBarbershopStatus(barbershopId, subscriptionStatus) {
+  if (!barbershopId) return;
+
+  try {
+    // Buscar barbearia
+    const { data: barbershop, error: barbershopError } = await supabaseAdmin
+      .from('barbershops')
+      .select('*')
+      .eq('id', barbershopId)
+      .single();
+
+    if (barbershopError || !barbershop) {
+      globalLogger.warn('Barbearia não encontrada para atualização de status', {
+        barbershopId
+      });
+      return;
+    }
+
+    // Buscar assinatura ativa ou past_due da barbearia
+    const { data: subscription } = await supabaseAdmin
+      .from('subscriptions')
+      .select('*')
+      .eq('barbershop_id', barbershopId)
+      .in('status', ['active', 'past_due', 'unpaid'])
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (!subscription) {
+      // Sem assinatura, verificar se deve suspender
+      if (barbershop.status === 'active') {
+        await supabaseAdmin
+          .from('barbershops')
+          .update({ status: 'suspended' })
+          .eq('id', barbershopId);
+        
+        globalLogger.info('Barbearia suspensa por falta de assinatura', {
+          barbershopId
+        });
+      }
+      return;
+    }
+
+    // Verificar se deve suspender (past_due há mais de 7 dias)
+    const DAYS_TO_SUSPEND = parseInt(process.env.DAYS_TO_SUSPEND_BARBERSHOP || '7', 10);
+    const now = new Date();
+    
+    // Calcular dias desde que a assinatura entrou em past_due
+    // Usar current_period_end como referência (quando o período expirou)
+    let daysSincePastDue = 0;
+    if (subscription.status === 'past_due' && subscription.current_period_end) {
+      const periodEnd = new Date(subscription.current_period_end);
+      daysSincePastDue = Math.floor((now - periodEnd) / (1000 * 60 * 60 * 24));
+    } else if (subscription.status === 'unpaid') {
+      // Se está unpaid, considerar como past_due há muito tempo
+      daysSincePastDue = DAYS_TO_SUSPEND + 1;
+    }
+
+    if ((subscription.status === 'past_due' || subscription.status === 'unpaid') && daysSincePastDue >= DAYS_TO_SUSPEND) {
+      // Suspender barbearia após X dias sem pagamento
+      if (barbershop.status !== 'suspended') {
+        await supabaseAdmin
+          .from('barbershops')
+          .update({ status: 'suspended' })
+          .eq('id', barbershopId);
+        
+        globalLogger.warn('Barbearia suspensa por falta de pagamento', {
+          barbershopId,
+          daysSincePastDue,
+          subscriptionId: subscription.id,
+          subscriptionStatus: subscription.status
+        });
+      }
+    } else if (subscription.status === 'active' && barbershop.status === 'suspended') {
+      // Reativar barbearia quando pagamento normalizar
+      await supabaseAdmin
+        .from('barbershops')
+        .update({ status: 'active' })
+        .eq('id', barbershopId);
+      
+      globalLogger.info('Barbearia reativada após pagamento normalizar', {
+        barbershopId,
+        subscriptionId: subscription.id
+      });
+    } else if (subscription.status === 'canceled' && barbershop.status === 'active') {
+      // Suspender se assinatura foi cancelada
+      await supabaseAdmin
+        .from('barbershops')
+        .update({ status: 'suspended' })
+        .eq('id', barbershopId);
+      
+      globalLogger.info('Barbearia suspensa por cancelamento de assinatura', {
+        barbershopId,
+        subscriptionId: subscription.id
+      });
+    }
+  } catch (error) {
+    globalLogger.error('Erro ao verificar status da barbearia', {
+      error: error.message,
+      barbershopId
+    });
+  }
+}
+
+/**
  * Processa invoice.payment_failed
  */
 async function handlePaymentFailed(invoice) {
@@ -502,9 +634,10 @@ async function handlePaymentFailed(invoice) {
           status: 'past_due'
         });
         
-        // Se for Stripe Connect, pode suspender funcionalidades após X dias
-        // (implementar lógica de suspensão futura)
+        // Se for Stripe Connect, verificar se deve suspender barbearia
         if (subscription.barbershop_id) {
+          await checkAndUpdateBarbershopStatus(subscription.barbershop_id, 'past_due');
+          
           globalLogger.warn('Pagamento falhou para assinatura Connect', {
             subscriptionId: subscription.id,
             barbershopId: subscription.barbershop_id,
