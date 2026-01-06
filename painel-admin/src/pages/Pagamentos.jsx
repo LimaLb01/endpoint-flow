@@ -13,6 +13,10 @@ export default function Pagamentos() {
   const [subscription, setSubscription] = useState(null);
   const [barbershopId, setBarbershopId] = useState(null);
   const [redirecting, setRedirecting] = useState(false);
+  const [showPlanModal, setShowPlanModal] = useState(false);
+  const [planos, setPlanos] = useState([]);
+  const [loadingPlanos, setLoadingPlanos] = useState(false);
+  const [checkoutRedirecting, setCheckoutRedirecting] = useState(false);
 
   useEffect(() => {
     carregarDados();
@@ -133,6 +137,81 @@ export default function Pagamentos() {
   const handleVerHistorico = async () => {
     // Redirecionar para portal do Stripe (mesmo que gerenciar cartão)
     await handleGerenciarCartao();
+  };
+
+  const carregarPlanos = async () => {
+    setLoadingPlanos(true);
+    try {
+      const listaPlanos = await api.listarPlanos(true); // Apenas planos ativos
+      setPlanos(listaPlanos || []);
+    } catch (error) {
+      console.error('Erro ao carregar planos:', error);
+      toast.error('Erro ao carregar planos');
+      setPlanos([]);
+    } finally {
+      setLoadingPlanos(false);
+    }
+  };
+
+  const handleCriarAssinatura = async () => {
+    if (!barbershopId) {
+      toast.error('Barbearia não encontrada');
+      return;
+    }
+
+    if (barbershopStatus?.status !== 'active') {
+      toast.error('Conta Stripe não está ativa. Complete o onboarding primeiro.');
+      return;
+    }
+
+    // Carregar planos e abrir modal
+    await carregarPlanos();
+    setShowPlanModal(true);
+  };
+
+  const handleSelecionarPlano = async (plano) => {
+    if (!plano.stripe_price_id) {
+      toast.error('Este plano não possui integração com Stripe. Configure o stripe_price_id primeiro.');
+      return;
+    }
+
+    setCheckoutRedirecting(true);
+    try {
+      // Buscar dados do usuário do localStorage
+      const userStr = localStorage.getItem('user');
+      let customerEmail = 'admin@barbershop.com'; // Fallback
+      let customerCpf = '00000000000'; // Fallback
+
+      if (userStr) {
+        try {
+          const user = JSON.parse(userStr);
+          if (user.email) customerEmail = user.email;
+          // CPF não está no user, manter fallback
+        } catch (e) {
+          console.warn('Erro ao parsear dados do usuário:', e);
+        }
+      }
+
+      const result = await api.criarCheckoutStripeConnect({
+        barbershopId,
+        customerEmail,
+        customerCpf,
+        planId: plano.id,
+        priceId: plano.stripe_price_id,
+      });
+
+      if (result && result.url) {
+        // Redirecionar para Stripe Checkout
+        window.location.href = result.url;
+      } else {
+        toast.error('Erro ao criar sessão de checkout');
+        setCheckoutRedirecting(false);
+      }
+    } catch (error) {
+      console.error('Erro ao criar checkout:', error);
+      toast.error('Erro ao iniciar checkout: ' + (error.message || 'Erro desconhecido'));
+      setCheckoutRedirecting(false);
+    }
   };
 
   const getStatusBadge = (status) => {
@@ -273,11 +352,34 @@ export default function Pagamentos() {
           </div>
         ) : (
           <div className="bg-white dark:bg-[#1a190b] rounded-xl p-6 border border-[#e5e5dc] dark:border-[#3a3928]">
-            <h2 className="text-lg font-semibold text-[#181811] dark:text-white mb-4">
-              Assinatura
-            </h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-[#181811] dark:text-white">
+                Assinatura
+              </h2>
+              {barbershopStatus?.status === 'active' && (
+                <button
+                  onClick={handleCriarAssinatura}
+                  disabled={checkoutRedirecting}
+                  className="px-4 py-2 bg-primary text-neutral-dark rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm"
+                >
+                  {checkoutRedirecting ? (
+                    <>
+                      <span className="animate-spin">⏳</span>
+                      Redirecionando...
+                    </>
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined text-sm">add</span>
+                      Criar Assinatura
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
             <p className="text-sm text-[#8c8b5f] dark:text-[#a3a272]">
-              Nenhuma assinatura ativa no momento.
+              {barbershopStatus?.status === 'active' 
+                ? 'Nenhuma assinatura ativa no momento. Clique em "Criar Assinatura" para começar.'
+                : 'Complete o onboarding do Stripe para criar uma assinatura.'}
             </p>
           </div>
         )}
@@ -332,6 +434,72 @@ export default function Pagamentos() {
             </>
           )}
         </div>
+
+        {/* Modal de Seleção de Plano */}
+        {showPlanModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-[#1a190b] rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-[#e5e5dc] dark:border-[#3a3928]">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-bold text-[#181811] dark:text-white">
+                    Selecionar Plano
+                  </h2>
+                  <button
+                    onClick={() => setShowPlanModal(false)}
+                    className="text-[#8c8b5f] dark:text-[#a3a272] hover:text-[#181811] dark:hover:text-white"
+                  >
+                    <span className="material-symbols-outlined">close</span>
+                  </button>
+                </div>
+
+                {loadingPlanos ? (
+                  <div className="flex items-center justify-center py-8">
+                    <LoadingSkeleton type="card" />
+                  </div>
+                ) : planos.length === 0 ? (
+                  <p className="text-sm text-[#8c8b5f] dark:text-[#a3a272] text-center py-8">
+                    Nenhum plano ativo disponível.
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {planos.map((plano) => (
+                      <button
+                        key={plano.id}
+                        onClick={() => handleSelecionarPlano(plano)}
+                        disabled={!plano.stripe_price_id || checkoutRedirecting}
+                        className="bg-white dark:bg-[#1a190b] border-2 border-[#e5e5dc] dark:border-[#3a3928] rounded-xl p-6 text-left hover:border-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <div className="flex items-start justify-between mb-3">
+                          <h3 className="font-semibold text-[#181811] dark:text-white">
+                            {plano.name}
+                          </h3>
+                          <span className="text-lg font-bold text-primary">
+                            R$ {plano.price?.toFixed(2) || '0.00'}
+                          </span>
+                        </div>
+                        <p className="text-xs text-[#8c8b5f] dark:text-[#a3a272] mb-2">
+                          {plano.type === 'monthly' ? 'Mensal' : 
+                           plano.type === 'yearly' ? 'Anual' : 
+                           'Único'}
+                        </p>
+                        {plano.description && (
+                          <p className="text-sm text-[#8c8b5f] dark:text-[#a3a272] mb-4">
+                            {plano.description}
+                          </p>
+                        )}
+                        {!plano.stripe_price_id && (
+                          <p className="text-xs text-red-500 mt-2">
+                            ⚠️ Plano não configurado no Stripe
+                          </p>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </Layout>
   );
