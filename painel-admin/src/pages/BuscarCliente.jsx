@@ -1025,30 +1025,33 @@ export default function BuscarCliente() {
                       <option value="subscriptions">Assinaturas</option>
                       <option value="payments">Pagamentos</option>
                     </select>
-                    <button
-                      onClick={() => {
-                        console.log('🖱️ Botão clicado, valor do input:', buscaGlobalInputRef.current?.value);
-                        realizarBuscaGlobal();
-                      }}
-                      disabled={carregandoBusca}
-                      className="h-12 px-6 rounded-full bg-primary text-[#181811] font-bold hover:brightness-95 transition-all flex items-center justify-center gap-2"
-                    >
-                      {carregandoBusca ? (
-                        <>
-                          <span className="material-symbols-outlined animate-spin">refresh</span>
-                          Buscando...
-                        </>
-                      ) : (
-                        <>
-                          <span className="material-symbols-outlined">search</span>
-                          Buscar
-                        </>
-                      )}
-                    </button>
-                    <button
-                      onClick={() => setMostrarFiltros(!mostrarFiltros)}
-                      className={`h-12 px-4 rounded-full border font-medium transition-all flex items-center justify-center gap-2 ${
-                        mostrarFiltros
+                    <Tooltip text="Buscar (ou pressione Enter)">
+                      <button
+                        onClick={() => {
+                          console.log('🖱️ Botão clicado, valor do input:', buscaGlobalInputRef.current?.value);
+                          realizarBuscaGlobal();
+                        }}
+                        disabled={carregandoBusca}
+                        className="h-12 px-6 rounded-full bg-primary text-[#181811] font-bold hover:brightness-95 transition-all flex items-center justify-center gap-2 animate-scale-in hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {carregandoBusca ? (
+                          <>
+                            <span className="material-symbols-outlined animate-spin">refresh</span>
+                            Buscando...
+                          </>
+                        ) : (
+                          <>
+                            <span className="material-symbols-outlined">search</span>
+                            Buscar
+                          </>
+                        )}
+                      </button>
+                    </Tooltip>
+                    <Tooltip text="Filtros avançados de busca">
+                      <button
+                        onClick={() => setMostrarFiltros(!mostrarFiltros)}
+                        className={`h-12 px-4 rounded-full border font-medium transition-all flex items-center justify-center gap-2 hover:scale-105 ${
+                          mostrarFiltros
                           ? 'bg-primary text-[#181811] border-primary'
                           : 'bg-white dark:bg-[#1a190b] text-[#181811] dark:text-white border-[#e6e6db] dark:border-[#3a392a]'
                       }`}
