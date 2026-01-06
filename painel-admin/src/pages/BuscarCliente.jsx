@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api, utils } from '../utils/api';
 import Layout from '../components/Layout';
+import { toast } from '../utils/toast';
+import Tooltip from '../components/Tooltip';
 
 export default function BuscarCliente() {
   const [searchParams] = useSearchParams();
@@ -300,8 +302,15 @@ export default function BuscarCliente() {
       if (data && data.results) {
         setResultadosBusca(data.results);
         salvarNoHistorico(valorAtual, tipoBusca);
+        const total = (data.results.customers?.length || 0) + (data.results.subscriptions?.length || 0) + (data.results.payments?.length || 0);
+        if (total > 0) {
+          toast.success(`${total} resultado(s) encontrado(s)`);
+        } else {
+          toast.info('Nenhum resultado encontrado');
+        }
       } else {
         setResultadosBusca({ customers: [], subscriptions: [], payments: [], total: 0 });
+        toast.info('Nenhum resultado encontrado');
       }
     } catch (err) {
       setError(err.message || 'Erro ao realizar busca');
@@ -1458,7 +1467,7 @@ export default function BuscarCliente() {
                                       setTotalClientes(data.count || 0);
                                     }
                                   } catch (err) {
-                                    alert('Erro ao excluir cliente: ' + (err.message || 'Erro desconhecido'));
+                                    toast.error('Erro ao excluir cliente: ' + (err.message || 'Erro desconhecido'));
                                   }
                                 }
                               }}

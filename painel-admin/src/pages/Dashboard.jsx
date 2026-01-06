@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, utils } from '../utils/api';
 import Layout from '../components/Layout';
+import LoadingSkeleton from '../components/LoadingSkeleton';
+import Tooltip from '../components/Tooltip';
 import {
   LineChart,
   Line,
@@ -96,26 +98,36 @@ export default function Dashboard() {
       <div className="p-6 md:p-10 flex flex-col gap-8 max-w-[1600px] mx-auto w-full">
         {/* Ações Rápidas */}
         <div className="flex gap-2 justify-end mb-4">
-          <button
-            onClick={() => navigate('/clientes/buscar')}
-            className="h-10 px-4 rounded-full bg-primary text-[#181811] text-sm font-bold shadow-sm hover:brightness-95 transition-all flex items-center gap-2"
-          >
-            <span className="material-symbols-outlined text-lg">person_add</span>
-            Novo Cliente
-          </button>
-          <button
-            onClick={() => navigate('/pagamentos/registrar')}
-            className="h-10 px-4 rounded-full bg-primary text-[#181811] text-sm font-bold shadow-sm hover:brightness-95 transition-all flex items-center gap-2"
-          >
-            <span className="material-symbols-outlined text-lg">payments</span>
-            Registrar Pagamento
-          </button>
+          <Tooltip text="Criar novo cliente (ou pressione Ctrl+K para buscar)">
+            <button
+              onClick={() => navigate('/clientes/buscar')}
+              className="h-10 px-4 rounded-full bg-primary text-[#181811] text-sm font-bold shadow-sm hover:brightness-95 transition-all flex items-center gap-2 animate-scale-in"
+            >
+              <span className="material-symbols-outlined text-lg">person_add</span>
+              Novo Cliente
+            </button>
+          </Tooltip>
+          <Tooltip text="Registrar um novo pagamento manual">
+            <button
+              onClick={() => navigate('/pagamentos/registrar')}
+              className="h-10 px-4 rounded-full bg-primary text-[#181811] text-sm font-bold shadow-sm hover:brightness-95 transition-all flex items-center gap-2 animate-scale-in"
+            >
+              <span className="material-symbols-outlined text-lg">payments</span>
+              Registrar Pagamento
+            </button>
+          </Tooltip>
         </div>
         {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="flex flex-col items-center gap-4">
-              <span className="material-symbols-outlined animate-spin text-4xl text-primary">refresh</span>
-              <p className="text-[#8c8b5f] dark:text-[#a3a272]">Carregando estatísticas...</p>
+          <div className="space-y-6 animate-fade-in">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
+              {[...Array(4)].map((_, i) => (
+                <LoadingSkeleton key={i} type="card" lines={2} />
+              ))}
+            </div>
+            <LoadingSkeleton type="chart" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <LoadingSkeleton type="card" />
+              <LoadingSkeleton type="card" />
             </div>
           </div>
         ) : error ? (

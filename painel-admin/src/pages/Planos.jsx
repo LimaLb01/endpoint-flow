@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { api, utils } from '../utils/api';
 import Layout from '../components/Layout';
+import LoadingSkeleton from '../components/LoadingSkeleton';
+import Tooltip from '../components/Tooltip';
+import { toast } from '../utils/toast';
 
 export default function Planos() {
   const [planos, setPlanos] = useState([]);
@@ -33,7 +36,7 @@ export default function Planos() {
       setPlanos(listaPlanos || []);
     } catch (error) {
       console.error('Erro ao carregar planos:', error);
-      alert('Erro ao carregar planos: ' + (error.message || 'Erro desconhecido'));
+      toast.error('Erro ao carregar planos: ' + (error.message || 'Erro desconhecido'));
       setPlanos([]);
     } finally {
       setLoading(false);
@@ -87,26 +90,26 @@ export default function Planos() {
         // Atualizar
         const result = await api.atualizarPlano(editingPlan.id, formData);
         if (result?.success) {
-          alert('Plano atualizado com sucesso!');
+          toast.success('Plano atualizado com sucesso!');
           fecharModal();
           carregarPlanos();
         } else {
-          alert('Erro ao atualizar plano: ' + (result?.error || 'Erro desconhecido'));
+          toast.error('Erro ao atualizar plano: ' + (result?.error || 'Erro desconhecido'));
         }
       } else {
         // Criar
         const result = await api.criarPlano(formData);
         if (result?.success) {
-          alert('Plano criado com sucesso!');
+          toast.success('Plano criado com sucesso!');
           fecharModal();
           carregarPlanos();
         } else {
-          alert('Erro ao criar plano: ' + (result?.error || 'Erro desconhecido'));
+          toast.error('Erro ao criar plano: ' + (result?.error || 'Erro desconhecido'));
         }
       }
     } catch (error) {
       console.error('Erro ao salvar plano:', error);
-      alert('Erro ao salvar plano: ' + (error.message || 'Erro desconhecido'));
+      toast.error('Erro ao salvar plano: ' + (error.message || 'Erro desconhecido'));
     }
   };
 
@@ -175,13 +178,15 @@ export default function Planos() {
               Crie, edite e gerencie os planos de assinatura
             </p>
           </div>
-          <button
-            onClick={abrirModalCriar}
-            className="px-6 py-2 bg-primary text-neutral-dark rounded-lg font-semibold hover:opacity-90 transition-opacity flex items-center gap-2"
-          >
-            <span className="material-symbols-outlined">add</span>
-            Novo Plano
-          </button>
+          <Tooltip text="Criar um novo plano de assinatura">
+            <button
+              onClick={abrirModalCriar}
+              className="px-6 py-2 bg-primary text-neutral-dark rounded-lg font-semibold hover:opacity-90 transition-all flex items-center gap-2 animate-scale-in hover:scale-105"
+            >
+              <span className="material-symbols-outlined">add</span>
+              Novo Plano
+            </button>
+          </Tooltip>
         </div>
 
         {/* Filtros */}
@@ -219,10 +224,8 @@ export default function Planos() {
         </div>
 
         {loading ? (
-          <div className="text-center py-8">
-            <span className="material-symbols-outlined animate-spin text-primary text-4xl">
-              refresh
-            </span>
+          <div className="space-y-4 animate-fade-in">
+            <LoadingSkeleton type="table" lines={5} />
           </div>
         ) : (
           <div className="bg-white dark:bg-[#1a190b] rounded-xl border border-[#f0f0eb] dark:border-[#2e2d1a] overflow-hidden">
@@ -278,25 +281,27 @@ export default function Planos() {
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center justify-end gap-2">
-                            <button
-                              onClick={() => carregarEstatisticas(plano.id)}
-                              className="p-2 rounded-lg hover:bg-neutral-light dark:hover:bg-[#2e2d1a] transition-colors"
-                              title="Ver estatísticas"
-                            >
-                              <span className="material-symbols-outlined text-[#8c8b5f] dark:text-[#a3a272]">bar_chart</span>
-                            </button>
-                            <button
-                              onClick={() => abrirModalEditar(plano)}
-                              className="p-2 rounded-lg hover:bg-neutral-light dark:hover:bg-[#2e2d1a] transition-colors"
-                              title="Editar"
-                            >
-                              <span className="material-symbols-outlined text-[#8c8b5f] dark:text-[#a3a272]">edit</span>
-                            </button>
-                            <button
-                              onClick={() => handleToggleActive(plano)}
-                              className="p-2 rounded-lg hover:bg-neutral-light dark:hover:bg-[#2e2d1a] transition-colors"
-                              title={plano.active ? 'Desativar' : 'Ativar'}
-                            >
+                            <Tooltip text="Ver estatísticas do plano">
+                              <button
+                                onClick={() => carregarEstatisticas(plano.id)}
+                                className="p-2 rounded-lg hover:bg-neutral-light dark:hover:bg-[#2e2d1a] transition-all hover:scale-110"
+                              >
+                                <span className="material-symbols-outlined text-[#8c8b5f] dark:text-[#a3a272]">bar_chart</span>
+                              </button>
+                            </Tooltip>
+                            <Tooltip text="Editar plano">
+                              <button
+                                onClick={() => abrirModalEditar(plano)}
+                                className="p-2 rounded-lg hover:bg-neutral-light dark:hover:bg-[#2e2d1a] transition-all hover:scale-110"
+                              >
+                                <span className="material-symbols-outlined text-[#8c8b5f] dark:text-[#a3a272]">edit</span>
+                              </button>
+                            </Tooltip>
+                            <Tooltip text={plano.active ? 'Desativar plano' : 'Ativar plano'}>
+                              <button
+                                onClick={() => handleToggleActive(plano)}
+                                className="p-2 rounded-lg hover:bg-neutral-light dark:hover:bg-[#2e2d1a] transition-all hover:scale-110"
+                              >
                               <span className={`material-symbols-outlined ${
                                 plano.active 
                                   ? 'text-red-600' 

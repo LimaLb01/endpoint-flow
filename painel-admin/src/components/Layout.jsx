@@ -177,6 +177,7 @@ export default function Layout({ children }) {
                 </div>
                 <div className="flex items-center gap-4">
                   <Notifications />
+                  {/* Toggle de modo escuro - pode ser adicionado depois se necessário */}
                 </div>
               </header>
               {children}

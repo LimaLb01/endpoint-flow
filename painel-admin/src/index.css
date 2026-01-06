@@ -69,3 +69,96 @@ input[type="date"]::-webkit-datetime-edit-day-field {
 input[type="date"]::-webkit-datetime-edit-year-field {
   display: none !important;
 }
+
+/* Animações de transição suaves */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-slide-in {
+  animation: slideIn 0.3s ease-out;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.2s ease-out;
+}
+
+/* Transições suaves para elementos interativos */
+button, a, input, select, textarea {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Melhorar feedback visual em hover */
+button:hover:not(:disabled), a:hover {
+  transform: translateY(-1px);
+}
+
+button:active:not(:disabled), a:active {
+  transform: translateY(0);
+}
+
+/* Loading skeleton animation */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite linear;
+  background: linear-gradient(
+    to right,
+    #e6e6db 0%,
+    #f0f0e8 20%,
+    #e6e6db 40%,
+    #e6e6db 100%
+  );
+  background-size: 1000px 100%;
+}
+
+.dark .animate-shimmer {
+  background: linear-gradient(
+    to right,
+    #3a392a 0%,
+    #4a4938 20%,
+    #3a392a 40%,
+    #3a392a 100%
+  );
+  background-size: 1000px 100%;
+}
