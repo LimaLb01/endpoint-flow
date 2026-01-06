@@ -270,18 +270,20 @@ CREATE INDEX idx_subscriptions_barbershop_id ON subscriptions(barbershop_id);
   - Serviços implementados e funcionais
   - Documentação de testes criada em `docs/TESTES_FASE_10_STRIPE_CONNECT.md`
 - [ ] **T10.2:** Testes de integração com Stripe (modo teste)
-  - ⚠️ **BLOQUEADO** - Requer configuração de `STRIPE_SECRET_KEY` e `STRIPE_WEBHOOK_SECRET` no Railway
-  - Interface funcionando, mas erro ao conectar Stripe
+  - ✅ Variáveis `STRIPE_SECRET_KEY` e `STRIPE_PUBLISHABLE_KEY` configuradas no Railway
+  - ⚠️ **BLOQUEADO** - Requer habilitação do Stripe Connect na conta Stripe
+  - Erro: "You can only create new accounts if you've signed up for Connect"
+  - Interface funcionando, mas erro ao criar conta Connect
 - [x] **T10.3:** Testes de webhooks
   - Validação de assinatura implementada
   - Handlers de eventos implementados
-  - Requer `STRIPE_WEBHOOK_SECRET` configurado para funcionar
+  - ⚠️ Requer `STRIPE_WEBHOOK_SECRET` configurado (após habilitar Connect e criar webhook)
 - [x] **T10.4:** Deploy em staging
   - Deploy automático via GitHub → Railway configurado
   - Servidor rodando corretamente
-  - ⚠️ Variáveis de ambiente do Stripe precisam ser configuradas
+  - ✅ Variáveis de ambiente do Stripe configuradas
 - [ ] **T10.5:** Deploy em produção
-  - Aguardando conclusão dos testes e configuração das variáveis
+  - Aguardando conclusão dos testes e habilitação do Stripe Connect
 
 ---
 

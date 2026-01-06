@@ -207,13 +207,15 @@ curl -X POST http://localhost:3000/api/webhooks/stripe \
 | Categoria | Status | Observações |
 |-----------|-------|-------------|
 | Testes Unitários | ✅ | Implementado e funcional |
-| Testes de Integração | ⚠️ | **BLOQUEADO** - Requer `STRIPE_SECRET_KEY` no Railway |
-| Testes de Webhooks | ✅ | Implementado (requer `STRIPE_WEBHOOK_SECRET`) |
+| Testes de Integração | ⚠️ | **BLOQUEADO** - Requer Stripe Connect habilitado na conta Stripe |
+| Testes de Webhooks | ⚠️ | Implementado (requer `STRIPE_WEBHOOK_SECRET` após habilitar Connect) |
 | Deploy Staging | ✅ | Automático via GitHub |
 | Deploy Produção | ⏳ | Aguardando aprovação |
-| Interface (@Browser) | ✅ | Funcionando (mas erro ao conectar Stripe) |
+| Interface (@Browser) | ✅ | Funcionando (mas erro ao conectar Stripe - Connect não habilitado) |
 | Banco de Dados (MCP) | ✅ | Estrutura validada |
-| Servidor (MCP Railway) | ✅ | Funcionando (mas Stripe não configurado) |
+| Servidor (MCP Railway) | ✅ | Funcionando |
+| Variáveis Stripe | ✅ | Configuradas no Railway |
+| Stripe Connect | ⚠️ | **NÃO HABILITADO** - Requer habilitação manual no dashboard Stripe |
 
 ---
 
@@ -264,21 +266,36 @@ curl -X POST http://localhost:3000/api/webhooks/stripe \
 
 ## ✅ Próximos Passos (PRIORITÁRIOS)
 
-### 🔴 URGENTE: Configurar Variáveis de Ambiente no Railway
+### 🔴 URGENTE: Habilitar Stripe Connect na Conta Stripe
 
-1. **Obter chaves do Stripe:**
-   - Acessar https://dashboard.stripe.com/apikeys
-   - Copiar `Secret key` (modo teste: `sk_test_...`)
+1. **Acessar Dashboard do Stripe:**
+   - Ir para https://dashboard.stripe.com/connect/overview
+   - Ou acessar Settings → Connect → Overview
+
+2. **Habilitar Stripe Connect:**
+   - Clicar em "Get started" ou "Enable Connect"
+   - Escolher "Express Accounts" (recomendado para marketplace)
+   - Preencher informações necessárias
+   - Aceitar termos e condições
+
+3. **Configurar Webhook (após habilitar Connect):**
    - Acessar https://dashboard.stripe.com/webhooks
-   - Copiar `Signing secret` do webhook endpoint
+   - Adicionar endpoint: `https://whatsapp-flow-endpoint-production.up.railway.app/api/webhooks/stripe`
+   - Selecionar eventos:
+     - `checkout.session.completed`
+     - `customer.subscription.created`
+     - `customer.subscription.updated`
+     - `customer.subscription.deleted`
+     - `invoice.payment_succeeded`
+     - `invoice.payment_failed`
+     - `account.updated`
+   - Copiar `Signing secret` (whsec_...)
 
-2. **Configurar no Railway:**
-   - Via CLI: `railway variables set STRIPE_SECRET_KEY=sk_test_...`
+4. **Configurar Webhook Secret no Railway:**
    - Via CLI: `railway variables set STRIPE_WEBHOOK_SECRET=whsec_...`
-   - Via CLI: `railway variables set FRONTEND_URL=https://seu-frontend-url.com`
    - Ou via painel web do Railway
 
-3. **Verificar deploy:**
+5. **Verificar deploy e testar:**
    - Aguardar redeploy automático
    - Verificar logs do Railway
    - Testar novamente "Conectar Pagamento"
