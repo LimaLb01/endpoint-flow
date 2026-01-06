@@ -1055,10 +1055,11 @@ export default function BuscarCliente() {
                           ? 'bg-primary text-[#181811] border-primary'
                           : 'bg-white dark:bg-[#1a190b] text-[#181811] dark:text-white border-[#e6e6db] dark:border-[#3a392a]'
                       }`}
-                    >
-                      <span className="material-symbols-outlined">tune</span>
-                      Filtros
-                    </button>
+                      >
+                        <span className="material-symbols-outlined">tune</span>
+                        Filtros
+                      </button>
+                    </Tooltip>
                   </div>
 
                   {/* Filtros Avançados */}
