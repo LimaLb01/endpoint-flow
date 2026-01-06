@@ -100,7 +100,11 @@ router.post('/connect/onboard', requireAuth, async (req, res) => {
     }
 
     // Criar link de onboarding
-    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    // Usar URL do frontend baseado no ambiente
+    const baseUrl = process.env.FRONTEND_URL || 
+                    (process.env.NODE_ENV === 'production' 
+                      ? 'https://whatsapp-flow-endpoint-production.up.railway.app' 
+                      : 'http://localhost:5173');
     const returnUrl = `${baseUrl}/pagamentos?onboarding=success`;
     const refreshUrl = `${baseUrl}/pagamentos?onboarding=refresh`;
 

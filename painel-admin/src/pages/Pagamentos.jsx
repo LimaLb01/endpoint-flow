@@ -12,6 +12,7 @@ export default function Pagamentos() {
   const [barbershopStatus, setBarbershopStatus] = useState(null);
   const [subscription, setSubscription] = useState(null);
   const [barbershopId, setBarbershopId] = useState(null);
+  const [redirecting, setRedirecting] = useState(false);
 
   useEffect(() => {
     carregarDados();
@@ -89,6 +90,7 @@ export default function Pagamentos() {
       return;
     }
 
+    setRedirecting(true);
     try {
       const result = await api.iniciarOnboardingStripe(barbershopId);
       
@@ -97,10 +99,12 @@ export default function Pagamentos() {
         window.location.href = result.url;
       } else {
         toast.error('Erro ao gerar link de onboarding');
+        setRedirecting(false);
       }
     } catch (error) {
       console.error('Erro ao iniciar onboarding:', error);
       toast.error('Erro ao iniciar processo de conexão');
+      setRedirecting(false);
     }
   };
 
@@ -189,9 +193,17 @@ export default function Pagamentos() {
                   </p>
                   <button
                     onClick={handleConectarPagamentos}
-                    className="px-6 py-3 bg-primary text-neutral-dark rounded-lg font-semibold hover:opacity-90 transition-opacity"
+                    disabled={redirecting}
+                    className="px-6 py-3 bg-primary text-neutral-dark rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                   >
-                    Conectar Pagamentos
+                    {redirecting ? (
+                      <>
+                        <span className="animate-spin">⏳</span>
+                        Redirecionando...
+                      </>
+                    ) : (
+                      'Conectar Pagamentos'
+                    )}
                   </button>
                 </div>
               ) : barbershopStatus.status === 'pending' ? (
@@ -201,9 +213,17 @@ export default function Pagamentos() {
                   </p>
                   <button
                     onClick={handleConectarPagamentos}
-                    className="px-6 py-3 bg-primary text-neutral-dark rounded-lg font-semibold hover:opacity-90 transition-opacity"
+                    disabled={redirecting}
+                    className="px-6 py-3 bg-primary text-neutral-dark rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                   >
-                    Verificar Status
+                    {redirecting ? (
+                      <>
+                        <span className="animate-spin">⏳</span>
+                        Redirecionando...
+                      </>
+                    ) : (
+                      'Verificar Status'
+                    )}
                   </button>
                 </div>
               ) : (
