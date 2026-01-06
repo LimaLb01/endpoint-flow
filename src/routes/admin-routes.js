@@ -525,16 +525,24 @@ router.get('/plans', requireAuth, async (req, res) => {
   const logger = req.requestId ? createRequestLogger(req.requestId) : globalLogger;
   
   try {
-    const { active } = req.query;
+    const { active, barbershop_id } = req.query;
     const options = {};
-    if (active !== undefined) {
+    
+    if (active !== undefined && active !== null && active !== '') {
       options.active = active === 'true';
+    }
+    
+    // Se barbershop_id não fornecido na query, tentar pegar do JWT ou header
+    const finalBarbershopId = barbershop_id || req.headers['x-barbershop-id'] || req.user?.barbershop_id;
+    if (finalBarbershopId) {
+      options.barbershop_id = finalBarbershopId;
     }
     
     const plans = await getAllPlans(options);
     
     logger.info('Planos listados', {
       total: plans.length,
+      barbershopId: finalBarbershopId || 'all',
       active: options.active
     });
     
@@ -561,7 +569,18 @@ router.post('/plans', requireAuth, async (req, res) => {
   const logger = req.requestId ? createRequestLogger(req.requestId) : globalLogger;
   
   try {
-    const { name, type, price, currency, description, active } = req.body;
+    const { name, type, price, currency, description, active, stripe_price_id, barbershop_id } = req.body;
+    
+    // Se barbershop_id não fornecido no body, tentar pegar do JWT ou header
+    // Por enquanto, é obrigatório no body (depois pode vir do JWT)
+    const finalBarbershopId = barbershop_id || req.headers['x-barbershop-id'] || req.user?.barbershop_id;
+    
+    if (!finalBarbershopId) {
+      return res.status(400).json({
+        error: 'barbershop_id é obrigatório',
+        message: 'É necessário informar o ID da barbearia para criar o plano'
+      });
+    }
     
     const plan = await createPlan({
       name,
@@ -569,11 +588,14 @@ router.post('/plans', requireAuth, async (req, res) => {
       price,
       currency,
       description,
-      active
+      active,
+      stripe_price_id,
+      barbershop_id: finalBarbershopId
     });
     
     logger.info('Plano criado', {
       planId: plan.id,
+      barbershopId: finalBarbershopId,
       name: plan.name
     });
     
@@ -692,6 +714,132 @@ router.put('/plans/:id/activate', requireAuth, async (req, res) => {
 });
 
 /**
+ * POST /api/admin/plans/:id/sync-stripe
+ * Sincroniza um plano existente com o Stripe Connect
+ * Cria produto/preço na conta Connect da barbearia se ainda não existir
+ * IMPORTANTE: Esta rota deve vir ANTES de /plans/:id para evitar conflito
+ */
+router.post('/plans/:id/sync-stripe', requireAuth, async (req, res) => {
+  const logger = req.requestId ? createRequestLogger(req.requestId) : globalLogger;
+  
+  try {
+    const { id } = req.params;
+    
+    // Buscar plano
+    const plan = await getPlanById(id);
+    if (!plan) {
+      return res.status(404).json({
+        error: 'Plano não encontrado',
+        message: 'O plano especificado não existe'
+      });
+    }
+    
+    // Verificar se já tem produto/preço criados
+    if (plan.stripe_product_id && plan.stripe_price_id) {
+      return res.status(400).json({
+        error: 'Plano já sincronizado',
+        message: 'Este plano já possui produto e preço criados no Stripe Connect',
+        stripe_product_id: plan.stripe_product_id,
+        stripe_price_id: plan.stripe_price_id
+      });
+    }
+    
+    // Verificar se tem barbershop_id
+    if (!plan.barbershop_id) {
+      return res.status(400).json({
+        error: 'Plano sem barbearia',
+        message: 'Este plano não está associado a uma barbearia. Associe uma barbearia antes de sincronizar com o Stripe.'
+      });
+    }
+    
+    // Buscar barbearia
+    const { data: barbershop, error: barbershopError } = await supabaseAdmin
+      .from('barbershops')
+      .select('id, nome, stripe_account_id, stripe_onboarding_completed')
+      .eq('id', plan.barbershop_id)
+      .single();
+    
+    if (barbershopError || !barbershop) {
+      return res.status(404).json({
+        error: 'Barbearia não encontrada',
+        message: 'A barbearia associada ao plano não foi encontrada'
+      });
+    }
+    
+    // Verificar Stripe Connect
+    if (!barbershop.stripe_account_id) {
+      return res.status(400).json({
+        error: 'Stripe Connect não configurado',
+        message: 'A barbearia não possui conta Stripe Connect configurada. Configure o Stripe Connect primeiro.'
+      });
+    }
+    
+    if (!barbershop.stripe_onboarding_completed) {
+      return res.status(400).json({
+        error: 'Onboarding incompleto',
+        message: 'O onboarding do Stripe Connect não foi concluído. Complete o processo de conexão primeiro.'
+      });
+    }
+    
+    // Criar produto e preço no Stripe Connect
+    const { createProductAndPriceFromPlan, isConfigured: isStripeConfigured } = require('../services/stripe-products-service');
+    
+    if (!isStripeConfigured()) {
+      return res.status(500).json({
+        error: 'Stripe não configurado',
+        message: 'O Stripe não está configurado no servidor'
+      });
+    }
+    
+    const stripeResult = await createProductAndPriceFromPlan({
+      ...plan,
+      stripeAccount: barbershop.stripe_account_id, // Criar na conta Connect da barbearia
+    });
+    
+    if (!stripeResult || !stripeResult.priceId) {
+      return res.status(500).json({
+        error: 'Erro ao criar produto no Stripe',
+        message: 'Não foi possível criar o produto e preço no Stripe Connect'
+      });
+    }
+    
+    // Atualizar plano com IDs do Stripe
+    const updatedPlan = await updatePlan(id, {
+      stripe_product_id: stripeResult.productId,
+      stripe_price_id: stripeResult.priceId,
+    });
+    
+    logger.info('Plano sincronizado com Stripe Connect', {
+      planId: id,
+      barbershopId: plan.barbershop_id,
+      stripeAccountId: barbershop.stripe_account_id,
+      productId: stripeResult.productId,
+      priceId: stripeResult.priceId,
+    });
+    
+    return res.json({
+      success: true,
+      message: 'Plano sincronizado com sucesso no Stripe Connect',
+      plan: updatedPlan,
+      stripe: {
+        product_id: stripeResult.productId,
+        price_id: stripeResult.priceId,
+        stripe_account: barbershop.stripe_account_id,
+      }
+    });
+  } catch (error) {
+    logger.error('Erro ao sincronizar plano com Stripe', {
+      error: error.message,
+      planId: req.params.id
+    });
+    return res.status(500).json({
+      error: 'Erro ao sincronizar plano',
+      message: error.message
+    });
+  }
+});
+
+/**
  * GET /api/admin/plans/:id
  * Obtém detalhes de um plano específico
  */
@@ -757,6 +905,7 @@ router.put('/plans/:id', requireAuth, async (req, res) => {
     });
   }
 });
+
 
 /**
  * GET /api/admin/payments

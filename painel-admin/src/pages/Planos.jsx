@@ -14,6 +14,8 @@ export default function Planos() {
   const [statsData, setStatsData] = useState(null);
   const [loadingStats, setLoadingStats] = useState(false);
   const [filterActive, setFilterActive] = useState(null); // null = todos, true = ativos, false = inativos
+  const [barbershopId, setBarbershopId] = useState(null);
+  const [stripeConnected, setStripeConnected] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -21,17 +23,49 @@ export default function Planos() {
     price: '',
     currency: 'BRL',
     description: '',
-    active: true
+    active: true,
+    stripe_price_id: ''
   });
 
   useEffect(() => {
-    carregarPlanos();
-  }, [filterActive]);
+    carregarBarbershop();
+  }, []);
+
+  useEffect(() => {
+    if (barbershopId) {
+      carregarPlanos();
+    }
+  }, [filterActive, barbershopId]);
+
+  const carregarBarbershop = async () => {
+    try {
+      // Buscar barbearias (por enquanto, usar a primeira)
+      // TODO: Quando tiver autenticação por barbearia, usar a barbearia do usuário logado
+      const barbershopsResult = await api.buscarBarbershops();
+      const barbershops = barbershopsResult?.data || [];
+      
+      if (barbershops && barbershops.length > 0) {
+        const barbershop = barbershops[0];
+        setBarbershopId(barbershop.id);
+        
+        // Verificar se tem Stripe Connect configurado
+        const status = await api.obterStatusStripeConnect(barbershop.id);
+        setStripeConnected(status?.status === 'active' && status?.connected === true);
+      } else {
+        toast.error('Nenhuma barbearia encontrada');
+      }
+    } catch (error) {
+      console.error('Erro ao carregar barbearia:', error);
+      toast.error('Erro ao carregar informações da barbearia');
+    }
+  };
 
   const carregarPlanos = async () => {
+    if (!barbershopId) return;
+    
     setLoading(true);
     try {
-      const listaPlanos = await api.listarPlanos(filterActive);
+      const listaPlanos = await api.listarPlanos(filterActive, barbershopId);
       console.log('📋 Planos carregados:', listaPlanos);
       setPlanos(listaPlanos || []);
     } catch (error) {
@@ -51,7 +85,8 @@ export default function Planos() {
       price: '',
       currency: 'BRL',
       description: '',
-      active: true
+      active: true,
+      stripe_price_id: ''
     });
     setShowModal(true);
   };
@@ -64,7 +99,8 @@ export default function Planos() {
       price: plano.price?.toString() || '',
       currency: plano.currency || 'BRL',
       description: plano.description || '',
-      active: plano.active !== undefined ? plano.active : true
+      active: plano.active !== undefined ? plano.active : true,
+      stripe_price_id: plano.stripe_price_id || ''
     });
     setShowModal(true);
   };
@@ -78,17 +114,73 @@ export default function Planos() {
       price: '',
       currency: 'BRL',
       description: '',
-      active: true
+      active: true,
+      stripe_price_id: ''
     });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    // Converter preço para número e validar
+    const priceValue = formData.price ? formData.price.toString().trim() : '';
+    const priceNumber = priceValue ? parseFloat(priceValue.replace(',', '.')) : NaN;
+    
+    // Debug: verificar dados do formulário
+    console.log('📝 Dados do formulário antes de enviar:', JSON.stringify(formData, null, 2));
+    console.log('📝 barbershopId:', barbershopId);
+    console.log('📝 stripeConnected:', stripeConnected);
+    console.log('📝 formData.price (string):', formData.price, 'tipo:', typeof formData.price);
+    console.log('📝 priceNumber (número):', priceNumber, 'tipo:', typeof priceNumber);
+    
+    // Validar campos obrigatórios
+    if (!formData.name || !formData.name.trim()) {
+      toast.error('Por favor, preencha o nome do plano.');
+      return;
+    }
+    
+    if (!formData.type) {
+      toast.error('Por favor, selecione o tipo do plano.');
+      return;
+    }
+    
+    if (!priceValue || isNaN(priceNumber) || priceNumber <= 0) {
+      toast.error('Por favor, preencha um preço válido maior que zero.');
+      return;
+    }
+    
+    // Validar Stripe Connect antes de criar plano
+    if (!editingPlan && !stripeConnected) {
+      toast.error('Antes de criar planos, conecte sua conta de pagamento (Stripe). Acesse a página "Pagamentos" e clique em "Conectar pagamentos".');
+      return;
+    }
+    
+    if (!barbershopId) {
+      toast.error('Barbearia não identificada. Recarregue a página.');
+      return;
+    }
+    
     try {
+      // Preparar dados para envio (converter preço para número)
+      const dadosEnvio = {
+        ...formData,
+        price: priceNumber, // Converter para número
+        barbershop_id: editingPlan ? undefined : barbershopId // Só incluir ao criar
+      };
+      
+      // Remover campos vazios opcionais
+      if (!dadosEnvio.stripe_price_id) {
+        delete dadosEnvio.stripe_price_id;
+      }
+      if (!dadosEnvio.description) {
+        delete dadosEnvio.description;
+      }
+      
+      console.log('📤 Enviando dados para', editingPlan ? 'atualizar' : 'criar', 'plano:', dadosEnvio);
+      
       if (editingPlan) {
         // Atualizar
-        const result = await api.atualizarPlano(editingPlan.id, formData);
+        const result = await api.atualizarPlano(editingPlan.id, dadosEnvio);
         if (result?.success) {
           toast.success('Plano atualizado com sucesso!');
           fecharModal();
@@ -98,13 +190,13 @@ export default function Planos() {
         }
       } else {
         // Criar
-        const result = await api.criarPlano(formData);
+        const result = await api.criarPlano(dadosEnvio);
         if (result?.success) {
-          toast.success('Plano criado com sucesso!');
+          toast.success('Plano criado com sucesso! Produto criado automaticamente no Stripe.');
           fecharModal();
           carregarPlanos();
         } else {
-          toast.error('Erro ao criar plano: ' + (result?.error || 'Erro desconhecido'));
+          toast.error('Erro ao criar plano: ' + (result?.error || result?.message || 'Erro desconhecido'));
         }
       }
     } catch (error) {
@@ -375,15 +467,49 @@ export default function Planos() {
                     Preço *
                   </label>
                   <input
-                    type="number"
-                    step="0.01"
-                    min="0"
+                    type="text"
+                    inputMode="decimal"
                     value={formData.price}
-                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                    onChange={(e) => {
+                      const newPrice = e.target.value;
+                      console.log('💰 Campo de preço alterado (raw):', newPrice);
+                      
+                      // Permitir apenas números, ponto e vírgula
+                      let sanitized = newPrice.replace(/[^0-9.,]/g, '');
+                      
+                      // Substituir vírgula por ponto (padrão decimal)
+                      sanitized = sanitized.replace(',', '.');
+                      
+                      // Permitir apenas um ponto decimal
+                      const parts = sanitized.split('.');
+                      if (parts.length > 2) {
+                        sanitized = parts[0] + '.' + parts.slice(1).join('');
+                      }
+                      
+                      // Limitar a 2 casas decimais
+                      if (parts.length === 2 && parts[1].length > 2) {
+                        sanitized = parts[0] + '.' + parts[1].substring(0, 2);
+                      }
+                      
+                      console.log('💰 Campo de preço alterado (sanitized):', sanitized);
+                      setFormData({ ...formData, price: sanitized });
+                    }}
+                    onBlur={(e) => {
+                      // Garantir formato correto ao sair do campo
+                      const value = e.target.value.trim();
+                      if (value && !isNaN(parseFloat(value.replace(',', '.')))) {
+                        const numValue = parseFloat(value.replace(',', '.'));
+                        const formatted = numValue.toFixed(2);
+                        setFormData({ ...formData, price: formatted });
+                      }
+                    }}
                     required
                     className="w-full px-4 py-2 rounded-lg bg-neutral-light dark:bg-[#2e2d1a] border border-[#e5e5dc] dark:border-[#3a3928] text-neutral-dark dark:text-white"
                     placeholder="0.00"
                   />
+                  <p className="text-xs text-[#8c8b5f] dark:text-[#a3a272] mt-1">
+                    Digite o preço em reais (ex: 99.90 ou 99,90)
+                  </p>
                 </div>
 
                 <div>
@@ -411,6 +537,25 @@ export default function Planos() {
                     className="w-full px-4 py-2 rounded-lg bg-neutral-light dark:bg-[#2e2d1a] border border-[#e5e5dc] dark:border-[#3a3928] text-neutral-dark dark:text-white"
                     placeholder="Descrição do plano..."
                   />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2 text-neutral-dark dark:text-white">
+                    Stripe Price ID
+                    <Tooltip text="ID do preço criado no Stripe (formato: price_xxxxx). Crie o produto/preço no Stripe Dashboard e cole o ID aqui.">
+                      <span className="material-symbols-outlined text-xs ml-1 text-[#8c8b5f] dark:text-[#a3a272] cursor-help">info</span>
+                    </Tooltip>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.stripe_price_id}
+                    onChange={(e) => setFormData({ ...formData, stripe_price_id: e.target.value })}
+                    className="w-full px-4 py-2 rounded-lg bg-neutral-light dark:bg-[#2e2d1a] border border-[#e5e5dc] dark:border-[#3a3928] text-neutral-dark dark:text-white"
+                    placeholder="price_xxxxx (opcional, mas necessário para criar assinaturas)"
+                  />
+                  <p className="text-xs text-[#8c8b5f] dark:text-[#a3a272] mt-1">
+                    Crie o produto/preço no Stripe Dashboard e cole o Price ID aqui. Sem este campo, não será possível criar assinaturas.
+                  </p>
                 </div>
 
                 <div className="flex items-center gap-2">

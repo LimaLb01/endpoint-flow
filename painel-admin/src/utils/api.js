@@ -216,10 +216,13 @@ export const api = {
   /**
    * Listar planos
    */
-  listarPlanos: async (active) => {
+  listarPlanos: async (active, barbershopId) => {
     const params = new URLSearchParams();
     if (active !== undefined && active !== null) {
       params.append('active', active);
+    }
+    if (barbershopId) {
+      params.append('barbershop_id', barbershopId);
     }
     const queryString = params.toString();
     const url = queryString ? `/admin/plans?${queryString}` : '/admin/plans';
@@ -279,6 +282,16 @@ export const api = {
   obterEstatisticasPlano: async (planId) => {
     const data = await apiRequest(`/admin/plans/${planId}/stats`);
     return data || null;
+  },
+  
+  /**
+   * Sincronizar plano com Stripe Connect
+   * Cria produto/preço na conta Connect da barbearia
+   */
+  sincronizarPlanoStripe: async (planId) => {
+    return await apiRequest(`/admin/plans/${planId}/sync-stripe`, {
+      method: 'POST'
+    });
   },
   
   /**
