@@ -10,6 +10,7 @@
     "setup-env": "node scripts/setup-env.js",
     "test-decrypt": "node scripts/test-decrypt.js",
     "verificar-deploy": "node scripts/verificar-deploy.js",
+    "test-stripe-account": "node scripts/test-create-stripe-account.js",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage"

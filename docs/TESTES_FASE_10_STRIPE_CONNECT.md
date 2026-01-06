@@ -240,18 +240,24 @@ curl -X POST http://localhost:3000/api/webhooks/stripe \
 - Erro no log do Railway: "You can only create new accounts if you've signed up for Connect"
 - A conta Stripe não tem o Stripe Connect habilitado
 - Não é possível criar contas Connect Express sem habilitar o Connect primeiro
+- **Erro no dashboard:** "Something went wrong, try again" ao tentar criar conta manualmente
 
 **Solução:** 
 1. ✅ Acessar https://dashboard.stripe.com/connect/overview
 2. ✅ Clicar em "Get started" ou "Enable Connect"
-3. ⏳ **SELECIONAR MODELO DE NEGÓCIO:**
-   - **ESCOLHER: "Marketplace"** (NÃO "Plataforma")
+3. ✅ **SELECIONAR MODELO DE NEGÓCIO: "Marketplace"** (NÃO "Plataforma")
    - Motivo: A plataforma recebe pagamentos e repassa para barbearias
    - Permite cobrar `application_fee` automaticamente
 4. ⏳ Escolher o tipo de conta (Express Accounts recomendado para marketplace)
 5. ⏳ Após habilitação, testar novamente o onboarding
 
-**Status:** ⏳ **EM PROGRESSO** - Usuário está no processo de habilitação, aguardando seleção do modelo
+**Observação Importante:**
+- O erro no dashboard do Stripe ("Something went wrong") não impede o funcionamento
+- O código já cria contas Connect **programaticamente via API** (função `createConnectAccount`)
+- Quando o usuário clicar em "Conectar Pagamento" no painel, a conta será criada automaticamente via API
+- Não é necessário criar a conta manualmente no dashboard
+
+**Status:** ⏳ **EM PROGRESSO** - Usuário está no processo de habilitação do Connect, após concluir poderá testar via painel admin
 
 ### Problema 2: Plano sem `stripe_price_id`
 **Descrição:** Planos no banco não têm `stripe_price_id` configurado  
@@ -336,4 +342,7 @@ curl -X POST http://localhost:3000/api/webhooks/stripe \
 - Testes avançados requerem configuração adicional (planos com `stripe_price_id`)
 - Sistema está pronto para testes em ambiente de staging
 - Deploy automático via GitHub está funcionando corretamente
+- **Criação de Contas Connect:** O sistema cria contas programaticamente via API, não requer criação manual no dashboard
+- **Erro no Dashboard:** O erro "Something went wrong" no dashboard do Stripe não afeta o funcionamento, pois a criação é feita via API
 
+   
