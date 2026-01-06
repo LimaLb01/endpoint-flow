@@ -22,7 +22,12 @@ router.post('/stripe', express.raw({ type: 'application/json' }), async (req, re
   
   // Verificar se Stripe está configurado
   if (!stripe || !stripeWebhookSecret) {
-    logger.warn('Webhook do Stripe recebido mas Stripe não está configurado');
+    logger.error('Webhook do Stripe recebido mas Stripe não está configurado', {
+      hasStripe: !!stripe,
+      hasWebhookSecret: !!stripeWebhookSecret,
+      ip: req.ip,
+      userAgent: req.get('user-agent')
+    });
     return res.status(503).json({
       error: 'Stripe não configurado'
     });
@@ -30,14 +35,35 @@ router.post('/stripe', express.raw({ type: 'application/json' }), async (req, re
 
   const sig = req.headers['stripe-signature'];
 
+  // Validação de segurança: verificar se a assinatura está presente
+  if (!sig) {
+    logger.error('Tentativa de webhook sem assinatura Stripe', {
+      ip: req.ip,
+      userAgent: req.get('user-agent'),
+      headers: Object.keys(req.headers)
+    });
+    return res.status(400).json({
+      error: 'Assinatura do webhook não fornecida'
+    });
+  }
+
   let event;
 
   try {
-    // Verificar assinatura do webhook
+    // Verificar assinatura do webhook (validação crítica de segurança)
     event = stripe.webhooks.constructEvent(req.body, sig, stripeWebhookSecret);
+    
+    logger.info('Assinatura do webhook Stripe validada com sucesso', {
+      eventType: event.type,
+      eventId: event.id
+    });
   } catch (err) {
+    // Log de segurança: tentativa de webhook com assinatura inválida
     logger.error('Erro ao verificar assinatura do webhook do Stripe', {
-      error: err.message
+      error: err.message,
+      ip: req.ip,
+      userAgent: req.get('user-agent'),
+      signatureLength: sig?.length || 0
     });
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }

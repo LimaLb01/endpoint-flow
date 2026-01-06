@@ -127,39 +127,73 @@ async function createCheckoutSession(options) {
  */
 async function handleWebhookEvent(event) {
   if (!isConfigured()) {
+    globalLogger.error('Tentativa de processar webhook sem Stripe configurado', {
+      eventType: event?.type,
+      eventId: event?.id
+    });
     return { success: false, error: 'Stripe não configurado' };
+  }
+
+  // Log de segurança: registrar recebimento de evento crítico
+  const criticalEvents = [
+    'checkout.session.completed',
+    'customer.subscription.deleted',
+    'invoice.payment_failed',
+    'account.updated'
+  ];
+  
+  if (criticalEvents.includes(event.type)) {
+    globalLogger.warn('Evento crítico do Stripe recebido', {
+      type: event.type,
+      id: event.id,
+      timestamp: new Date().toISOString()
+    });
   }
 
   try {
     switch (event.type) {
       case 'checkout.session.completed':
+        globalLogger.info('Processando checkout.session.completed', { eventId: event.id });
         return await handleCheckoutCompleted(event.data.object);
       
       case 'customer.subscription.created':
       case 'customer.subscription.updated':
+        globalLogger.info('Processando subscription created/updated', { 
+          eventId: event.id,
+          type: event.type 
+        });
         return await handleSubscriptionUpdated(event.data.object);
       
       case 'customer.subscription.deleted':
+        globalLogger.warn('Processando subscription deleted', { eventId: event.id });
         return await handleSubscriptionDeleted(event.data.object);
       
       case 'invoice.payment_succeeded':
+        globalLogger.info('Processando payment succeeded', { eventId: event.id });
         return await handlePaymentSucceeded(event.data.object);
       
       case 'invoice.payment_failed':
+        globalLogger.warn('Processando payment failed', { eventId: event.id });
         return await handlePaymentFailed(event.data.object);
       
       // Eventos do Stripe Connect
       case 'account.updated':
+        globalLogger.info('Processando account.updated (Connect)', { eventId: event.id });
         return await handleAccountUpdated(event.data.object);
       
       default:
-        globalLogger.debug('Evento do Stripe não processado', { type: event.type });
+        globalLogger.debug('Evento do Stripe não processado', { 
+          type: event.type,
+          eventId: event.id 
+        });
         return { success: true, message: 'Evento não requer processamento' };
     }
   } catch (error) {
     globalLogger.error('Erro ao processar webhook do Stripe', {
       type: event.type,
-      error: error.message
+      eventId: event.id,
+      error: error.message,
+      stack: error.stack
     });
     return { success: false, error: error.message };
   }

@@ -231,11 +231,25 @@ CREATE INDEX idx_subscriptions_barbershop_id ON subscriptions(barbershop_id);
 - [x] **T8.3:** Reativar automaticamente quando pagamento normalizar
 - [x] **T8.4:** Sincronizar cancelamento do Stripe com painel
 
-### Fase 9: Segurança e Validações
-- [ ] **T9.1:** Validar assinatura do webhook Stripe
-- [ ] **T9.2:** Usar variáveis de ambiente para API Keys
-- [ ] **T9.3:** Logs de eventos críticos
-- [ ] **T9.4:** Testes de segurança
+### Fase 9: Segurança e Validações ✅ CONCLUÍDA
+- [x] **T9.1:** Validar assinatura do webhook Stripe
+  - Implementado em `src/routes/stripe-routes.js`
+  - Validação obrigatória usando `stripe.webhooks.constructEvent()`
+  - Rejeição de requisições sem assinatura
+  - Logs detalhados de tentativas inválidas
+- [x] **T9.2:** Usar variáveis de ambiente para API Keys
+  - `STRIPE_SECRET_KEY` - Chave secreta da API
+  - `STRIPE_WEBHOOK_SECRET` - Secret para validação de webhooks
+  - `DAYS_TO_SUSPEND_BARBERSHOP` - Configuração de suspensão (opcional)
+  - Validação de configuração antes de processar webhooks
+- [x] **T9.3:** Logs de eventos críticos
+  - Logs de segurança para eventos críticos (checkout, subscription deleted, payment failed, account updated)
+  - Informações registradas: tipo, ID, timestamp, IP, user-agent
+  - Stack traces em caso de erros
+- [x] **T9.4:** Testes de segurança
+  - Documentação completa em `docs/TESTES_SEGURANCA_STRIPE.md`
+  - Testes manuais documentados
+  - Recomendações para rate limiting e monitoramento
 
 ### Fase 10: Testes e Deploy
 - [ ] **T10.1:** Testes unitários dos serviços
