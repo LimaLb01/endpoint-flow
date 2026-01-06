@@ -94,6 +94,42 @@ async function apiRequest(endpoint, options = {}) {
  * Funções da API
  */
 export const api = {
+  // Stripe Connect functions - adicionadas para resolver cache do Vite
+  buscarBarbershops: async () => {
+    try {
+      const data = await apiRequest('/admin/barbershops');
+      return { data: data?.data || [] };
+    } catch (error) {
+      console.error('Erro ao buscar barbearias:', error);
+      return { data: [] };
+    }
+  },
+  buscarAssinaturaBarbershop: async (barbershopId) => {
+    const data = await apiRequest(`/admin/barbershops/${barbershopId}/subscription`);
+    return data?.subscription || null;
+  },
+  obterStatusStripeConnect: async (barbershopId) => {
+    return await apiRequest(`/stripe/connect/status/${barbershopId}`);
+  },
+  iniciarOnboardingStripe: async (barbershopId) => {
+    return await apiRequest('/stripe/connect/onboard', {
+      method: 'POST',
+      body: JSON.stringify({ barbershopId }),
+    });
+  },
+  criarLinkCustomerPortal: async (customerId, returnUrl) => {
+    return await apiRequest('/stripe/connect/portal', {
+      method: 'POST',
+      body: JSON.stringify({ customerId, returnUrl }),
+    });
+  },
+  criarCheckoutStripeConnect: async (checkoutData) => {
+    return await apiRequest('/stripe/connect/checkout', {
+      method: 'POST',
+      body: JSON.stringify(checkoutData),
+    });
+  },
+  
   /**
    * Login
    */
@@ -579,6 +615,7 @@ export const utils = {
     if (filters.offset) params.append('offset', filters.offset.toString());
     
     return await apiRequest(`/admin/search?${params.toString()}`);
-  }
+  },
+
 };
 

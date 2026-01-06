@@ -76,7 +76,7 @@ export default function Layout({ children }) {
                   <span className={`text-sm ${isActive('/assinaturas') ? 'font-semibold' : 'font-medium'}`}>Subscriptions</span>
                 </button>
                 <button
-                  onClick={() => navigate('/pagamentos/registrar')}
+                  onClick={() => navigate('/pagamentos')}
                   className={`flex items-center gap-3 px-4 py-3 rounded-full text-left transition-colors cursor-pointer ${
                     isActive('/pagamentos')
                       ? 'bg-primary text-neutral-dark shadow-sm'
@@ -84,7 +84,7 @@ export default function Layout({ children }) {
                   }`}
                 >
                   <span className="material-symbols-outlined">payments</span>
-                  <span className={`text-sm ${isActive('/pagamentos') ? 'font-semibold' : 'font-medium'}`}>Payments</span>
+                  <span className={`text-sm ${isActive('/pagamentos') ? 'font-semibold' : 'font-medium'}`}>Pagamentos</span>
                 </button>
                 <button
                   onClick={() => navigate('/planos')}
@@ -169,6 +169,7 @@ export default function Layout({ children }) {
                     <h2 className="text-neutral-dark dark:text-white text-xl md:text-2xl font-bold leading-tight tracking-tight">
                       {location.pathname === '/clientes/buscar' ? 'Buscar Cliente' :
                        location.pathname === '/assinaturas' ? 'Assinaturas' :
+                       location.pathname === '/pagamentos' ? 'Pagamentos' :
                        location.pathname === '/pagamentos/registrar' ? 'Registrar Pagamento' :
                        location.pathname === '/planos' ? 'Planos' :
                        location.pathname === '/agendamentos' ? 'Agendamentos' :

@@ -1804,6 +1804,93 @@ router.get('/reports/appointments', requireAuth, async (req, res) => {
 });
 
 /**
+ * GET /api/admin/barbershops
+ * Lista todas as barbearias
+ */
+router.get('/barbershops', requireAuth, async (req, res) => {
+  const logger = req.requestId ? createRequestLogger(req.requestId) : globalLogger;
+  
+  try {
+    const { status } = req.query;
+    
+    let query = supabaseAdmin
+      .from('barbershops')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (status) {
+      query = query.eq('status', status);
+    }
+    
+    const { data, error } = await query;
+    
+    if (error) {
+      throw error;
+    }
+    
+    logger.info('Barbearias listadas', {
+      total: data?.length || 0
+    });
+    
+    return res.json({
+      success: true,
+      data: data || []
+    });
+  } catch (error) {
+    logger.error('Erro ao listar barbearias', {
+      error: error.message
+    });
+    return res.status(500).json({
+      error: 'Erro ao listar barbearias',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/admin/barbershops/:id/subscription
+ * Busca assinatura ativa de uma barbearia
+ */
+router.get('/barbershops/:id/subscription', requireAuth, async (req, res) => {
+  const logger = req.requestId ? createRequestLogger(req.requestId) : globalLogger;
+  
+  try {
+    const { id: barbershopId } = req.params;
+    
+    const { data: subscription, error } = await supabaseAdmin
+      .from('subscriptions')
+      .select(`
+        *,
+        plan:plans(*),
+        customer:customers(*)
+      `)
+      .eq('barbershop_id', barbershopId)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+    
+    if (error && error.code !== 'PGRST116') {
+      throw error;
+    }
+    
+    return res.json({
+      success: true,
+      subscription: subscription || null
+    });
+  } catch (error) {
+    logger.error('Erro ao buscar assinatura da barbearia', {
+      error: error.message,
+      barbershopId: req.params.id
+    });
+    return res.status(500).json({
+      error: 'Erro ao buscar assinatura',
+      message: error.message
+    });
+  }
+});
+
+/**
  * GET /api/admin/search
  * Busca global em clientes, assinaturas e pagamentos
  * Filtros: query (texto), type (customers|subscriptions|payments|all), status, startDate, endDate, minAmount, maxAmount

@@ -4,6 +4,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import BuscarCliente from './pages/BuscarCliente';
 import RegistrarPagamento from './pages/RegistrarPagamento';
+import Pagamentos from './pages/Pagamentos';
 import ListarAssinaturas from './pages/ListarAssinaturas';
 import DetalhesAssinatura from './pages/DetalhesAssinatura';
 import Planos from './pages/Planos';
@@ -29,6 +30,14 @@ function App() {
           element={
             <ProtectedRoute>
               <BuscarCliente />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/pagamentos"
+          element={
+            <ProtectedRoute>
+              <Pagamentos />
             </ProtectedRoute>
           }
         />

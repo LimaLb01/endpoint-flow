@@ -13,6 +13,7 @@ const express = require('express');
 const cors = require('cors');
 const webhookRoutes = require('./routes/webhook-routes');
 const stripeRoutes = require('./routes/stripe-routes');
+const stripeConnectRoutes = require('./routes/stripe-connect-routes');
 const adminRoutes = require('./routes/admin-routes');
 const authRoutes = require('./routes/auth-routes');
 const subscriptionRoutes = require('./routes/subscription-routes');
@@ -249,6 +250,11 @@ app.use('/webhook', webhookRoutes);
 // ============================================
 // Webhook do Stripe precisa receber raw body para verificar assinatura
 app.use('/api/webhooks', stripeRoutes);
+
+// ============================================
+// Rotas do Stripe Connect (Marketplace)
+// ============================================
+app.use('/api/stripe', stripeConnectRoutes);
 
 // ============================================
 // Rotas Públicas de Assinaturas (WhatsApp Flow)

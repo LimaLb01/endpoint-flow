@@ -148,6 +148,10 @@ async function handleWebhookEvent(event) {
       case 'invoice.payment_failed':
         return await handlePaymentFailed(event.data.object);
       
+      // Eventos do Stripe Connect
+      case 'account.updated':
+        return await handleAccountUpdated(event.data.object);
+      
       default:
         globalLogger.debug('Evento do Stripe não processado', { type: event.type });
         return { success: true, message: 'Evento não requer processamento' };
@@ -168,6 +172,7 @@ async function handleCheckoutCompleted(session) {
   try {
     const customerCpf = session.metadata?.customer_cpf;
     const planId = session.metadata?.plan_id;
+    const barbershopAccountId = session.metadata?.barbershop_account_id; // Stripe Connect
 
     if (!customerCpf || !planId) {
       globalLogger.warn('Checkout session sem metadata necessária', {
@@ -182,6 +187,20 @@ async function handleCheckoutCompleted(session) {
       return { success: false, error: 'Cliente não encontrado' };
     }
 
+    // Se for Stripe Connect, buscar barbershop_id
+    let barbershopId = null;
+    if (barbershopAccountId) {
+      const { data: barbershop } = await supabaseAdmin
+        .from('barbershops')
+        .select('id')
+        .eq('stripe_account_id', barbershopAccountId)
+        .single();
+      
+      if (barbershop) {
+        barbershopId = barbershop.id;
+      }
+    }
+
     // Se foi uma assinatura, buscar dados da assinatura
     if (session.mode === 'subscription' && session.subscription) {
       const stripeSubscription = await stripe.subscriptions.retrieve(session.subscription);
@@ -193,8 +212,21 @@ async function handleCheckoutCompleted(session) {
         .eq('id', planId)
         .single();
       
-      // Criar assinatura
-      const subscriptionResult = await handleSubscriptionUpdated(stripeSubscription, customer.id, planId);
+      // Criar assinatura (com barbershop_id se Connect)
+      const subscriptionData = {
+        stripe_subscription_id: stripeSubscription.id,
+        stripe_customer_id: stripeSubscription.customer,
+        status: mapStripeStatus(stripeSubscription.status),
+        current_period_start: new Date(stripeSubscription.current_period_start * 1000),
+        current_period_end: new Date(stripeSubscription.current_period_end * 1000),
+        cancel_at_period_end: stripeSubscription.cancel_at_period_end || false,
+      };
+      
+      if (barbershopId) {
+        subscriptionData.barbershop_id = barbershopId;
+      }
+      
+      const subscription = await createSubscription(customer.id, planId, subscriptionData);
       
       // Buscar invoice inicial da assinatura para registrar pagamento
       if (stripeSubscription.latest_invoice) {
@@ -230,7 +262,7 @@ async function handleCheckoutCompleted(session) {
         }
       }
       
-      return subscriptionResult;
+      return { success: true, subscriptionId: subscription?.id };
     }
 
     // Se foi pagamento único, criar assinatura manual
@@ -257,11 +289,17 @@ async function handleCheckoutCompleted(session) {
         .select()
         .single();
       
-      // Criar assinatura para plano único
-      const subscription = await createSubscription(customer.id, planId, {
+      // Criar assinatura para plano único (com barbershop_id se Connect)
+      const subscriptionData = {
         stripe_customer_id: session.customer,
         status: 'active'
-      });
+      };
+      
+      if (barbershopId) {
+        subscriptionData.barbershop_id = barbershopId;
+      }
+      
+      const subscription = await createSubscription(customer.id, planId, subscriptionData);
 
       // Enviar notificações
       if (payment && plan) {
@@ -292,24 +330,54 @@ async function handleSubscriptionUpdated(stripeSubscription, customerId = null, 
     // Buscar assinatura existente
     let subscription = await getSubscriptionByStripeId(stripeSubscription.id);
 
+    // Se for Stripe Connect, tentar identificar barbershop_id pela subscription
+    let barbershopId = null;
+    if (stripeSubscription.application_fee_percent || stripeSubscription.transfer_data?.destination) {
+      const connectAccountId = stripeSubscription.transfer_data?.destination;
+      if (connectAccountId) {
+        const { data: barbershop } = await supabaseAdmin
+          .from('barbershops')
+          .select('id')
+          .eq('stripe_account_id', connectAccountId)
+          .single();
+        
+        if (barbershop) {
+          barbershopId = barbershop.id;
+        }
+      }
+    }
+
     if (!subscription && customerId && planId) {
       // Criar nova assinatura
-      subscription = await createSubscription(customerId, planId, {
+      const subscriptionData = {
         stripe_subscription_id: stripeSubscription.id,
         stripe_customer_id: stripeSubscription.customer,
         status: mapStripeStatus(stripeSubscription.status),
         current_period_start: new Date(stripeSubscription.current_period_start * 1000),
         current_period_end: new Date(stripeSubscription.current_period_end * 1000),
         cancel_at_period_end: stripeSubscription.cancel_at_period_end || false
-      });
+      };
+      
+      if (barbershopId) {
+        subscriptionData.barbershop_id = barbershopId;
+      }
+      
+      subscription = await createSubscription(customerId, planId, subscriptionData);
     } else if (subscription) {
       // Atualizar assinatura existente
-      await updateSubscription(subscription.id, {
+      const updateData = {
         status: mapStripeStatus(stripeSubscription.status),
         current_period_start: new Date(stripeSubscription.current_period_start * 1000),
         current_period_end: new Date(stripeSubscription.current_period_end * 1000),
         cancel_at_period_end: stripeSubscription.cancel_at_period_end || false
-      });
+      };
+      
+      // Atualizar barbershop_id se não estiver definido e foi identificado
+      if (barbershopId && !subscription.barbershop_id) {
+        updateData.barbershop_id = barbershopId;
+      }
+      
+      await updateSubscription(subscription.id, updateData);
     }
 
     return { success: true, subscriptionId: subscription?.id };
@@ -433,6 +501,16 @@ async function handlePaymentFailed(invoice) {
         await updateSubscription(subscription.id, {
           status: 'past_due'
         });
+        
+        // Se for Stripe Connect, pode suspender funcionalidades após X dias
+        // (implementar lógica de suspensão futura)
+        if (subscription.barbershop_id) {
+          globalLogger.warn('Pagamento falhou para assinatura Connect', {
+            subscriptionId: subscription.id,
+            barbershopId: subscription.barbershop_id,
+            invoiceId: invoice.id
+          });
+        }
       }
     }
 
@@ -445,6 +523,76 @@ async function handlePaymentFailed(invoice) {
   } catch (error) {
     globalLogger.error('Erro ao processar payment failed', {
       error: error.message
+    });
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Processa account.updated (Stripe Connect)
+ * Atualiza status de onboarding da barbearia
+ */
+async function handleAccountUpdated(account) {
+  try {
+    // Buscar barbearia pela conta Stripe
+    const { data: barbershop, error: barbershopError } = await supabaseAdmin
+      .from('barbershops')
+      .select('*')
+      .eq('stripe_account_id', account.id)
+      .single();
+
+    if (barbershopError || !barbershop) {
+      globalLogger.warn('Conta Stripe Connect não encontrada no banco', {
+        accountId: account.id
+      });
+      return { success: true, message: 'Conta não encontrada no banco' };
+    }
+
+    // Verificar status de onboarding
+    const onboardingCompleted = account.details_submitted && account.charges_enabled;
+    const payoutsEnabled = account.payouts_enabled;
+
+    // Atualizar status no banco
+    const updateData = {
+      stripe_onboarding_completed: onboardingCompleted,
+    };
+
+    // Atualizar status da barbearia baseado no onboarding
+    if (onboardingCompleted && payoutsEnabled) {
+      if (barbershop.status === 'pending') {
+        updateData.status = 'active';
+      }
+    } else if (!onboardingCompleted && barbershop.status === 'active') {
+      // Se onboarding foi revertido, marcar como pending
+      updateData.status = 'pending';
+    }
+
+    const { error: updateError } = await supabaseAdmin
+      .from('barbershops')
+      .update(updateData)
+      .eq('id', barbershop.id);
+
+    if (updateError) {
+      globalLogger.error('Erro ao atualizar status da barbearia', {
+        error: updateError.message,
+        barbershopId: barbershop.id
+      });
+      return { success: false, error: updateError.message };
+    }
+
+    globalLogger.info('Status da conta Stripe Connect atualizado', {
+      accountId: account.id,
+      barbershopId: barbershop.id,
+      onboardingCompleted,
+      payoutsEnabled,
+      status: updateData.status
+    });
+
+    return { success: true, barbershopId: barbershop.id };
+  } catch (error) {
+    globalLogger.error('Erro ao processar account updated', {
+      error: error.message,
+      accountId: account.id
     });
     return { success: false, error: error.message };
   }
