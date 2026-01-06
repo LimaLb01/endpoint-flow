@@ -201,10 +201,13 @@ CREATE INDEX idx_subscriptions_barbershop_id ON subscriptions(barbershop_id);
 - [x] **T5.12:** Adicionar endpoints no backend (`GET /api/admin/barbershops`, `GET /api/admin/barbershops/:id/subscription`)
 - [x] **T5.13:** Adicionar funções de API no frontend (`buscarBarbershops`, `obterStatusStripeConnect`, etc.)
 
-### Fase 6: Frontend - Onboarding (Redirecionamento)
-- [ ] **T6.1:** Implementar redirecionamento seguro para Stripe Connect Onboarding
-- [ ] **T6.2:** Implementar callback após onboarding (retorno ao painel)
-- [ ] **T6.3:** Atualizar status da conta via webhook
+### Fase 6: Frontend - Onboarding (Redirecionamento) ✅ CONCLUÍDA
+- [x] **T6.1:** Implementar redirecionamento seguro para Stripe Connect Onboarding
+- [x] **T6.2:** Implementar callback após onboarding (retorno ao painel)
+- [x] **T6.3:** Atualizar status da conta via webhook
+- [x] **T6.4:** Adicionar loading state durante redirecionamento
+- [x] **T6.5:** Melhorar tratamento de erros
+- [x] **T6.6:** Configurar URLs dinâmicos baseados no ambiente
 
 ### Fase 7: Frontend - Cadastro de Cartão (Redirecionamento)
 - [ ] **T7.1:** Usar Stripe Checkout (redirecionamento) ao invés de Elements
