@@ -791,9 +791,12 @@ router.post('/plans/:id/sync-stripe', requireAuth, async (req, res) => {
       });
     }
     
+    // Criar produto/preço na conta principal (não na conta Connect)
+    // O repasse será feito via transfer_data.destination no checkout
     const stripeResult = await createProductAndPriceFromPlan({
       ...plan,
-      stripeAccount: barbershop.stripe_account_id, // Criar na conta Connect da barbearia
+      barbershop_id: plan.barbershop_id,
+      plan_id: plan.id,
     });
     
     if (!stripeResult || !stripeResult.priceId) {
@@ -809,10 +812,10 @@ router.post('/plans/:id/sync-stripe', requireAuth, async (req, res) => {
       stripe_price_id: stripeResult.priceId,
     });
     
-    logger.info('Plano sincronizado com Stripe Connect', {
+    logger.info('Plano sincronizado com Stripe (conta principal)', {
       planId: id,
       barbershopId: plan.barbershop_id,
-      stripeAccountId: barbershop.stripe_account_id,
+      stripeAccountId: barbershop.stripe_account_id, // Para referência (repasse será via transfer_data)
       productId: stripeResult.productId,
       priceId: stripeResult.priceId,
     });
@@ -824,7 +827,7 @@ router.post('/plans/:id/sync-stripe', requireAuth, async (req, res) => {
       stripe: {
         product_id: stripeResult.productId,
         price_id: stripeResult.priceId,
-        stripe_account: barbershop.stripe_account_id,
+        stripe_account: barbershop.stripe_account_id, // Para referência (repasse será via transfer_data)
       }
     });
   } catch (error) {

@@ -6,6 +6,11 @@
 const { supabaseAdmin, isAdminConfigured } = require('../config/supabase');
 const { globalLogger } = require('../utils/logger');
 const { createProductAndPriceFromPlan, isConfigured: isStripeConfigured } = require('./stripe-products-service');
+const Stripe = require('stripe');
+
+// Inicializar Stripe para atualizar metadata
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+const stripe = stripeSecretKey ? new Stripe(stripeSecretKey) : null;
 
 /**
  * Lista todos os planos (ativos e inativos)
@@ -133,21 +138,26 @@ async function createPlan(planData) {
 
     // Criar produto e preço no Stripe automaticamente (se Stripe estiver configurado)
     // Apenas se stripe_price_id não foi fornecido manualmente
+    // IMPORTANTE: Products/prices são criados na conta principal, não na conta Connect
+    // O repasse será feito via transfer_data.destination no checkout
     let stripeProductId = null;
     let stripePriceId = stripe_price_id || null;
 
     if (!stripe_price_id && isStripeConfigured()) {
       try {
+        // Criar produto/preço na conta principal (não na conta Connect)
+        // Passar barbershop_id para metadata
         const stripeResult = await createProductAndPriceFromPlan({
           ...planData,
-          stripeAccount: barbershop.stripe_account_id, // Criar na conta Connect da barbearia
+          barbershop_id: barbershop_id,
+          // plan_id será null aqui, será atualizado após criação do plano
         });
 
         if (stripeResult && stripeResult.priceId) {
           stripeProductId = stripeResult.productId;
           stripePriceId = stripeResult.priceId;
 
-          globalLogger.info('Produto e preço criados automaticamente no Stripe Connect', {
+          globalLogger.info('Produto e preço criados automaticamente no Stripe (conta principal)', {
             barbershopId: barbershop_id,
             barbershopName: barbershop.nome,
             stripeAccountId: barbershop.stripe_account_id,
@@ -157,7 +167,7 @@ async function createPlan(planData) {
         }
       } catch (stripeError) {
         // Falhar se não conseguir criar no Stripe (regra de negócio)
-        globalLogger.error('Erro ao criar produto no Stripe Connect', {
+        globalLogger.error('Erro ao criar produto no Stripe', {
           barbershopId: barbershop_id,
           error: stripeError.message,
         });
@@ -184,6 +194,39 @@ async function createPlan(planData) {
 
     if (error) {
       throw error;
+    }
+
+    // Atualizar metadata do produto/preço com o plan_id criado (se Stripe foi usado)
+    if (stripeProductId && stripePriceId && isStripeConfigured()) {
+      try {
+        // Atualizar metadata do produto
+        await stripe.products.update(stripeProductId, {
+          metadata: {
+            barbershop_id: barbershop_id,
+            plan_id: data.id,
+          },
+        });
+
+        // Atualizar metadata do preço
+        await stripe.prices.update(stripePriceId, {
+          metadata: {
+            barbershop_id: barbershop_id,
+            plan_id: data.id,
+          },
+        });
+
+        globalLogger.info('Metadata atualizada no Stripe com plan_id', {
+          planId: data.id,
+          productId: stripeProductId,
+          priceId: stripePriceId,
+        });
+      } catch (metadataError) {
+        // Não falhar se não conseguir atualizar metadata (não crítico)
+        globalLogger.warn('Erro ao atualizar metadata no Stripe', {
+          planId: data.id,
+          error: metadataError.message,
+        });
+      }
     }
 
     globalLogger.info('Plano criado com sucesso', {

@@ -188,10 +188,9 @@ async function createCheckoutSessionForConnect(options) {
       });
     }
 
-    // Buscar preço na conta Connect para determinar se é recorrente
-    const price = await stripe.prices.retrieve(priceId, {
-      stripeAccount: barbershopAccountId,
-    });
+    // Buscar preço na conta principal (não na conta Connect)
+    // Prices são criados na conta principal para compatibilidade com checkout sessions
+    const price = await stripe.prices.retrieve(priceId);
     const isRecurring = price.type === 'recurring';
 
     // Calcular application_fee_amount (taxa da plataforma)
@@ -208,6 +207,8 @@ async function createCheckoutSessionForConnect(options) {
         customer_cpf: customerCpf,
         plan_id: planId,
         barbershop_account_id: barbershopAccountId,
+        // Adicionar barbershop_id se disponível no price metadata
+        ...(price.metadata?.barbershop_id && { barbershop_id: price.metadata.barbershop_id }),
       },
     };
 

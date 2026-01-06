@@ -34,7 +34,7 @@ async function createProduct(productData) {
   }
 
   try {
-    const { name, description, image, stripeAccount } = productData;
+    const { name, description, image, barbershop_id, plan_id } = productData;
 
     const productParams = {
       name: name,
@@ -43,18 +43,19 @@ async function createProduct(productData) {
       metadata: {
         created_by: 'platform',
         created_at: new Date().toISOString(),
+        ...(barbershop_id && { barbershop_id }),
+        ...(plan_id && { plan_id }),
       },
     };
 
-    // Se stripeAccount fornecido, criar na conta Connect
-    const options = stripeAccount ? { stripeAccount } : {};
+    // Sempre criar na conta principal (não usar stripeAccount)
+    const product = await stripe.products.create(productParams);
 
-    const product = await stripe.products.create(productParams, options);
-
-    globalLogger.info('Produto Stripe criado', {
+    globalLogger.info('Produto Stripe criado na conta principal', {
       productId: product.id,
       name: product.name,
-      stripeAccount: stripeAccount || 'main_account',
+      barbershop_id: barbershop_id || 'N/A',
+      plan_id: plan_id || 'N/A',
     });
 
     return product;
@@ -76,7 +77,8 @@ async function createProduct(productData) {
  * @param {string} priceData.type - Tipo: 'recurring' ou 'one_time'
  * @param {object} [priceData.recurring] - Dados de recorrência (se type === 'recurring')
  * @param {string} priceData.recurring.interval - 'month' ou 'year'
- * @param {string} [priceData.stripeAccount] - ID da conta Stripe Connect (acct_xxx) - opcional
+ * @param {string} [priceData.barbershop_id] - ID da barbearia para metadata
+ * @param {string} [priceData.plan_id] - ID do plano para metadata
  * @returns {Promise<object|null>} Preço criado ou null
  */
 async function createPrice(priceData) {
@@ -86,12 +88,16 @@ async function createPrice(priceData) {
   }
 
   try {
-    const { productId, amount, currency, type, recurring, stripeAccount } = priceData;
+    const { productId, amount, currency, type, recurring, barbershop_id, plan_id } = priceData;
 
     const priceParams = {
       product: productId,
       unit_amount: amount, // Valor em centavos
       currency: currency.toLowerCase(), // 'brl' para Real Brasileiro
+      metadata: {
+        ...(barbershop_id && { barbershop_id }),
+        ...(plan_id && { plan_id }),
+      },
     };
 
     if (type === 'recurring' && recurring) {
@@ -100,17 +106,16 @@ async function createPrice(priceData) {
       };
     }
 
-    // Se stripeAccount fornecido, criar na conta Connect
-    const options = stripeAccount ? { stripeAccount } : {};
+    // Sempre criar na conta principal (não usar stripeAccount)
+    const price = await stripe.prices.create(priceParams);
 
-    const price = await stripe.prices.create(priceParams, options);
-
-    globalLogger.info('Preço Stripe criado', {
+    globalLogger.info('Preço Stripe criado na conta principal', {
       priceId: price.id,
       productId: productId,
       amount: amount,
       type: type,
-      stripeAccount: stripeAccount || 'main_account',
+      barbershop_id: barbershop_id || 'N/A',
+      plan_id: plan_id || 'N/A',
     });
 
     return price;
@@ -131,7 +136,8 @@ async function createPrice(priceData) {
  * @param {number} plan.price - Preço do plano (ex: 199.90)
  * @param {string} plan.currency - Moeda (ex: 'BRL')
  * @param {string} plan.type - Tipo: 'monthly', 'yearly', 'one_time'
- * @param {string} [plan.stripeAccount] - ID da conta Stripe Connect (acct_xxx) - opcional
+ * @param {string} plan.barbershop_id - ID da barbearia para metadata
+ * @param {string} plan.plan_id - ID do plano para metadata (opcional, será gerado após criação)
  * @returns {Promise<object|null>} Objeto com productId e priceId, ou null
  */
 async function createProductAndPriceFromPlan(plan) {
@@ -141,13 +147,14 @@ async function createProductAndPriceFromPlan(plan) {
   }
 
   try {
-    const { stripeAccount } = plan;
+    const { barbershop_id, plan_id } = plan;
 
-    // 1. Criar produto
+    // 1. Criar produto na conta principal com metadata
     const product = await createProduct({
       name: plan.name,
       description: plan.description || null,
-      stripeAccount: stripeAccount,
+      barbershop_id: barbershop_id,
+      plan_id: plan_id, // Pode ser null se ainda não foi criado
     });
 
     if (!product) {
@@ -169,21 +176,21 @@ async function createProductAndPriceFromPlan(plan) {
       recurring = { interval: 'year' };
     }
 
-    // 4. Criar preço
+    // 4. Criar preço na conta principal com metadata
     const price = await createPrice({
       productId: product.id,
       amount: amountInCents,
       currency: plan.currency || 'brl',
       type: priceType,
       recurring: recurring,
-      stripeAccount: stripeAccount,
+      barbershop_id: barbershop_id,
+      plan_id: plan_id, // Pode ser null se ainda não foi criado
     });
 
     if (!price) {
       // Se falhar ao criar preço, tentar deletar o produto criado
       try {
-        const options = stripeAccount ? { stripeAccount } : {};
-        await stripe.products.del(product.id, options);
+        await stripe.products.del(product.id);
       } catch (delError) {
         globalLogger.warn('Erro ao deletar produto após falha na criação do preço', {
           productId: product.id,
@@ -193,11 +200,11 @@ async function createProductAndPriceFromPlan(plan) {
       return null;
     }
 
-    globalLogger.info('Produto e preço criados no Stripe', {
-      planId: plan.id,
+    globalLogger.info('Produto e preço criados no Stripe (conta principal)', {
+      planId: plan_id || 'N/A',
+      barbershopId: barbershop_id || 'N/A',
       productId: product.id,
       priceId: price.id,
-      stripeAccount: stripeAccount || 'main_account',
     });
 
     return {
