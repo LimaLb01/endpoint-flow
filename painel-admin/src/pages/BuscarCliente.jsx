@@ -258,10 +258,15 @@ export default function BuscarCliente() {
 
   // Busca global
   const realizarBuscaGlobal = async () => {
-    if (!buscaGlobal.trim() && tipoBusca === 'all') {
+    console.log('🔍 Iniciando busca global:', { buscaGlobal: buscaGlobal, tipoBusca: tipoBusca, buscaGlobalLength: buscaGlobal?.length });
+    
+    if (!buscaGlobal || (!buscaGlobal.trim() && tipoBusca === 'all')) {
+      console.warn('⚠️ Validação falhou: buscaGlobal vazio e tipoBusca é "all"');
       setError('Digite um termo de busca ou selecione um tipo específico');
       return;
     }
+    
+    console.log('✅ Validação passou, continuando...');
 
     setCarregandoBusca(true);
     setError('');
@@ -280,7 +285,9 @@ export default function BuscarCliente() {
       if (filtrosAvancados.minAmount) filters.minAmount = parseFloat(filtrosAvancados.minAmount);
       if (filtrosAvancados.maxAmount) filters.maxAmount = parseFloat(filtrosAvancados.maxAmount);
 
+      console.log('📤 Enviando requisição com filtros:', filters);
       const data = await api.buscarGlobal(filters);
+      console.log('📥 Resposta recebida:', data);
       
       if (data && data.results) {
         setResultadosBusca(data.results);

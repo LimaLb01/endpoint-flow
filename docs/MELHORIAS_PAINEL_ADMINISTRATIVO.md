@@ -168,19 +168,34 @@ Este documento lista todas as melhorias propostas para o painel administrativo, 
 
 ---
 
-### 7. ⏳ Busca Avançada - **PENDENTE**
+### 7. ✅ Busca Avançada - **CONCLUÍDA**
 **Prioridade:** Média  
-**Status:** ⏳ Aguardando implementação
+**Status:** ✅ Implementada e testada
 
-**Melhorias propostas:**
-- [ ] Busca global (clientes, assinaturas, pagamentos)
-- [ ] Filtros avançados (data, valor, status)
-- [ ] Busca por múltiplos critérios
-- [ ] Histórico de buscas recentes
+**Melhorias implementadas:**
+- ✅ Busca global (clientes, assinaturas, pagamentos)
+- ✅ Filtros avançados (data, valor, status)
+- ✅ Busca por múltiplos critérios
+- ✅ Histórico de buscas recentes (localStorage, últimas 10)
+- ✅ Interface com abas para alternar entre "Busca por CPF" e "Busca Avançada"
+- ✅ Seleção de tipo de busca (Todos, Clientes, Assinaturas, Pagamentos)
+- ✅ Filtros condicionais baseados no tipo selecionado
+- ✅ Resultados organizados por categoria
+- ✅ Navegação direta para detalhes ao clicar nos resultados
+
+**Arquivos criados/modificados:**
+- `src/routes/admin-routes.js` (endpoint `GET /api/admin/search`)
+- `painel-admin/src/utils/api.js` (função `buscarGlobal`)
+- `painel-admin/src/pages/BuscarCliente.jsx` (interface completa de busca avançada)
 
 **Notas:**
-- A página "BuscarCliente" já existe, mas apenas para busca por CPF
-- Precisa expandir para busca global
+- A página "BuscarCliente" foi expandida mantendo a funcionalidade original de busca por CPF
+- Histórico de buscas salvo no localStorage do navegador
+- Busca por CPF, nome ou email em clientes
+- Busca por cliente em assinaturas e pagamentos
+- Filtros de data aplicáveis a todos os tipos
+- Filtros de valor apenas para pagamentos
+- Filtro de status apenas para assinaturas
 
 ---
 
@@ -201,12 +216,12 @@ Este documento lista todas as melhorias propostas para o painel administrativo, 
 ## 📊 Resumo de Progresso
 
 - **Total de melhorias:** 8
-- **Concluídas:** 6 (75%)
-- **Pendentes:** 2 (25%)
+- **Concluídas:** 7 (87.5%)
+- **Pendentes:** 1 (12.5%)
 
 ### Por Prioridade:
 - **Alta:** 3 melhorias (3 concluídas ✅)
-- **Média:** 4 melhorias (3 concluídas, 1 pendente)
+- **Média:** 4 melhorias (4 concluídas ✅)
 - **Baixa:** 1 melhoria (pendente)
 
 ---
@@ -216,8 +231,8 @@ Este documento lista todas as melhorias propostas para o painel administrativo, 
 1. ✅ **Implementar Melhoria #3:** Analytics do Flow - **CONCLUÍDA**
 2. ✅ **Implementar Melhoria #6:** Notificações e Alertas - **CONCLUÍDA**
 3. ✅ **Implementar Melhoria #4:** Relatórios e Exportação - **CONCLUÍDA**
-4. ✅ **Implementar Melhoria #5:** Gerenciamento de Planos - **CONCLUÍDA** (requer deploy)
-5. **Implementar Melhoria #7:** Busca Avançada (prioridade média)
+4. ✅ **Implementar Melhoria #5:** Gerenciamento de Planos - **CONCLUÍDA**
+5. ✅ **Implementar Melhoria #7:** Busca Avançada - **CONCLUÍDA**
 6. **Implementar Melhoria #8:** Melhorias de UX (prioridade baixa)
 
 ---
