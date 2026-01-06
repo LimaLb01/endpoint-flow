@@ -302,14 +302,15 @@ export default function Planos() {
                                 onClick={() => handleToggleActive(plano)}
                                 className="p-2 rounded-lg hover:bg-neutral-light dark:hover:bg-[#2e2d1a] transition-all hover:scale-110"
                               >
-                              <span className={`material-symbols-outlined ${
-                                plano.active 
-                                  ? 'text-red-600' 
-                                  : 'text-green-600'
-                              }`}>
-                                {plano.active ? 'toggle_on' : 'toggle_off'}
-                              </span>
-                            </button>
+                                <span className={`material-symbols-outlined ${
+                                  plano.active 
+                                    ? 'text-red-600' 
+                                    : 'text-green-600'
+                                }`}>
+                                  {plano.active ? 'toggle_on' : 'toggle_off'}
+                                </span>
+                              </button>
+                            </Tooltip>
                           </div>
                         </td>
                       </tr>
