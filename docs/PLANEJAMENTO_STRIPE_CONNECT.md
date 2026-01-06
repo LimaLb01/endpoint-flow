@@ -158,25 +158,39 @@ CREATE INDEX idx_subscriptions_barbershop_id ON subscriptions(barbershop_id);
 
 ## 🗂️ Tarefas de Implementação
 
-### Fase 1: Preparação e Estrutura de Dados
-- [ ] **T1.1:** Criar tabela `barbershops` no Supabase
-- [ ] **T1.2:** Adicionar `barbershop_id` na tabela `subscriptions`
-- [ ] **T1.3:** Verificar e ajustar tabela `payments` se necessário
-- [ ] **T1.4:** Criar índices para performance
-- [ ] **T1.5:** Migrar dados existentes (se aplicável)
+### Fase 1: Preparação e Estrutura de Dados ✅ CONCLUÍDA
+- [x] **T1.1:** Criar tabela `barbershops` no Supabase
+  - Tabela criada com todos os campos necessários (id, nome, cidade, status, plano, stripe_account_id, stripe_onboarding_completed, application_fee_percent)
+- [x] **T1.2:** Adicionar `barbershop_id` na tabela `subscriptions`
+  - Coluna adicionada com foreign key para `barbershops(id)`
+- [x] **T1.3:** Verificar e ajustar tabela `payments` se necessário
+  - Tabela `payments` não precisa de `barbershop_id` (relaciona via subscription)
+- [x] **T1.4:** Criar índices para performance
+  - Índices criados: `idx_barbershops_status`, `idx_barbershops_stripe_account_id`, `idx_subscriptions_barbershop_id`
+- [x] **T1.5:** Migrar dados existentes (se aplicável)
+  - Não necessário (sistema novo)
 
-### Fase 2: Backend - Stripe Connect Service
-- [ ] **T2.1:** Criar `stripe-connect-service.js`
-- [ ] **T2.2:** Implementar `createConnectAccount()` - Criar conta Express
-- [ ] **T2.3:** Implementar `createOnboardingLink()` - Gerar link de onboarding
-- [ ] **T2.4:** Implementar `createSubscriptionForConnect()` - Criar assinatura na conta conectada
-- [ ] **T2.5:** Implementar `getApplicationFeeAmount()` - Calcular taxa da plataforma
+### Fase 2: Backend - Stripe Connect Service ✅ CONCLUÍDA
+- [x] **T2.1:** Criar `stripe-connect-service.js`
+  - Arquivo criado em `src/services/stripe-connect-service.js`
+- [x] **T2.2:** Implementar `createConnectAccount()` - Criar conta Express
+  - Função implementada e exportada
+- [x] **T2.3:** Implementar `createOnboardingLink()` - Gerar link de onboarding
+  - Função implementada e exportada
+- [x] **T2.4:** Implementar `createCheckoutSessionForConnect()` - Criar checkout na conta conectada
+  - Função implementada (substitui `createSubscriptionForConnect` - usa Checkout ao invés de API direta)
+- [x] **T2.5:** Implementar `getApplicationFeePercent()` - Calcular taxa da plataforma
+  - Função implementada e exportada
 
-### Fase 3: Backend - Rotas de API
-- [ ] **T3.1:** `POST /api/stripe/connect/onboard` - Iniciar onboarding
-- [ ] **T3.2:** `GET /api/stripe/connect/status/:barbershopId` - Verificar status onboarding
-- [ ] **T3.3:** `POST /api/stripe/connect/subscription` - Criar assinatura
-- [ ] **T3.4:** `GET /api/stripe/connect/portal/:barbershopId` - Link para portal do cliente
+### Fase 3: Backend - Rotas de API ✅ CONCLUÍDA
+- [x] **T3.1:** `POST /api/stripe/connect/onboard` - Iniciar onboarding
+  - Rota implementada em `src/routes/stripe-connect-routes.js`
+- [x] **T3.2:** `GET /api/stripe/connect/status/:barbershopId` - Verificar status onboarding
+  - Rota implementada
+- [x] **T3.3:** `POST /api/stripe/connect/checkout` - Criar checkout para assinatura
+  - Rota implementada (usa Checkout ao invés de API direta de subscription)
+- [x] **T3.4:** `POST /api/stripe/connect/portal` - Link para portal do cliente
+  - Rota implementada (POST ao invés de GET para segurança)
 
 ### Fase 4: Webhooks Stripe Connect ✅ CONCLUÍDA
 - [x] **T4.1:** Atualizar `handleWebhookEvent()` para eventos Connect
