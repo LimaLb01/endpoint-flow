@@ -257,7 +257,7 @@ export default function Dashboard() {
                         style={{ fontSize: '12px' }}
                         tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
                       />
-                      <Tooltip 
+                      <RechartsTooltip 
                         contentStyle={{ 
                           backgroundColor: '#1a190b', 
                           border: '1px solid #3a3928',
@@ -302,7 +302,7 @@ export default function Dashboard() {
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Pie>
-                      <Tooltip 
+                      <RechartsTooltip 
                         contentStyle={{ 
                           backgroundColor: '#1a190b', 
                           border: '1px solid #3a3928',
