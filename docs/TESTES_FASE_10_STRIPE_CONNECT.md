@@ -1,7 +1,8 @@
 # Testes Fase 10 - Stripe Connect
 
 **Data:** 05/01/2026  
-**Status:** 🧪 Em Testes
+**Última Atualização:** 17/01/2026  
+**Status:** 🧪 Em Testes - Testes com Browser Concluídos
 
 ---
 
@@ -58,20 +59,22 @@
 #### ✅ Teste 2: Criação de Checkout Session
 
 **Passos:**
-1. Com barbearia conectada, clicar em "Criar Assinatura"
-2. Selecionar um plano
-3. Verificar criação de checkout session
-4. Redirecionar para Stripe Checkout
-5. Completar pagamento (cartão de teste)
-6. Retornar ao painel
+1. ✅ Com barbearia conectada, clicar em "Criar Assinatura"
+2. ✅ Selecionar um plano (modal abre corretamente)
+3. ⚠️ Verificar criação de checkout session (bloqueado - planos sem `stripe_price_id`)
+4. ⏳ Redirecionar para Stripe Checkout (requer `stripe_price_id`)
+5. ⏳ Completar pagamento (cartão de teste) (requer `stripe_price_id`)
+6. ⏳ Retornar ao painel (requer `stripe_price_id`)
 
 **Resultado Esperado:**
-- ✅ Checkout session criada
-- ✅ Redirecionamento funciona
-- ✅ Assinatura criada após pagamento
-- ✅ Status atualizado no painel
+- ✅ Modal de seleção de planos funciona
+- ✅ Listagem de planos ativos funciona
+- ⚠️ Checkout session não pode ser criada sem `stripe_price_id`
+- ⏳ Redirecionamento (requer `stripe_price_id`)
+- ⏳ Assinatura criada após pagamento (requer `stripe_price_id`)
+- ⏳ Status atualizado no painel (requer `stripe_price_id`)
 
-**Status:** ⏳ Aguardando teste completo (requer plano com `stripe_price_id`)
+**Status:** ⚠️ **PARCIALMENTE TESTADO** - Interface funciona, mas requer `stripe_price_id` nos planos para completar o fluxo
 
 #### ✅ Teste 3: Gerenciamento de Assinatura
 
@@ -88,6 +91,11 @@
 - ✅ Status sincronizado
 
 **Status:** ⏳ Aguardando teste completo (requer assinatura ativa)
+
+**Nota:** Para testar, é necessário:
+1. Ter uma assinatura ativa no sistema
+2. Clicar em "Gerenciar Cartão / Pagamentos" na página de assinaturas
+3. Verificar redirecionamento para Customer Portal do Stripe
 
 ---
 
@@ -149,28 +157,40 @@ curl -X POST http://localhost:3000/api/webhooks/stripe \
 
 ## 🧪 Testes com @Browser
 
-### Teste 1: Interface de Pagamentos
+### Teste 1: Interface de Pagamentos ✅ COMPLETO
 
 **URL:** `http://localhost:5173/pagamentos`
 
 **Verificações:**
 - [x] Página carrega sem erros
 - [x] Status da conta Stripe exibido
-- [x] Botão "Conectar Pagamento" visível
+- [x] Botão "Conectar Pagamento" visível (quando status = 'not_connected')
 - [x] Sem erros no console
-- [ ] Testar redirecionamento (requer backend rodando)
+- [x] Seção "Status da Conta Stripe" exibida corretamente
+- [x] Seção "Assinatura" exibida corretamente
+- [x] Botão "Criar Assinatura" aparece quando conta Stripe está ativa
+- [x] Requisições de API funcionando (status 200)
+- [ ] Testar redirecionamento para onboarding (requer Stripe Connect habilitado)
 
-**Resultado:** ✅ Interface funcionando
+**Resultado:** ✅ **Interface funcionando corretamente**
 
 ### Teste 2: Modal de Seleção de Planos
 
 **Ações:**
-1. Clicar em "Criar Assinatura" (quando conta Stripe estiver ativa)
-2. Verificar abertura do modal
-3. Verificar listagem de planos
-4. Verificar seleção de plano
+1. ✅ Clicar em "Criar Assinatura" (quando conta Stripe estiver ativa)
+2. ✅ Verificar abertura do modal
+3. ✅ Verificar listagem de planos
+4. ✅ Verificar seleção de plano
 
-**Status:** ⏳ Aguardando conta Stripe ativa
+**Resultado:**
+- ✅ Modal abre corretamente ao clicar em "Criar Assinatura"
+- ✅ Lista 2 planos ativos:
+  - Plano Único - R$ 199.90
+  - Plano Anual - R$ 999.90
+- ⚠️ Ambos os planos mostram aviso: "⚠️ Plano não configurado no Stripe"
+- ⚠️ Planos não têm `stripe_price_id` configurado (confirma Problema 2)
+
+**Status:** ✅ **TESTADO** - Modal funciona, mas requer `stripe_price_id` para criar checkout
 
 ---
 
@@ -211,11 +231,13 @@ curl -X POST http://localhost:3000/api/webhooks/stripe \
 | Testes de Webhooks | ⚠️ | Implementado (requer `STRIPE_WEBHOOK_SECRET` após habilitar Connect) |
 | Deploy Staging | ✅ | Automático via GitHub |
 | Deploy Produção | ⏳ | Aguardando aprovação |
-| Interface (@Browser) | ✅ | Funcionando (mas erro ao conectar Stripe - Connect não habilitado) |
+| Interface (@Browser) | ✅ | **TESTADO** - Interface funcionando, modal de planos funciona |
+| Modal de Planos (@Browser) | ✅ | **TESTADO** - Abre corretamente, lista planos, mostra avisos |
 | Banco de Dados (MCP) | ✅ | Estrutura validada |
 | Servidor (MCP Railway) | ✅ | Funcionando |
 | Variáveis Stripe | ✅ | Configuradas no Railway |
 | Stripe Connect | ⚠️ | **NÃO HABILITADO** - Requer habilitação manual no dashboard Stripe |
+| Planos com `stripe_price_id` | ⚠️ | **NÃO CONFIGURADO** - 2 planos ativos sem `stripe_price_id` |
 
 ---
 
@@ -235,7 +257,7 @@ curl -X POST http://localhost:3000/api/webhooks/stripe \
 
 **Status:** ✅ **RESOLVIDO** - Variáveis configuradas, servidor reiniciado
 
-### Problema 1.1: Stripe Connect não habilitado na conta Stripe ⏳ EM PROGRESSO
+### Problema 1.1: Stripe Connect não habilitado na conta Stripe ✅ RESOLVIDO
 **Descrição:** 
 - Erro no log do Railway: "You can only create new accounts if you've signed up for Connect"
 - A conta Stripe não tem o Stripe Connect habilitado
@@ -248,8 +270,14 @@ curl -X POST http://localhost:3000/api/webhooks/stripe \
 3. ✅ **SELECIONAR MODELO DE NEGÓCIO: "Marketplace"** (NÃO "Plataforma")
    - Motivo: A plataforma recebe pagamentos e repassa para barbearias
    - Permite cobrar `application_fee` automaticamente
-4. ⏳ Escolher o tipo de conta (Express Accounts recomendado para marketplace)
-5. ⏳ Após habilitação, testar novamente o onboarding
+4. ✅ Escolher o tipo de conta (Express Accounts recomendado para marketplace)
+5. ✅ Onboarding concluído
+
+**Verificação no Banco de Dados:**
+- ✅ Barbearia encontrada: "Code Identidade Masculina" (ID: 612ea2c6-fa46-4e12-b3a5-91a3b605d53f)
+- ✅ `stripe_account_id`: `acct_1SmhMIHClmeWTuet` (configurado)
+- ✅ `stripe_onboarding_completed`: `true` (onboarding concluído)
+- ✅ `status`: `active` (barbearia ativa)
 
 **Observação Importante:**
 - O erro no dashboard do Stripe ("Something went wrong") não impede o funcionamento
@@ -257,7 +285,7 @@ curl -X POST http://localhost:3000/api/webhooks/stripe \
 - Quando o usuário clicar em "Conectar Pagamento" no painel, a conta será criada automaticamente via API
 - Não é necessário criar a conta manualmente no dashboard
 
-**Status:** ⏳ **EM PROGRESSO** - Usuário está no processo de habilitação do Connect, após concluir poderá testar via painel admin
+**Status:** ✅ **RESOLVIDO** - Stripe Connect habilitado e onboarding concluído. Conta Stripe ativa.
 
 ### Problema 2: Plano sem `stripe_price_id`
 **Descrição:** Planos no banco não têm `stripe_price_id` configurado  
@@ -338,11 +366,17 @@ curl -X POST http://localhost:3000/api/webhooks/stripe \
 
 ## 📝 Notas
 
-- Todos os testes básicos foram realizados e estão funcionando
-- Testes avançados requerem configuração adicional (planos com `stripe_price_id`)
-- Sistema está pronto para testes em ambiente de staging
-- Deploy automático via GitHub está funcionando corretamente
-- **Criação de Contas Connect:** O sistema cria contas programaticamente via API, não requer criação manual no dashboard
-- **Erro no Dashboard:** O erro "Something went wrong" no dashboard do Stripe não afeta o funcionamento, pois a criação é feita via API
+- ✅ Todos os testes básicos foram realizados e estão funcionando
+- ✅ Interface do painel administrativo testada e funcionando
+- ✅ Modal de seleção de planos testado e funcionando
+- ⚠️ Testes avançados requerem configuração adicional (planos com `stripe_price_id`)
+- ⚠️ Sistema está pronto para testes em ambiente de staging, mas requer:
+  - Stripe Connect habilitado na conta Stripe
+  - Planos com `stripe_price_id` configurado
+- ✅ Deploy automático via GitHub está funcionando corretamente
+- ✅ **Criação de Contas Connect:** O sistema cria contas programaticamente via API, não requer criação manual no dashboard
+- ✅ **Erro no Dashboard:** O erro "Something went wrong" no dashboard do Stripe não afeta o funcionamento, pois a criação é feita via API
+- ✅ **Testes com Browser:** Interface de pagamentos e modal de planos testados e funcionando corretamente
+- ⚠️ **Planos no Banco:** 2 planos ativos encontrados (Plano Único e Plano Anual), ambos sem `stripe_price_id`
 
    

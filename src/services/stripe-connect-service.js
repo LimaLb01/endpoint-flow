@@ -188,8 +188,10 @@ async function createCheckoutSessionForConnect(options) {
       });
     }
 
-    // Buscar preço para determinar se é recorrente
-    const price = await stripe.prices.retrieve(priceId);
+    // Buscar preço na conta Connect para determinar se é recorrente
+    const price = await stripe.prices.retrieve(priceId, {
+      stripeAccount: barbershopAccountId,
+    });
     const isRecurring = price.type === 'recurring';
 
     // Calcular application_fee_amount (taxa da plataforma)

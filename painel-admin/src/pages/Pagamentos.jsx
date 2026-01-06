@@ -179,13 +179,16 @@ export default function Pagamentos() {
     try {
       // Buscar dados do usuário do localStorage
       const userStr = localStorage.getItem('user');
-      let customerEmail = 'admin@barbershop.com'; // Fallback
+      let customerEmail = 'teste@barbershop.com'; // Fallback válido
       let customerCpf = '00000000000'; // Fallback
 
       if (userStr) {
         try {
           const user = JSON.parse(userStr);
-          if (user.email) customerEmail = user.email;
+          // Validar email antes de usar
+          if (user.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(user.email)) {
+            customerEmail = user.email;
+          }
           // CPF não está no user, manter fallback
         } catch (e) {
           console.warn('Erro ao parsear dados do usuário:', e);

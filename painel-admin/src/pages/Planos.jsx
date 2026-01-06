@@ -258,6 +258,29 @@ export default function Planos() {
     }
   };
 
+  const sincronizarPlanoStripe = async (planId, planName) => {
+    if (!confirm(`Deseja sincronizar o plano "${planName}" com o Stripe Connect? Isso criará o produto e preço na conta Connect da barbearia.`)) {
+      return;
+    }
+
+    try {
+      console.log('🔄 Sincronizando plano:', planId);
+      const result = await api.sincronizarPlanoStripe(planId);
+      
+      if (result?.success) {
+        toast.success('Plano sincronizado com sucesso! Produto e preço criados no Stripe Connect.');
+        console.log('✅ Sincronização bem-sucedida:', result);
+        carregarPlanos(); // Recarregar lista de planos
+      } else {
+        toast.error('Erro ao sincronizar plano: ' + (result?.error || result?.message || 'Erro desconhecido'));
+        console.error('❌ Erro na sincronização:', result);
+      }
+    } catch (error) {
+      console.error('❌ Erro ao sincronizar plano:', error);
+      toast.error('Erro ao sincronizar plano: ' + (error.message || 'Erro desconhecido'));
+    }
+  };
+
   return (
     <Layout>
       <div className="p-6 md:p-10">
@@ -373,6 +396,16 @@ export default function Planos() {
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center justify-end gap-2">
+                            {!plano.stripe_product_id || !plano.stripe_price_id ? (
+                              <Tooltip text="Sincronizar com Stripe Connect (criar produto/preço)">
+                                <button
+                                  onClick={() => sincronizarPlanoStripe(plano.id, plano.name)}
+                                  className="p-2 rounded-lg hover:bg-neutral-light dark:hover:bg-[#2e2d1a] transition-all hover:scale-110"
+                                >
+                                  <span className="material-symbols-outlined text-blue-600 dark:text-blue-400">sync</span>
+                                </button>
+                              </Tooltip>
+                            ) : null}
                             <Tooltip text="Ver estatísticas do plano">
                               <button
                                 onClick={() => carregarEstatisticas(plano.id)}
