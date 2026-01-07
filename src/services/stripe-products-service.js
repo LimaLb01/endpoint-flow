@@ -38,7 +38,6 @@ async function createProduct(productData) {
 
     const productParams = {
       name: name,
-      description: description || null,
       images: image ? [image] : undefined,
       metadata: {
         created_by: 'platform',
@@ -47,6 +46,11 @@ async function createProduct(productData) {
         ...(plan_id && { plan_id }),
       },
     };
+
+    // Só incluir description se não for null ou vazio
+    if (description && description.trim() !== '') {
+      productParams.description = description;
+    }
 
     // Sempre criar na conta principal (não usar stripeAccount)
     const product = await stripe.products.create(productParams);
